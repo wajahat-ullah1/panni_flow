@@ -1,0 +1,432 @@
+import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
+import './SignUpPage.css';
+import useAuth from '../shared/hooks/useAuth';
+
+const SignUpPage = () => {
+  const navigate = useNavigate();
+  const { login } = useAuth();
+  
+  const [fullName, setFullName] = useState('');
+  const [phoneNumber, setPhoneNumber] = useState('');
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [agreeToTerms, setAgreeToTerms] = useState(false);
+  const [loading, setLoading] = useState(false);
+
+  const validateEmail = (email) => {
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    return emailRegex.test(email);
+  };
+
+  const validatePassword = (pass) => {
+    return pass.length >= 8 && /[a-zA-Z]/.test(pass) && /[0-9]/.test(pass);
+  };
+
+  const handleSignUp = async (e) => {
+    e.preventDefault();
+    setLoading(true);
+
+    // Validation
+    if (!fullName || !phoneNumber || !email || !password || !confirmPassword) {
+      alert('Please fill in all fields');
+      setLoading(false);
+      return;
+    }
+
+    if (!validateEmail(email)) {
+      alert('Please enter a valid email address');
+      setLoading(false);
+      return;
+    }
+
+    if (!validatePassword(password)) {
+      alert('Password must be at least 8 characters with letters and numbers');
+      setLoading(false);
+      return;
+    }
+
+    if (password !== confirmPassword) {
+      alert('Passwords do not match');
+      setLoading(false);
+      return;
+    }
+
+    if (!agreeToTerms) {
+      alert('Please agree to the Terms of Service and Privacy Policy');
+      setLoading(false);
+      return;
+    }
+
+    try {
+      // Simulate API call - in real app, this would call your backend
+      // const response = await fetch('/api/auth/signup', {
+      //   method: 'POST',
+      //   headers: { 'Content-Type': 'application/json' },
+      //   body: JSON.stringify({ fullName, email, phoneNumber, password })
+      // });
+      // const data = await response.json();
+
+      // For now, create a mock token and user
+      const mockToken = 'mock-jwt-token-' + Date.now();
+      const userData = {
+        id: Date.now().toString(),
+        fullName,
+        email,
+        phoneNumber,
+        password, // Store password for login verification
+        role: 'customer',
+        createdAt: new Date().toISOString()
+      };
+
+      // Store in auth context
+      login(userData, mockToken);
+
+      // Show success message
+      alert('Account created successfully!');
+
+      // Redirect to customer dashboard
+      navigate('/customer/dashboard');
+    } catch (error) {
+      console.error('Sign up error:', error);
+      alert('Failed to create account. Please try again.');
+      setLoading(false);
+    }
+  };
+
+  const handleGoogleSignUp = () => {
+    console.log('Google sign up pressed');
+  };
+
+  const handleMicrosoftSignUp = () => {
+    console.log('Microsoft sign up pressed');
+  };
+
+  const handleTermsClick = (e) => {
+    e.preventDefault();
+    console.log('Terms of Service clicked');
+  };
+
+  const handlePrivacyClick = (e) => {
+    e.preventDefault();
+    console.log('Privacy Policy clicked');
+  };
+
+  const handleSignIn = () => {
+    navigate('/login');
+  };
+
+  return (
+    <div className="signup-container">
+      <div className="signup-content">
+        {/* Logo and Title */}
+        <div className="header-container">
+          <div className="logo-container">
+            <svg
+              className="logo-icon"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+            >
+              <path d="M3 6h18M3 12h18M3 18h18" />
+              <rect x="5" y="4" width="14" height="16" rx="2" />
+            </svg>
+          </div>
+          <h1 className="title">Join Pani Flow</h1>
+          <p className="subtitle">Order water online, anytime, anywhere</p>
+        </div>
+
+        {/* Sign Up Form Card */}
+        <div className="form-card">
+          <h2 className="welcome-text">Create Your Account</h2>
+          <p className="signup-text">Sign up to order fresh water delivery to your home</p>
+
+          <form onSubmit={handleSignUp}>
+            {/* Full Name and Phone Number Row */}
+            <div className="row-container">
+              <div className="input-container half-width">
+                <label className="label">Full Name</label>
+                <div className="input-wrapper">
+                  <svg
+                    className="input-icon"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                  >
+                    <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
+                    <circle cx="12" cy="7" r="4" />
+                  </svg>
+                  <input
+                    type="text"
+                    className="input"
+                    placeholder="John Doe"
+                    value={fullName}
+                    onChange={(e) => setFullName(e.target.value)}
+                    required
+                  />
+                </div>
+              </div>
+
+              <div className="input-container half-width">
+                <label className="label">Phone Number</label>
+                <div className="input-wrapper">
+                  <svg
+                    className="input-icon"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                  >
+                    <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z" />
+                  </svg>
+                  <input
+                    type="tel"
+                    className="input"
+                    placeholder="+1 234-567-8900"
+                    value={phoneNumber}
+                    onChange={(e) => setPhoneNumber(e.target.value)}
+                    required
+                  />
+                </div>
+              </div>
+            </div>
+
+            {/* Email Input */}
+            <div className="input-container">
+              <label className="label">Email Address</label>
+              <div className="input-wrapper">
+                <svg
+                  className="input-icon"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                >
+                  <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z" />
+                  <polyline points="22,6 12,13 2,6" />
+                </svg>
+                <input
+                  type="email"
+                  className="input"
+                  placeholder="you@email.com"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  required
+                />
+              </div>
+            </div>
+
+            {/* Password Input */}
+            <div className="input-container">
+              <label className="label">Password</label>
+              <div className="input-wrapper">
+                <svg
+                  className="input-icon"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                >
+                  <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
+                  <path d="M7 11V7a5 5 0 0 1 10 0v4" />
+                </svg>
+                <input
+                  type={showPassword ? 'text' : 'password'}
+                  className="input"
+                  placeholder="Create a strong password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  required
+                />
+                <button
+                  type="button"
+                  className="eye-button"
+                  onClick={() => setShowPassword(!showPassword)}
+                >
+                  {showPassword ? (
+                    <svg
+                      className="eye-icon"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="2"
+                    >
+                      <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
+                      <circle cx="12" cy="12" r="3" />
+                    </svg>
+                  ) : (
+                    <svg
+                      className="eye-icon"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="2"
+                    >
+                      <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24" />
+                      <line x1="1" y1="1" x2="23" y2="23" />
+                    </svg>
+                  )}
+                </button>
+              </div>
+              <p className="password-hint">
+                Must be at least 8 characters with letters and numbers
+              </p>
+            </div>
+
+            {/* Confirm Password Input */}
+            <div className="input-container">
+              <label className="label">Confirm Password</label>
+              <div className="input-wrapper">
+                <svg
+                  className="input-icon"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                >
+                  <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
+                  <path d="M7 11V7a5 5 0 0 1 10 0v4" />
+                </svg>
+                <input
+                  type={showConfirmPassword ? 'text' : 'password'}
+                  className="input"
+                  placeholder="Re-enter your password"
+                  value={confirmPassword}
+                  onChange={(e) => setConfirmPassword(e.target.value)}
+                  required
+                />
+                <button
+                  type="button"
+                  className="eye-button"
+                  onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                >
+                  {showConfirmPassword ? (
+                    <svg
+                      className="eye-icon"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="2"
+                    >
+                      <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
+                      <circle cx="12" cy="12" r="3" />
+                    </svg>
+                  ) : (
+                    <svg
+                      className="eye-icon"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="2"
+                    >
+                      <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24" />
+                      <line x1="1" y1="1" x2="23" y2="23" />
+                    </svg>
+                  )}
+                </button>
+              </div>
+            </div>
+
+            {/* Terms and Conditions */}
+            <label className="terms-container">
+              <input
+                type="checkbox"
+                className="checkbox-input"
+                checked={agreeToTerms}
+                onChange={(e) => setAgreeToTerms(e.target.checked)}
+              />
+              <span className="checkbox-custom">
+                {agreeToTerms && (
+                  <svg
+                    className="check-icon"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="3"
+                  >
+                    <polyline points="20 6 9 17 4 12" />
+                  </svg>
+                )}
+              </span>
+              <span className="terms-text">
+                I agree to the{' '}
+                <a href="#" className="terms-link" onClick={handleTermsClick}>
+                  Terms of Service
+                </a>{' '}
+                and{' '}
+                <a href="#" className="terms-link" onClick={handlePrivacyClick}>
+                  Privacy Policy
+                </a>
+              </span>
+            </label>
+
+            {/* Create Account Button */}
+            <button type="submit" className="create-account-button" disabled={loading}>
+              {loading ? 'Creating Account...' : 'Create Account'}
+            </button>
+          </form>
+
+          {/* Divider */}
+          <div className="divider-container">
+            <div className="divider-line"></div>
+            <span className="divider-text">OR SIGN UP WITH</span>
+            <div className="divider-line"></div>
+          </div>
+
+          {/* Social Sign Up Buttons */}
+          <div className="social-buttons-container">
+            <button className="social-button" onClick={handleGoogleSignUp}>
+              <svg className="social-icon" viewBox="0 0 24 24">
+                <path
+                  fill="#DB4437"
+                  d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
+                />
+                <path
+                  fill="#34A853"
+                  d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"
+                />
+                <path
+                  fill="#FBBC05"
+                  d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"
+                />
+                <path
+                  fill="#EA4335"
+                  d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"
+                />
+              </svg>
+              <span className="social-button-text">Google</span>
+            </button>
+
+            <button className="social-button" onClick={handleMicrosoftSignUp}>
+              <svg className="social-icon" viewBox="0 0 24 24">
+                <path fill="#F25022" d="M1 1h10v10H1z" />
+                <path fill="#00A4EF" d="M13 1h10v10H13z" />
+                <path fill="#7FBA00" d="M1 13h10v10H1z" />
+                <path fill="#FFB900" d="M13 13h10v10H13z" />
+              </svg>
+              <span className="social-button-text">Microsoft</span>
+            </button>
+          </div>
+
+          {/* Sign In Link */}
+          <div className="signin-container">
+            <span className="signin-text">Already have an account? </span>
+            <button className="signin-link" onClick={handleSignIn}>
+              Sign in
+            </button>
+          </div>
+        </div>
+
+        {/* Footer */}
+        <p className="footer">© 2024 Pani Flow. All rights reserved.</p>
+      </div>
+    </div>
+  );
+};
+
+export default SignUpPage;

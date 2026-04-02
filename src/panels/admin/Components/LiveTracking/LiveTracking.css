@@ -1,0 +1,545 @@
+/* Live Tracking Styles */
+
+.live-tracking {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  background-color: #f5f7fa;
+}
+
+/* Header */
+.tracking-header {
+  background-color: #fff;
+  padding: 24px 32px;
+  border-bottom: 1px solid #e0e0e0;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.header-title {
+  font-size: 32px;
+  font-weight: 700;
+  color: #1a1a1a;
+  margin: 0 0 4px 0;
+}
+
+.header-subtitle {
+  font-size: 14px;
+  color: #757575;
+  margin: 0;
+}
+
+/* Live Indicator */
+.live-indicator {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background-color: #ffebee;
+  padding: 8px 16px;
+  border-radius: 20px;
+}
+
+.live-dot {
+  width: 8px;
+  height: 8px;
+  background-color: #f44336;
+  border-radius: 50%;
+  animation: pulse 2s ease-in-out infinite;
+}
+
+@keyframes pulse {
+  0%, 100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.5;
+    transform: scale(1.2);
+  }
+}
+
+.live-text {
+  font-size: 12px;
+  font-weight: 600;
+  color: #f44336;
+  text-transform: uppercase;
+}
+
+/* Loading Container */
+.loading-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: calc(100vh - 150px);
+  gap: 20px;
+}
+
+.loading-spinner {
+  width: 50px;
+  height: 50px;
+  border: 4px solid #e3f2fd;
+  border-top: 4px solid #2196f3;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  0% {
+    transform: rotate(0deg);
+  }
+  100% {
+    transform: rotate(360deg);
+  }
+}
+
+.loading-text {
+  font-size: 16px;
+  color: #757575;
+  font-weight: 500;
+}
+
+/* Tracking Content */
+.tracking-content {
+  flex: 1;
+  display: flex;
+  overflow: hidden;
+}
+
+/* Map Section */
+.map-section {
+  flex: 1;
+  position: relative;
+  background-color: #e5e3df;
+}
+
+/* Map Legend */
+.map-legend {
+  position: absolute;
+  top: 20px;
+  left: 20px;
+  background-color: #fff;
+  border-radius: 12px;
+  padding: 16px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  z-index: 10;
+}
+
+.legend-title {
+  font-size: 14px;
+  font-weight: 700;
+  color: #1a1a1a;
+  margin: 0 0 12px 0;
+}
+
+.legend-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+.legend-item:last-child {
+  margin-bottom: 0;
+}
+
+.legend-icon {
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.tanker-icon {
+  background-color: #e3f2fd;
+  color: #2196f3;
+}
+
+.destination-icon {
+  background-color: #e8f5e9;
+  color: #4caf50;
+}
+
+.legend-text {
+  font-size: 12px;
+  color: #424242;
+}
+
+/* Sidebar */
+.tracking-sidebar {
+  width: 340px;
+  background-color: #fff;
+  border-left: 1px solid #e0e0e0;
+  display: flex;
+  flex-direction: column;
+}
+
+.sidebar-scroll {
+  flex: 1;
+  overflow-y: auto;
+  padding: 20px;
+}
+
+/* Sidebar Section */
+.sidebar-section {
+  margin-bottom: 24px;
+}
+
+.sidebar-title {
+  font-size: 18px;
+  font-weight: 700;
+  color: #1a1a1a;
+  margin: 0 0 16px 0;
+}
+
+/* Delivery Card */
+.delivery-card {
+  background-color: #f8f9fa;
+  border: 1px solid #e0e0e0;
+  border-radius: 12px;
+  padding: 16px;
+  margin-bottom: 12px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.delivery-card:hover {
+  background-color: #fff;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  transform: translateY(-2px);
+}
+
+.delivery-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 12px;
+}
+
+.delivery-customer {
+  font-size: 14px;
+  font-weight: 600;
+  color: #1a1a1a;
+  margin: 0 0 4px 0;
+}
+
+.delivery-order-id {
+  font-size: 12px;
+  color: #757575;
+  margin: 0;
+}
+
+.eta-badge {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  background-color: #fff;
+  padding: 4px 8px;
+  border-radius: 8px;
+  font-size: 11px;
+  color: #757575;
+  font-weight: 600;
+}
+
+.delivery-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.tanker-badge {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  background-color: #e3f2fd;
+  padding: 6px 10px;
+  border-radius: 8px;
+  font-size: 12px;
+  font-weight: 600;
+  color: #2196f3;
+}
+
+.status-badge {
+  padding: 6px 10px;
+  border-radius: 8px;
+  font-size: 12px;
+  font-weight: 600;
+  background-color: #e3f2fd;
+  color: #2196f3;
+}
+
+.status-badge.arrived {
+  background-color: #e8f5e9;
+  color: #4caf50;
+}
+
+/* Tanker Details */
+.tanker-details {
+  background-color: #fff;
+  border: 1px solid #e0e0e0;
+  border-radius: 12px;
+  padding: 16px;
+}
+
+.detail-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px 0;
+  border-bottom: 1px solid #f5f5f5;
+}
+
+.detail-row:last-of-type {
+  border-bottom: none;
+}
+
+.detail-label {
+  font-size: 13px;
+  color: #757575;
+}
+
+.detail-value {
+  font-size: 14px;
+  font-weight: 600;
+  color: #1a1a1a;
+}
+
+.tanker-id,
+.order-id {
+  color: #2196f3;
+}
+
+/* Destination Detail */
+.destination-detail {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  background-color: #e8f5e9;
+  padding: 12px;
+  border-radius: 8px;
+  margin-top: 12px;
+}
+
+.destination-info {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.destination-label {
+  font-size: 11px;
+  color: #4caf50;
+  font-weight: 600;
+}
+
+.destination-value {
+  font-size: 13px;
+  color: #1a1a1a;
+}
+
+/* ETA Detail */
+.eta-detail {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  background-color: #fff8e1;
+  padding: 12px;
+  border-radius: 8px;
+  margin-top: 8px;
+}
+
+.eta-info {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.eta-label {
+  font-size: 11px;
+  color: #ff9800;
+  font-weight: 600;
+}
+
+.eta-value {
+  font-size: 16px;
+  font-weight: 700;
+  color: #ff9800;
+}
+
+/* Buttons */
+.contact-button {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  background: linear-gradient(135deg, #00a8e8 0%, #0086c3 100%);
+  color: #fff;
+  border: none;
+  padding: 14px;
+  border-radius: 12px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  margin-top: 16px;
+  transition: all 0.2s ease;
+  box-shadow: 0 4px 12px rgba(0, 168, 232, 0.3);
+}
+
+.contact-button:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 16px rgba(0, 168, 232, 0.4);
+}
+
+.route-button {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  background-color: #f5f5f5;
+  color: #424242;
+  border: none;
+  padding: 14px;
+  border-radius: 12px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  margin-top: 8px;
+  transition: all 0.2s ease;
+}
+
+.route-button:hover {
+  background-color: #e0e0e0;
+}
+
+/* Stats Bar */
+.stats-bar {
+  display: flex;
+  background-color: #fff;
+  padding: 20px 32px;
+  gap: 16px;
+  border-top: 1px solid #e0e0e0;
+  box-shadow: 0 -2px 8px rgba(0, 0, 0, 0.05);
+}
+
+.stat-item {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  background-color: #f8f9fa;
+  padding: 16px;
+  border-radius: 12px;
+}
+
+.stat-icon {
+  width: 48px;
+  height: 48px;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.stat-info {
+  flex: 1;
+}
+
+.stat-value {
+  font-size: 20px;
+  font-weight: 700;
+  color: #1a1a1a;
+  margin: 0 0 2px 0;
+}
+
+.stat-label {
+  font-size: 11px;
+  color: #757575;
+  margin: 0;
+}
+
+/* Scrollbar */
+.sidebar-scroll::-webkit-scrollbar {
+  width: 6px;
+}
+
+.sidebar-scroll::-webkit-scrollbar-track {
+  background: #f5f5f5;
+}
+
+.sidebar-scroll::-webkit-scrollbar-thumb {
+  background: #bdbdbd;
+  border-radius: 3px;
+}
+
+.sidebar-scroll::-webkit-scrollbar-thumb:hover {
+  background: #9e9e9e;
+}
+
+/* Responsive Design */
+@media (max-width: 1200px) {
+  .tracking-sidebar {
+    width: 300px;
+  }
+
+  .stats-bar {
+    flex-wrap: wrap;
+  }
+
+  .stat-item {
+    flex: 1 1 calc(50% - 8px);
+    min-width: 200px;
+  }
+}
+
+@media (max-width: 768px) {
+  .tracking-content {
+    flex-direction: column;
+  }
+
+  .map-section {
+    height: 400px;
+  }
+
+  .tracking-sidebar {
+    width: 100%;
+    max-height: 400px;
+  }
+
+  .stats-bar {
+    flex-wrap: wrap;
+    padding: 16px;
+  }
+
+  .stat-item {
+    flex: 1 1 calc(50% - 8px);
+  }
+
+  .map-legend {
+    top: 10px;
+    left: 10px;
+    padding: 12px;
+  }
+}
+
+@media (max-width: 480px) {
+  .tracking-header {
+    padding: 16px;
+  }
+
+  .header-title {
+    font-size: 24px;
+  }
+
+  .stat-item {
+    flex: 1 1 100%;
+  }
+}

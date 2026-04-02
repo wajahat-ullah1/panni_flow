@@ -1,0 +1,344 @@
+/* ===== Earnings Page ===== */
+.earn-container {
+  padding: 32px 36px;
+  min-height: 100vh;
+  background-color: #f1f5f9;
+  font-family: 'Segoe UI', sans-serif;
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+/* ── Page Header ── */
+.earn-page-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+}
+
+.earn-title {
+  font-size: 26px;
+  font-weight: 700;
+  color: #0f172a;
+  margin: 0 0 4px 0;
+}
+
+.earn-subtitle {
+  font-size: 14px;
+  color: #64748b;
+  margin: 0;
+}
+
+/* Filter Dropdown */
+.earn-filter-wrap {
+  position: relative;
+}
+
+.earn-filter-btn {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+  padding: 10px 16px;
+  font-size: 14px;
+  color: #334155;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background 0.15s;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+}
+
+.earn-filter-btn:hover { background: #f8fafc; }
+
+.earn-dropdown {
+  position: absolute;
+  right: 0;
+  top: calc(100% + 6px);
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+  box-shadow: 0 8px 20px rgba(0,0,0,0.1);
+  z-index: 100;
+  min-width: 140px;
+  overflow: hidden;
+}
+
+.earn-dropdown-item {
+  display: block;
+  width: 100%;
+  padding: 10px 16px;
+  text-align: left;
+  background: none;
+  border: none;
+  font-size: 14px;
+  color: #334155;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.earn-dropdown-item:hover { background: #f1f5f9; }
+.earn-dropdown-item.active {
+  background: #eff6ff;
+  color: #2563eb;
+  font-weight: 600;
+}
+
+/* ── Stat Cards ── */
+.earn-stats {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 18px;
+}
+
+.earn-stat-card {
+  background: #ffffff;
+  border-radius: 14px;
+  padding: 20px 22px;
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.06);
+}
+
+.earn-stat-info {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.earn-stat-label {
+  font-size: 12px;
+  color: #64748b;
+  font-weight: 500;
+}
+
+.earn-stat-value {
+  font-size: 26px;
+  font-weight: 700;
+  color: #0f172a;
+  line-height: 1.2;
+  margin: 2px 0;
+}
+
+.earn-stat-trend {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 12px;
+  color: #22c55e;
+  font-weight: 500;
+}
+
+.earn-stat-note {
+  font-size: 12px;
+  color: #94a3b8;
+}
+
+.earn-stat-icon {
+  width: 48px;
+  height: 48px;
+  border-radius: 14px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.earn-icon-green  { background: linear-gradient(135deg, #22c55e, #16a34a); }
+.earn-icon-blue   { background: linear-gradient(135deg, #38bdf8, #0ea5e9); }
+.earn-icon-pink   { background: linear-gradient(135deg, #e879f9, #a855f7); }
+.earn-icon-orange { background: linear-gradient(135deg, #fb923c, #f97316); }
+
+/* ── Card Wrapper ── */
+.earn-card {
+  background: #ffffff;
+  border-radius: 14px;
+  padding: 24px 28px;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.06);
+}
+
+.earn-card-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  margin-bottom: 22px;
+}
+
+.earn-card-title {
+  font-size: 17px;
+  font-weight: 700;
+  color: #0f172a;
+  margin: 0 0 3px 0;
+}
+
+.earn-card-sub {
+  font-size: 13px;
+  color: #94a3b8;
+  margin: 0;
+}
+
+.earn-card-badge {
+  font-size: 13px;
+  font-weight: 600;
+  color: #16a34a;
+}
+
+/* ── Bar Chart ── */
+.earn-chart-area {
+  display: flex;
+  gap: 10px;
+  height: 280px;
+}
+
+.earn-y-axis {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  padding-bottom: 24px;
+  width: 38px;
+  text-align: right;
+}
+
+.earn-y-axis span {
+  font-size: 11px;
+  color: #94a3b8;
+}
+
+.earn-bars-wrap {
+  flex: 1;
+  position: relative;
+  display: flex;
+  flex-direction: column;
+}
+
+.earn-grid-lines {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 24px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  pointer-events: none;
+}
+
+.earn-grid-line {
+  width: 100%;
+  height: 1px;
+  background: #f1f5f9;
+}
+
+.earn-bars {
+  flex: 1;
+  display: flex;
+  align-items: flex-end;
+  gap: 14px;
+  padding-bottom: 24px;
+  position: relative;
+  z-index: 1;
+}
+
+.earn-bar-col {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  height: 100%;
+}
+
+.earn-bar-track {
+  flex: 1;
+  width: 100%;
+  display: flex;
+  align-items: flex-end;
+}
+
+.earn-bar {
+  width: 100%;
+  border-radius: 8px 8px 0 0;
+  background: linear-gradient(180deg, #38bdf8 0%, #06b6d4 100%);
+  transition: opacity 0.2s;
+  cursor: pointer;
+  min-height: 4px;
+}
+
+.earn-bar:hover { opacity: 0.8; }
+
+.earn-bar-label {
+  font-size: 12px;
+  color: #94a3b8;
+  white-space: nowrap;
+}
+
+/* ── Line Chart ── */
+.earn-line-svg {
+  width: 100%;
+  height: auto;
+  display: block;
+  overflow: visible;
+}
+
+/* ── Payment Status ── */
+.earn-payment-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-radius: 12px;
+  padding: 18px 22px;
+  margin-bottom: 12px;
+}
+
+.earn-payment-row:last-child { margin-bottom: 0; }
+
+.earn-paid       { background: #f0fdf4; }
+.earn-processing { background: #fefce8; }
+
+.earn-payment-row > div {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.earn-payment-label {
+  font-size: 13px;
+  color: #64748b;
+}
+
+.earn-payment-amount {
+  font-size: 20px;
+  font-weight: 700;
+  color: #0f172a;
+}
+
+.earn-badge {
+  font-size: 13px;
+  font-weight: 600;
+  padding: 6px 14px;
+  border-radius: 20px;
+  white-space: nowrap;
+}
+
+.earn-badge-paid {
+  background: #dcfce7;
+  color: #16a34a;
+}
+
+.earn-badge-processing {
+  background: #fef9c3;
+  color: #ca8a04;
+}
+
+/* ── Responsive ── */
+@media (max-width: 1100px) {
+  .earn-stats { grid-template-columns: repeat(2, 1fr); }
+}
+
+@media (max-width: 768px) {
+  .earn-container { margin-left: 0; padding: 20px 16px; }
+  .earn-stats { grid-template-columns: 1fr; }
+}

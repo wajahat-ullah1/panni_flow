@@ -1,0 +1,67 @@
+import api from "./axiosConfig";
+
+// ─────────────────────────────────────────────────────────────────────────────
+// authApi — public endpoints (no JWT needed)
+// Used by: LoginPage, RegisterPage, AdminLoginPage
+// ─────────────────────────────────────────────────────────────────────────────
+
+const authApi = {
+
+  // ── Customer / Driver login ─────────────────────────────────────────────────
+  // POST /api/auth/login
+  // Body: { email, password }
+  // Returns: { user: { _id, name, email, role, ... }, token }
+  login: (credentials) =>
+    api.post("/auth/login", credentials),
+
+
+  // ── Customer registration ───────────────────────────────────────────────────
+  // POST /api/auth/register
+  // Body: { name, email, phone, password }
+  // Returns: { message: "Verification email sent" }
+  register: (userData) =>
+    api.post("/auth/register", userData),
+
+
+  // ── Admin login (separate endpoint) ────────────────────────────────────────
+  // POST /api/auth/admin/login
+  // Body: { email, password }
+  // Returns: { user: { _id, name, email, role: "admin" }, token }
+  adminLogin: (credentials) =>
+    api.post("/auth/admin/login", credentials),
+
+
+  // ── Email verification ──────────────────────────────────────────────────────
+  // GET /api/auth/verify/:token
+  verifyEmail: (token) =>
+    api.get(`/auth/verify/${token}`),
+
+
+  // ── Forgot password ─────────────────────────────────────────────────────────
+  // POST /api/auth/forgot-password
+  // Body: { email }
+  forgotPassword: (email) =>
+    api.post("/auth/forgot-password", { email }),
+
+
+  // ── Reset password ──────────────────────────────────────────────────────────
+  // POST /api/auth/reset-password/:token
+  // Body: { password }
+  resetPassword: (token, password) =>
+    api.post(`/auth/reset-password/${token}`, { password }),
+
+
+  // ── Refresh JWT token ───────────────────────────────────────────────────────
+  // POST /api/auth/refresh
+  refreshToken: () =>
+    api.post("/auth/refresh"),
+
+
+  // ── Logout (invalidate token on backend) ───────────────────────────────────
+  // POST /api/auth/logout
+  logout: () =>
+    api.post("/auth/logout"),
+
+};
+
+export default authApi;
