@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import './SignUpPage.css';
 import useAuth from '../shared/hooks/useAuth';
+import authApi from '../shared/api/authApi';
 
 const SignUpPage = () => {
   const navigate = useNavigate();
@@ -24,6 +25,18 @@ const SignUpPage = () => {
 
   const validatePassword = (pass) => {
     return pass.length >= 8 && /[a-zA-Z]/.test(pass) && /[0-9]/.test(pass);
+  };
+
+  const parseRegisterResponse = (payload) => {
+    const isSuccess = payload?.success === true;
+    const user = payload?.data?.user;
+    const token = payload?.data?.accessToken;
+
+    if (!isSuccess || !user || !token) {
+      throw new Error('Invalid registration response from server');
+    }
+
+    return { user, token };
   };
 
   const handleSignUp = async (e) => {
@@ -62,28 +75,15 @@ const SignUpPage = () => {
     }
 
     try {
-      // Simulate API call - in real app, this would call your backend
-      // const response = await fetch('/api/auth/signup', {
-      //   method: 'POST',
-      //   headers: { 'Content-Type': 'application/json' },
-      //   body: JSON.stringify({ fullName, email, phoneNumber, password })
-      // });
-      // const data = await response.json();
-
-      // For now, create a mock token and user
-      const mockToken = 'mock-jwt-token-' + Date.now();
-      const userData = {
-        id: Date.now().toString(),
+      const response = await authApi.registerCustomer({
         fullName,
         email,
-        phoneNumber,
-        password, // Store password for login verification
-        role: 'customer',
-        createdAt: new Date().toISOString()
-      };
+        phone: phoneNumber,
+        password,
+      });
 
-      // Store in auth context
-      login(userData, mockToken);
+      const { user, token } = parseRegisterResponse(response);
+      login(user, token);
 
       // Show success message
       alert('Account created successfully!');
@@ -92,7 +92,9 @@ const SignUpPage = () => {
       navigate('/customer/dashboard');
     } catch (error) {
       console.error('Sign up error:', error);
-      alert('Failed to create account. Please try again.');
+      const apiMessage = error?.response?.data?.message;
+      alert(apiMessage || 'Failed to create account. Please try again.');
+    } finally {
       setLoading(false);
     }
   };

@@ -1,4 +1,6 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import customerApi from "../../../shared/api/customerApi";
+import useAuth from "../../../shared/hooks/useAuth";
 
 // ─── Icons ───────────────────────────────────────────────────────────────────
 function UserIcon({ size = 40, stroke = "white" }) {
@@ -132,7 +134,7 @@ function Toggle({ on, onChange }) {
 }
 
 // ─── Address Card ─────────────────────────────────────────────────────────────
-function AddressCard({ label, isDefault, address, city, phone, onEdit, onDelete }) {
+function AddressCard({ label, isDefault, address, city, phone, onEdit, onDelete, onSetDefault }) {
   return (
     <div style={addrStyles.card}>
       <div style={addrStyles.iconWrap}>
@@ -150,6 +152,9 @@ function AddressCard({ label, isDefault, address, city, phone, onEdit, onDelete 
         </div>
       </div>
       <div style={addrStyles.actions}>
+        {!isDefault ? (
+          <button style={addrStyles.defaultBtn} onClick={onSetDefault}>Set Default</button>
+        ) : null}
         <button style={addrStyles.editBtn} onClick={onEdit}><EditIcon /></button>
         <button style={addrStyles.deleteBtn} onClick={onDelete}><TrashIcon /></button>
       </div>
@@ -197,7 +202,17 @@ const addrStyles = {
     color: "#64748b",
     marginTop: 2,
   },
-  actions: { display: "flex", gap: 6 },
+  actions: { display: "flex", gap: 6, alignItems: "center" },
+  defaultBtn: {
+    border: "1px solid #bae6fd",
+    borderRadius: 999,
+    background: "#f0f9ff",
+    color: "#0369a1",
+    fontSize: 11,
+    fontWeight: 700,
+    padding: "6px 10px",
+    cursor: "pointer",
+  },
   editBtn: {
     width: 32,
     height: 32,
@@ -230,46 +245,232 @@ const INITIAL_PREFS = {
   promotionalOffers: false,
 };
 
-const INITIAL_ADDRESSES = [
-  {
-    id: 1,
-    label: "Home",
-    isDefault: true,
-    address: "123 Main Street, Apt 4B",
-    city: "New York, NY 10001",
-    phone: "+1 (555) 123-4567",
-  },
-  {
-    id: 2,
-    label: "Office",
-    isDefault: false,
-    address: "456 Business Ave, Suite 200",
-    city: "New York, NY 10002",
-    phone: "+1 (555) 987-6543",
-  },
-];
+const EMPTY_ADDRESS_FORM = {
+  label: "",
+  address: "",
+  city: "",
+  phone: "",
+};
+
+function normalizeProfile(payload) {
+  const source = payload?.data?.user || payload?.data || payload?.user || payload || {};
+
+  return {
+    id: source.id || source._id || "",
+    fullName: source.fullName || source.name || "",
+    email: source.email || "",
+    phone: source.phone || source.phoneNumber || "",
+    addresses: Array.isArray(source.addresses) ? source.addresses : [],
+  };
+}
+
+function normalizeAddress(address, index = 0) {
+  return {
+    id: address?.id || address?._id || address?.addrId || `address-${index}`,
+    label: address?.label || address?.name || `Address ${index + 1}`,
+    isDefault: Boolean(address?.isDefault ?? address?.default),
+    address: address?.address || address?.street || address?.line1 || "",
+    city: address?.city || address?.area || address?.cityState || "",
+    phone: address?.phone || address?.phoneNumber || "",
+  };
+}
+
+function buildProfileForm(profile, fallbackUser) {
+  return {
+    name: profile.fullName || fallbackUser?.fullName || fallbackUser?.name || "",
+    email: profile.email || fallbackUser?.email || "",
+    phone: profile.phone || fallbackUser?.phone || fallbackUser?.phoneNumber || "",
+  };
+}
 
 export default function ProfilePage() {
+  const { user, updateUser } = useAuth();
   const [editing, setEditing] = useState(false);
-  const [form, setForm] = useState({
-    name: "John Doe",
-    email: "john.doe@email.com",
-    phone: "+1 (555) 123-4567",
-  });
-  const [draft, setDraft] = useState({ ...form });
+  const [form, setForm] = useState(buildProfileForm({}, user));
+  const [draft, setDraft] = useState(buildProfileForm({}, user));
   const [prefs, setPrefs] = useState(INITIAL_PREFS);
-  const [addresses, setAddresses] = useState(INITIAL_ADDRESSES);
+  const [addresses, setAddresses] = useState([]);
+  const [profileLoading, setProfileLoading] = useState(true);
+  const [savingProfile, setSavingProfile] = useState(false);
+  const [addressSaving, setAddressSaving] = useState(false);
+  const [errorMessage, setErrorMessage] = useState("");
+  const [showAddressForm, setShowAddressForm] = useState(false);
+  const [editingAddressId, setEditingAddressId] = useState(null);
+  const [addressDraft, setAddressDraft] = useState(EMPTY_ADDRESS_FORM);
 
-  const handleSave = () => {
-    setForm({ ...draft });
-    setEditing(false);
+  useEffect(() => {
+    let isMounted = true;
+
+    const loadProfile = async () => {
+      setProfileLoading(true);
+      setErrorMessage("");
+
+      try {
+        const response = await customerApi.getProfile();
+        const profile = normalizeProfile(response);
+        const nextForm = buildProfileForm(profile, user);
+        const nextAddresses = profile.addresses.map(normalizeAddress);
+
+        if (!isMounted) return;
+
+        setForm(nextForm);
+        setDraft(nextForm);
+        setAddresses(nextAddresses);
+
+        if (profile.fullName || profile.email || profile.phone) {
+          updateUser({
+            fullName: profile.fullName || nextForm.name,
+            name: profile.fullName || nextForm.name,
+            email: profile.email || nextForm.email,
+            phone: profile.phone || nextForm.phone,
+            addresses: profile.addresses,
+          });
+        }
+      } catch (error) {
+        if (!isMounted) return;
+        setErrorMessage(error?.response?.data?.message || "Failed to load profile.");
+      } finally {
+        if (isMounted) {
+          setProfileLoading(false);
+        }
+      }
+    };
+
+    loadProfile();
+
+    return () => {
+      isMounted = false;
+    };
+  }, []);
+
+  const resetAddressEditor = () => {
+    setShowAddressForm(false);
+    setEditingAddressId(null);
+    setAddressDraft(EMPTY_ADDRESS_FORM);
   };
+
+  const handleSave = async () => {
+    setSavingProfile(true);
+    setErrorMessage("");
+
+    try {
+      await customerApi.updateProfile({
+        fullName: draft.name,
+        email: draft.email,
+        phone: draft.phone,
+      });
+
+      setForm({ ...draft });
+      updateUser({
+        fullName: draft.name,
+        name: draft.name,
+        email: draft.email,
+        phone: draft.phone,
+      });
+      setEditing(false);
+    } catch (error) {
+      setErrorMessage(error?.response?.data?.message || "Failed to save profile.");
+    } finally {
+      setSavingProfile(false);
+    }
+  };
+
   const handleCancel = () => {
     setDraft({ ...form });
     setEditing(false);
   };
-  const handleDeleteAddress = (id) =>
-    setAddresses((prev) => prev.filter((a) => a.id !== id));
+
+  const handleAddAddressClick = () => {
+    setEditingAddressId(null);
+    setAddressDraft(EMPTY_ADDRESS_FORM);
+    setShowAddressForm(true);
+  };
+
+  const handleEditAddressClick = (address) => {
+    setEditingAddressId(address.id);
+    setAddressDraft({
+      label: address.label,
+      address: address.address,
+      city: address.city,
+      phone: address.phone,
+    });
+    setShowAddressForm(true);
+  };
+
+  const handleAddressInputChange = (field, value) => {
+    setAddressDraft((prev) => ({ ...prev, [field]: value }));
+  };
+
+  const handleAddressSubmit = async () => {
+    if (!addressDraft.label || !addressDraft.address || !addressDraft.city || !addressDraft.phone) {
+      setErrorMessage("Please complete all address fields.");
+      return;
+    }
+
+    setAddressSaving(true);
+    setErrorMessage("");
+
+    try {
+      const payload = {
+        label: addressDraft.label,
+        address: addressDraft.address,
+        city: addressDraft.city,
+        phone: addressDraft.phone,
+      };
+
+      if (editingAddressId) {
+        await customerApi.updateAddress(editingAddressId, payload);
+        setAddresses((prev) =>
+          prev.map((address) =>
+            address.id === editingAddressId ? { ...address, ...payload } : address
+          )
+        );
+      } else {
+        const response = await customerApi.addAddress(payload);
+        const createdAddress = normalizeAddress(
+          response?.data?.address || response?.address || response?.data || payload,
+          addresses.length
+        );
+        setAddresses((prev) => [...prev, createdAddress]);
+      }
+
+      resetAddressEditor();
+    } catch (error) {
+      setErrorMessage(error?.response?.data?.message || "Failed to save address.");
+    } finally {
+      setAddressSaving(false);
+    }
+  };
+
+  const handleDeleteAddress = async (id) => {
+    setAddressSaving(true);
+    setErrorMessage("");
+
+    try {
+      await customerApi.deleteAddress(id);
+      setAddresses((prev) => prev.filter((address) => address.id !== id));
+    } catch (error) {
+      setErrorMessage(error?.response?.data?.message || "Failed to delete address.");
+    } finally {
+      setAddressSaving(false);
+    }
+  };
+
+  const handleSetDefaultAddress = async (id) => {
+    setAddressSaving(true);
+    setErrorMessage("");
+
+    try {
+      await customerApi.setDefaultAddress(id);
+      setAddresses((prev) =>
+        prev.map((address) => ({ ...address, isDefault: address.id === id }))
+      );
+    } catch (error) {
+      setErrorMessage(error?.response?.data?.message || "Failed to update default address.");
+    } finally {
+      setAddressSaving(false);
+    }
+  };
 
   const inputStyle = (disabled) => ({
     width: "100%",
@@ -287,6 +488,10 @@ export default function ProfilePage() {
     <div style={styles.page}>
       <div style={styles.pageTitle}>Profile</div>
       <div style={styles.pageSubtitle}>Manage your account information and preferences</div>
+
+      {errorMessage ? <div style={styles.messageError}>{errorMessage}</div> : null}
+
+      {profileLoading ? <div style={styles.messageInfo}>Loading your profile...</div> : null}
 
       <div style={styles.layout}>
         {/* ── Left Column ── */}
@@ -306,7 +511,9 @@ export default function ProfilePage() {
               ) : (
                 <div style={{ display: "flex", gap: 8 }}>
                   <button style={styles.cancelBtn} onClick={handleCancel}>Cancel</button>
-                  <button style={styles.saveBtn} onClick={handleSave}>Save</button>
+                  <button style={styles.saveBtn} onClick={handleSave} disabled={savingProfile}>
+                    {savingProfile ? "Saving..." : "Save"}
+                  </button>
                 </div>
               )}
             </div>
@@ -361,19 +568,82 @@ export default function ProfilePage() {
                 <div style={styles.cardTitle}>Saved Addresses</div>
                 <div style={styles.cardSubtitle}>Manage your delivery locations</div>
               </div>
-              <button style={styles.addAddressBtn}>
+              <button style={styles.addAddressBtn} onClick={handleAddAddressClick}>
                 <PlusIcon /> Add Address
               </button>
             </div>
+
+            {showAddressForm ? (
+              <div style={styles.addressEditorCard}>
+                <div style={styles.addressEditorTitle}>
+                  {editingAddressId ? "Edit Address" : "Add Address"}
+                </div>
+
+                <div style={styles.fieldGroup}>
+                  <label style={styles.label}>Label</label>
+                  <input
+                    style={styles.addressInput}
+                    value={addressDraft.label}
+                    onChange={(e) => handleAddressInputChange("label", e.target.value)}
+                    placeholder="Home"
+                  />
+                </div>
+
+                <div style={styles.fieldGroup}>
+                  <label style={styles.label}>Address</label>
+                  <input
+                    style={styles.addressInput}
+                    value={addressDraft.address}
+                    onChange={(e) => handleAddressInputChange("address", e.target.value)}
+                    placeholder="123 Main Street"
+                  />
+                </div>
+
+                <div style={styles.addressGrid}>
+                  <div style={styles.fieldGroup}>
+                    <label style={styles.label}>City</label>
+                    <input
+                      style={styles.addressInput}
+                      value={addressDraft.city}
+                      onChange={(e) => handleAddressInputChange("city", e.target.value)}
+                      placeholder="New York, NY"
+                    />
+                  </div>
+
+                  <div style={styles.fieldGroup}>
+                    <label style={styles.label}>Phone</label>
+                    <input
+                      style={styles.addressInput}
+                      value={addressDraft.phone}
+                      onChange={(e) => handleAddressInputChange("phone", e.target.value)}
+                      placeholder="+1 (555) 123-4567"
+                    />
+                  </div>
+                </div>
+
+                <div style={styles.addressEditorActions}>
+                  <button style={styles.cancelBtn} onClick={resetAddressEditor}>Cancel</button>
+                  <button style={styles.saveBtn} onClick={handleAddressSubmit} disabled={addressSaving}>
+                    {addressSaving ? "Saving..." : editingAddressId ? "Update Address" : "Add Address"}
+                  </button>
+                </div>
+              </div>
+            ) : null}
+
             <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
               {addresses.map((addr) => (
                 <AddressCard
                   key={addr.id}
                   {...addr}
-                  onEdit={() => {}}
+                  onEdit={() => handleEditAddressClick(addr)}
                   onDelete={() => handleDeleteAddress(addr.id)}
+                  onSetDefault={() => handleSetDefaultAddress(addr.id)}
                 />
               ))}
+
+              {!addresses.length ? (
+                <div style={styles.emptyState}>No saved addresses yet.</div>
+              ) : null}
             </div>
           </div>
         </div>

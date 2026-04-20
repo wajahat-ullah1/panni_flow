@@ -12,15 +12,13 @@ const customerApi = {
   // PROFILE
   // ════════════════════════════════════════════════════════════════════════════
 
-  // GET /api/customer/profile
-  // Returns: { _id, name, email, phone, addresses, loyaltyPoints, ... }
+  // GET /api/v1/customers/me
   getProfile: () =>
-    api.get("/customer/profile"),
+    api.get("/customers/me"),
 
-  // PUT /api/customer/profile
-  // Body: { name, email, phone }
+  // PATCH /api/v1/customers/me
   updateProfile: (data) =>
-    api.put("/customer/profile", data),
+    api.patch("/customers/me", data),
 
   // PUT /api/customer/profile/password
   // Body: { currentPassword, newPassword }
@@ -39,22 +37,25 @@ const customerApi = {
   // ADDRESSES
   // ════════════════════════════════════════════════════════════════════════════
 
-  // GET /api/customer/addresses
+  // Addresses are returned from GET /customers/me
   getAddresses: () =>
-    api.get("/customer/addresses"),
+    api.get("/customers/me"),
 
-  // POST /api/customer/addresses
-  // Body: { label, address, city, phone, isDefault }
+  // POST /api/v1/customers/me/addresses
   addAddress: (data) =>
-    api.post("/customer/addresses", data),
+    api.post("/customers/me/addresses", data),
 
-  // PUT /api/customer/addresses/:id
-  updateAddress: (id, data) =>
-    api.put(`/customer/addresses/${id}`, data),
+  // PATCH /api/v1/customers/me/addresses/:addrId
+  updateAddress: (addrId, data) =>
+    api.patch(`/customers/me/addresses/${addrId}`, data),
 
-  // DELETE /api/customer/addresses/:id
-  deleteAddress: (id) =>
-    api.delete(`/customer/addresses/${id}`),
+  // DELETE /api/v1/customers/me/addresses/:addrId
+  deleteAddress: (addrId) =>
+    api.delete(`/customers/me/addresses/${addrId}`),
+
+  // PATCH /api/v1/customers/me/addresses/:addrId/default
+  setDefaultAddress: (addrId) =>
+    api.patch(`/customers/me/addresses/${addrId}/default`),
 
 
   // ════════════════════════════════════════════════════════════════════════════

@@ -16,11 +16,11 @@ const authApi = {
 
 
   // ── Customer registration ───────────────────────────────────────────────────
-  // POST /api/auth/register
-  // Body: { name, email, phone, password }
-  // Returns: { message: "Verification email sent" }
-  register: (userData) =>
-    api.post("/auth/register", userData),
+  // POST /api/v1/auth/customer-register
+  // Body: { fullName, email, phone, password }
+  // Returns: { user, accessToken }
+  registerCustomer: (userData) =>
+    api.post("/auth/customer-register", userData),
 
 
   // ── Admin login (separate endpoint) ────────────────────────────────────────
