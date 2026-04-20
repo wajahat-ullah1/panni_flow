@@ -5,8 +5,12 @@ import axios from "axios";
 // All API files import THIS — never import axios directly.
 // ─────────────────────────────────────────────────────────────────────────────
 
+const API_BASE_URL =
+  import.meta.env.VITE_API_BASE_URL || "http://localhost:3000/api/v1";
+const TENANT_ID = import.meta.env.VITE_TENANT_ID || "";
+
 const api = axios.create({
-  baseURL: process.env.REACT_APP_API_URL || "http://localhost:5000/api",
+  baseURL: API_BASE_URL,
   headers: { "Content-Type": "application/json" },
   timeout: 10000, // 10 second timeout
 });
@@ -14,6 +18,11 @@ const api = axios.create({
 // ── Request interceptor — attach JWT token to every request ──────────────────
 api.interceptors.request.use(
   (config) => {
+    // Multi-tenant backend requires the tenant slug header on every request.
+    if (TENANT_ID) {
+      config.headers["X-Tenant-ID"] = TENANT_ID;
+    }
+
     const token = localStorage.getItem("token");
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
@@ -36,7 +45,7 @@ api.interceptors.response.use(
     if (status === 401) {
       localStorage.removeItem("token");
       localStorage.removeItem("user");
-      window.location.href = "/login";
+      globalThis.location.href = "/login";
     }
 
     // 403 Forbidden — wrong role trying to access a route

@@ -1,16 +1,70 @@
 import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import './LoginPage.css';
+import useAuth from '../../../../shared/hooks/useAuth';
+import authApi from '../../../../shared/api/authApi';
 
 const LoginPage = () => {
+  const navigate = useNavigate();
+  const { login } = useAuth();
+
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [rememberMe, setRememberMe] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
+  const [loading, setLoading] = useState(false);
 
-  const handleLogin = (e) => {
+  const validateEmail = (value) => {
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    return emailRegex.test(value);
+  };
+
+  const parseLoginResponse = (payload) => {
+    const isSuccess = payload?.success === true;
+    const token = payload?.data?.accessToken;
+    const user = payload?.data?.user;
+
+    if (!isSuccess || !token || !user) {
+      throw new Error('Invalid login response from server');
+    }
+
+    return { token, user };
+  };
+
+  const handleLogin = async (e) => {
     e.preventDefault();
-    // Handle login logic here
-    console.log('Login pressed', { email, password, rememberMe });
+    setLoading(true);
+
+    if (!email || !password) {
+      alert('Please enter email and password');
+      setLoading(false);
+      return;
+    }
+
+    if (!validateEmail(email)) {
+      alert('Please enter a valid email address');
+      setLoading(false);
+      return;
+    }
+
+    try {
+      const response = await authApi.login({ email, password });
+      const { user: userData, token } = parseLoginResponse(response);
+
+      if (userData.role !== 'admin') {
+        alert('This login is for admin accounts only.');
+        return;
+      }
+
+      login(userData, token);
+      navigate('/admin/dashboard');
+    } catch (error) {
+      console.error('Admin login error:', error);
+      const apiMessage = error?.response?.data?.message;
+      alert(apiMessage || 'Failed to login. Please try again.');
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleGoogleLogin = () => {
@@ -29,8 +83,7 @@ const LoginPage = () => {
   };
 
   const handleSignUp = () => {
-    // Navigate to sign up page
-    window.location.href = '/signup';
+    navigate('/register');
   };
 
   return (
@@ -174,8 +227,8 @@ const LoginPage = () => {
             </div>
 
             {/* Sign In Button */}
-            <button type="submit" className="signin-button">
-              Sign In
+            <button type="submit" className="signin-button" disabled={loading}>
+              {loading ? 'Signing In...' : 'Sign In'}
             </button>
           </form>
 

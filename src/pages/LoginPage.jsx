@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import './LoginPage.css';
 import useAuth from '../shared/hooks/useAuth';
+import authApi from '../shared/api/authApi';
 
 const LoginPage = () => {
   const navigate = useNavigate();
@@ -16,6 +17,24 @@ const LoginPage = () => {
   const validateEmail = (email) => {
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     return emailRegex.test(email);
+  };
+
+  const parseLoginResponse = (payload) => {
+    const isSuccess = payload?.success === true;
+    const token = payload?.data?.accessToken;
+    const user = payload?.data?.user;
+
+    if (!isSuccess || !token || !user) {
+      throw new Error('Invalid login response from server');
+    }
+
+    return { token, user };
+  };
+
+  const getRedirectPathByRole = (role) => {
+    if (role === 'admin') return '/admin/dashboard';
+    if (role === 'driver') return '/driver/dashboard';
+    return '/customer/dashboard';
   };
 
   const handleLogin = async (e) => {
@@ -42,61 +61,20 @@ const LoginPage = () => {
     }
 
     try {
-      // Simulate API call - in real app, this would call your backend
-      // const response = await fetch('/api/auth/login', {
-      //   method: 'POST',
-      //   headers: { 'Content-Type': 'application/json' },
-      //   body: JSON.stringify({ email, password })
-      // });
-      // const data = await response.json();
+      const response = await authApi.login({ email, password });
+      const { user: userData, token } = parseLoginResponse(response);
 
-      // For now, check credentials against stored user data
-      const storedUser = localStorage.getItem('user');
-      
-      if (!storedUser) {
-        alert('No user account found. Please sign up first.');
-        setLoading(false);
-        return;
-      }
-
-      const userData = JSON.parse(storedUser);
-      
-      // Verify both email and password
-      if (userData.email !== email) {
-        alert('Invalid email or password');
-        setLoading(false);
-        return;
-      }
-
-      if (userData.password !== password) {
-        alert('Invalid email or password');
-        setLoading(false);
-        return;
-      }
-
-      // Mock token (in real app, backend returns JWT)
-      const mockToken = 'mock-jwt-token-' + Date.now();
-      
-      // Update user with login timestamp
-      const updatedUserData = {
-        ...userData,
-        lastLogin: new Date().toISOString(),
-      };
-
-      // Store in auth context
-      login(updatedUserData, mockToken);
+      login(userData, token);
 
       // Show success message
       alert('Login successful!');
 
-      // Reset loading state
-      setLoading(false);
-
-      // Redirect to customer dashboard
-      navigate('/customer/dashboard');
+      navigate(getRedirectPathByRole(userData.role));
     } catch (error) {
       console.error('Login error:', error);
-      alert('Failed to login. Please try again.');
+      const apiMessage = error?.response?.data?.message;
+      alert(apiMessage || 'Failed to login. Please try again.');
+    } finally {
       setLoading(false);
     }
   };
