@@ -1,13 +1,26 @@
 import { BoxIcon } from "../icons/Icons";
 
 const STATUS_STYLES = {
-  Delivered:    { bg: "#e8faf0", color: "#1a9e5c" },
-  "On the Way": { bg: "#e8f3ff", color: "#1a6fd4" },
-  Pending:      { bg: "#fff8e1", color: "#d4a017" },
+  delivered:    { bg: "#e8faf0", color: "#1a9e5c" },
+  "on the way": { bg: "#e8f3ff", color: "#1a6fd4" },
+  pending:      { bg: "#fff8e1", color: "#d4a017" },
+  cancelled:    { bg: "#fee2e2", color: "#dc2626" },
+  assigned:     { bg: "#ede9fe", color: "#7c3aed" },
 };
 
-export default function OrderRow({ id, qty, date, status }) {
-  const s = STATUS_STYLES[status] || STATUS_STYLES["Delivered"];
+export default function OrderRow({ order }) {
+  const id = order.orderNumber || order._id || order.id || "—";
+  const qty = order.items
+    ? order.items.map((i) => `${i.quantity} × ${i.productName || i.name || "item"}`).join(", ")
+    : order.quantity
+    ? `${order.quantity} × item`
+    : "—";
+  const date = order.createdAt
+    ? new Date(order.createdAt).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })
+    : order.date || "—";
+  const statusRaw = order.status || "pending";
+  const statusLabel = statusRaw.charAt(0).toUpperCase() + statusRaw.slice(1).replace(/_/g, " ");
+  const s = STATUS_STYLES[statusRaw.toLowerCase()] || STATUS_STYLES["pending"];
 
   return (
     <div style={styles.row}>
@@ -20,7 +33,7 @@ export default function OrderRow({ id, qty, date, status }) {
       </div>
       <div style={styles.date}>{date}</div>
       <span style={{ ...styles.badge, background: s.bg, color: s.color }}>
-        {status}
+        {statusLabel}
       </span>
       <button style={styles.reorderBtn}>Reorder</button>
     </div>

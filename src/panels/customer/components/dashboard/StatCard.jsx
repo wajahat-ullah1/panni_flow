@@ -1,6 +1,6 @@
-import { TrendUp } from "../icons/Icons";
+import { TrendUp, TrendDown } from "../icons/Icons";
 
-export default function StatCard({ label, value, trend, icon, iconBg, trendColor, trendNoArrow }) {
+export default function StatCard({ label, value, trend, icon, iconBg, trendColor, trendNoArrow, trendDirection }) {
   return (
     <div style={styles.card}>
       <div style={styles.top}>
@@ -11,10 +11,11 @@ export default function StatCard({ label, value, trend, icon, iconBg, trendColor
         <div style={{ ...styles.iconWrap, background: iconBg }}>{icon}</div>
       </div>
       <div style={styles.trendRow}>
-        {!trendNoArrow && (
-          <span style={{ color: trendColor }}>
-            <TrendUp />
-          </span>
+        {!trendNoArrow && trendDirection === "up" && (
+          <span style={{ color: trendColor }}><TrendUp /></span>
+        )}
+        {!trendNoArrow && trendDirection === "down" && (
+          <span style={{ color: trendColor }}><TrendDown /></span>
         )}
         <span style={{ fontSize: 12, color: trendColor, fontWeight: 600 }}>{trend}</span>
       </div>

@@ -139,6 +139,15 @@ export function TrendUp() {
   );
 }
 
+export function TrendDown() {
+  return (
+    <svg width="13" height="13" viewBox="0 0 24 24" fill="none">
+      <polyline points="23 18 13.5 8.5 8.5 13.5 1 6" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
+      <polyline points="17 18 23 18 23 12" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  );
+}
+
 export function ChatIcon() {
   return (
     <svg width="20" height="20" viewBox="0 0 24 24" fill="none">

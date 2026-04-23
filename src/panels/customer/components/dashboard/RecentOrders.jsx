@@ -1,15 +1,29 @@
+import { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import OrderRow from "./OrderRow";
 import { ChevronRight } from "../icons/Icons";
-
-const ORDERS = [
-  { id: "ORD-2451", qty: "3 × 19L", date: "Mar 28, 2026", status: "Delivered" },
-  { id: "ORD-2452", qty: "2 × 19L", date: "Mar 30, 2026", status: "On the Way" },
-  { id: "ORD-2450", qty: "5 × 19L", date: "Mar 25, 2026", status: "Delivered" },
-  { id: "ORD-2449", qty: "3 × 19L", date: "Mar 22, 2026", status: "Delivered" },
-  { id: "ORD-2448", qty: "1 × 19L", date: "Mar 19, 2026", status: "Delivered" },
-];
+import customerApi from "../../../../shared/api/customerApi";
 
 export default function RecentOrders() {
+  const navigate = useNavigate();
+  const [orders, setOrders] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+
+  useEffect(() => {
+    setLoading(true);
+    customerApi
+      .getOrders({ page: 1, limit: 5, sort: "createdAt" })
+      .then((res) => {
+        // Shape: { success, data: { data: [...], meta: { total, page, limit, totalPages } } }
+        console.log("API response for recent orders:", res);
+        const list = res.data?.data ?? [];
+        setOrders(list);
+      })
+      .catch(() => setError("Failed to load orders"))
+      .finally(() => setLoading(false));
+  }, []);
+
   return (
     <div style={styles.card}>
       <div style={styles.header}>
@@ -17,14 +31,19 @@ export default function RecentOrders() {
           <div style={styles.title}>Recent Orders</div>
           <div style={styles.subtitle}>Your latest water deliveries</div>
         </div>
-        <button style={styles.viewAll}>
+        <button style={styles.viewAll} onClick={() => navigate("/customer/my-orders")}>
           View All <ChevronRight />
         </button>
       </div>
       <div style={styles.list}>
-        {ORDERS.map((order) => (
-          <OrderRow key={order.id} {...order} />
-        ))}
+        {loading && <div style={styles.state}>Loading...</div>}
+        {error && <div style={{ ...styles.state, color: "#ef4444" }}>{error}</div>}
+        {!loading && !error && orders.length === 0 && (
+          <div style={styles.state}>No orders found.</div>
+        )}
+        {!loading &&
+          !error &&
+          orders.map((order) => <OrderRow key={order._id || order.id} order={order} />)}
       </div>
     </div>
   );

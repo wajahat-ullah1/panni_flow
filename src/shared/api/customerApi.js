@@ -76,14 +76,14 @@ const customerApi = {
   // ORDERS
   // ════════════════════════════════════════════════════════════════════════════
 
-  // GET /api/customer/orders
-  // Query params: ?page=1&limit=10&status=delivered
+  // GET /api/v1/orders
+  // Query params: page, limit, sort, status, customerId, driverId, fromDate, toDate, search
   getOrders: (params = {}) =>
-    api.get("/customer/orders", { params }),
+    api.get("/orders", { params }),
 
-  // GET /api/customer/orders/:id
+  // GET /api/v1/orders/:id
   getOrder: (id) =>
-    api.get(`/customer/orders/${id}`),
+    api.get(`/orders/${id}`),
 
   // POST /api/customer/orders
   // Body: { productId, quantity, addressId, orderType, deliveryDate, paymentMethod }
@@ -156,10 +156,10 @@ const customerApi = {
   // DASHBOARD STATS
   // ════════════════════════════════════════════════════════════════════════════
 
-  // GET /api/customer/dashboard
-  // Returns: { totalOrders, activeDeliveries, monthlySpending, bottlesOrdered }
+  // GET /api/v1/customers/me/stats
+  // Returns: { totalOrders, activeDeliveries, monthlySpending, totalSpent, bottlesOrdered, activeOrders }
   getDashboardStats: () =>
-    api.get("/customer/dashboard"),
+    api.get("/customers/me/stats"),
 
 
   // ════════════════════════════════════════════════════════════════════════════

@@ -1,11 +1,35 @@
 import { BellIcon, SearchIcon } from "../icons/Icons";
+import { useAuthContext } from "../../../../shared/context/AuthContext";
 
 export default function Topbar() {
+  const { user } = useAuthContext();
+
+  // Format date as: Wednesday, April 23, 2026
+  const today = new Date();
+  const formattedDate = today.toLocaleDateString("en-US", {
+    weekday: "long",
+    year: "numeric",
+    month: "long",
+    day: "numeric",
+  });
+
+  // User info fallback
+  const userName = user?.name || user?.fullName || user?.username || "User";
+  const userRole = user?.role || "Customer";
+  // Avatar: use initials
+  function getInitials(name) {
+    if (!name) return "U";
+    const parts = name.trim().split(" ");
+    if (parts.length === 1) return parts[0][0].toUpperCase();
+    return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
+  }
+  const initials = getInitials(userName);
+
   return (
     <header style={styles.topbar}>
       <div>
-        <div style={styles.topDate}>Monday, March 30, 2026</div>
-        <div style={styles.topGreet}>Welcome back, John!</div>
+        <div style={styles.topDate}>{formattedDate}</div>
+        <div style={styles.topGreet}>Welcome back, {userName}!</div>
       </div>
 
       <div style={styles.topRight}>
@@ -25,10 +49,10 @@ export default function Topbar() {
 
         {/* User */}
         <div style={styles.userInfo}>
-          <div style={styles.avatar}>JD</div>
+          <div style={styles.avatar}>{initials}</div>
           <div>
-            <div style={styles.userName}>John Doe</div>
-            <div style={styles.userRole}>Customer</div>
+            <div style={styles.userName}>{userName}</div>
+            <div style={styles.userRole}>{userRole}</div>
           </div>
         </div>
       </div>
