@@ -1,74 +1,53 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import customerApi from "../../../shared/api/customerApi";
 
-// ─── Sample Data ───────────────────────────────────────────────────────────────
-const ORDERS = [
-  {
-    id: "ORD-2452",
-    status: "On the Way",
-    qty: 2,
-    size: "19L",
-    date: "Mar 30, 2026 at 10:30 AM",
-    driver: "Michael Johnson",
-    eta: "15 minutes",
-    total: 17.98,
-  },
-  {
-    id: "ORD-2451",
-    status: "Delivered",
-    qty: 3,
-    size: "19L",
-    date: "Mar 28, 2026 at 2:45 PM",
-    driver: "Sarah Williams",
-    eta: null,
-    total: 26.97,
-  },
-  {
-    id: "ORD-2450",
-    status: "Delivered",
-    qty: 5,
-    size: "19L",
-    date: "Mar 25, 2026 at 11:20 AM",
-    driver: "David Brown",
-    eta: null,
-    total: 44.95,
-  },
-  {
-    id: "ORD-2449",
-    status: "Delivered",
-    qty: 3,
-    size: "19L",
-    date: "Mar 22, 2026 at 3:15 PM",
-    driver: "Emma Davis",
-    eta: null,
-    total: 26.97,
-  },
-  {
-    id: "ORD-2448",
-    status: "Delivered",
-    qty: 4,
-    size: "19L",
-    date: "Mar 18, 2026 at 1:00 PM",
-    driver: "James Wilson",
-    eta: null,
-    total: 35.96,
-  },
-  {
-    id: "ORD-2447",
-    status: "Cancelled",
-    qty: 2,
-    size: "19L",
-    date: "Mar 15, 2026 at 9:30 AM",
-    driver: "-",
-    eta: null,
-    total: 17.98,
-  },
-];
-
-const SUMMARY = {
-  totalOrders: 47,
-  totalSpent: 842,
-  activeOrders: 2,
+// ─── Backend status → display label ───────────────────────────────────────────
+const STATUS_DISPLAY = {
+  pending:    "Pending",
+  assigned:   "On the Way",
+  on_the_way: "On the Way",
+  delivered:  "Delivered",
+  cancelled:  "Cancelled",
 };
+
+// ─── Filter tab → API status param ────────────────────────────────────────────
+const FILTER_TO_STATUS = {
+  All:       null,
+  Active:    null,        // client-side filtered
+  Delivered: "delivered",
+  Cancelled: "cancelled",
+};
+
+const ACTIVE_STATUSES = ["Pending", "On the Way", "Assigned"];
+
+// ─── Normalize a raw backend order to UI shape ─────────────────────────────────
+function normalizeOrder(o) {
+  const statusRaw = (o.status || "pending").toLowerCase();
+  const status = STATUS_DISPLAY[statusRaw] || o.status || "Pending";
+  const items = Array.isArray(o.items) ? o.items : [];
+  const qty  = items.length > 0 ? items[0].quantity : (o.quantity || 1);
+  const size = items.length > 0 ? (items[0].size || "19L") : "19L";
+  const date = o.createdAt
+    ? new Date(o.createdAt).toLocaleString("en-US", {
+        month: "short", day: "numeric", year: "numeric",
+        hour: "numeric", minute: "2-digit",
+      })
+    : "—";
+  return {
+    _id:    o._id || o.id,
+    id:     o.orderNumber || o._id || o.id,
+    status,
+    qty,
+    size,
+    date,
+    driver: o?.assignedDriverId?.name || "—",
+    eta:    o.estimatedDelivery || o.eta || null,
+    total:  o.totalAmount ?? o.total ?? o.amount ?? 0,
+  };
+}
+
+// ─── Helper: unwrap { value, trend } or plain number ──────────────────────────
+const statVal = (f) => (typeof f === "object" && f !== null ? f.value : f);
 
 // ─── Status config ──────────────────────────────────────────────────────────────
 const STATUS_CONFIG = {
@@ -149,7 +128,7 @@ function OrderCard({ order, onTrack }) {
   const isActive = order.status === "On the Way" || order.status === "Active";
   const isDelivered = order.status === "Delivered";
   const isCancelled = order.status === "Cancelled";
-
+console.log("Rendering OrderCard for order:", order, "isActive:", isActive, "isDelivered:", isDelivered, "isCancelled:", isCancelled);
   return (
     <div style={{
       background: "white",
@@ -296,21 +275,50 @@ function SummaryCard({ icon, label, value, bg }) {
 export default function MyOrdersPage() {
   const [activeFilter, setActiveFilter] = useState("All");
   const [searchQuery, setSearchQuery] = useState("");
+  const [orders, setOrders] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  const [stats, setStats] = useState(null);
 
   const FILTERS = ["All", "Active", "Delivered", "Cancelled"];
 
-  const filtered = ORDERS.filter(order => {
-    const matchesFilter =
-      activeFilter === "All" ||
-      (activeFilter === "Active" && (order.status === "On the Way" || order.status === "Active")) ||
-      order.status === activeFilter;
+  // Fetch stats once on mount
+  useEffect(() => {
+    customerApi.getDashboardStats()
+      .then(res => {
+        console.log("API response for stats:", res);
+        return setStats(res.data ?? null)
+      })
+      .catch(() => {});
+  }, []);
 
-    const matchesSearch =
-      searchQuery === "" ||
-      order.id.toLowerCase().includes(searchQuery.toLowerCase());
+  // Fetch orders on filter/search change (debounce search input)
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setLoading(true);
+      setError(null);
+      const params = { page: 1, limit: 20, sort: "createdAt" };
+      const apiStatus = FILTER_TO_STATUS[activeFilter];
+      if (apiStatus) params.status = apiStatus;
+      if (searchQuery.trim()) params.search = searchQuery.trim();
 
-    return matchesFilter && matchesSearch;
-  });
+      customerApi.getOrders(params)
+        .then(res => {
+          console.log("API response for all orders:", res);
+          const list = res.data?.data ?? [];
+          setOrders(list.map(normalizeOrder));
+        })
+        .catch(() => setError("Failed to load orders"))
+        .finally(() => setLoading(false));
+    }, searchQuery ? 400 : 0);
+
+    return () => clearTimeout(timer);
+  }, [activeFilter, searchQuery]);
+
+  // "Active" tab is filtered client-side (pending + on_the_way + assigned)
+  const filtered = activeFilter === "Active"
+    ? orders.filter(o => ACTIVE_STATUSES.includes(o.status))
+    : orders;
 
   return (
     <div style={styles.page}>
@@ -356,13 +364,14 @@ export default function MyOrdersPage() {
 
       {/* Order list */}
       <div style={styles.orderList}>
-        {filtered.length === 0 ? (
+        {loading && <div style={styles.empty}>Loading orders...</div>}
+        {error && <div style={{ ...styles.empty, color: "#ef4444" }}>{error}</div>}
+        {!loading && !error && filtered.length === 0 && (
           <div style={styles.empty}>No orders found.</div>
-        ) : (
-          filtered.map(order => (
-            <OrderCard key={order.id} order={order} />
-          ))
         )}
+        {!loading && !error && filtered.map(order => (
+          <OrderCard key={order._id} order={order} />
+        ))}
       </div>
 
       {/* Summary cards */}
@@ -370,19 +379,19 @@ export default function MyOrdersPage() {
         <SummaryCard
           icon={<ShoppingBagIcon />}
           label="Total Orders"
-          value={SUMMARY.totalOrders}
+          value={stats ? statVal(stats.totalOrders) : "—"}
           bg="linear-gradient(135deg,#0ea5e9,#0284c7)"
         />
         <SummaryCard
           icon={<DollarIcon />}
           label="Total Spent"
-          value={`$${SUMMARY.totalSpent}`}
+          value={stats ? `$${(stats.totalSpent ?? 0).toLocaleString()}` : "—"}
           bg="linear-gradient(135deg,#10b981,#059669)"
         />
         <SummaryCard
           icon={<ActivityIcon />}
           label="Active Orders"
-          value={SUMMARY.activeOrders}
+          value={stats ? (stats.activeDeliveries ?? stats.activeOrders ?? "—") : "—"}
           bg="linear-gradient(135deg,#f59e0b,#d97706)"
         />
       </div>
