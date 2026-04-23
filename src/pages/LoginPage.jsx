@@ -63,12 +63,7 @@ const LoginPage = () => {
     try {
       const response = await authApi.login({ email, password });
       const { user: userData, token } = parseLoginResponse(response);
-
       login(userData, token);
-
-      // Show success message
-      alert('Login successful!');
-
       navigate(getRedirectPathByRole(userData.role));
     } catch (error) {
       console.error('Login error:', error);

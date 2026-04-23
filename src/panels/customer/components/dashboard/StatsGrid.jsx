@@ -19,7 +19,7 @@ export default function StatsGrid() {
     if (typeof field === "object" && field !== null && field.trend) {
       const { percentage, direction } = field.trend;
       return {
-        label: `${percentage}%`,
+        label: percentage ? `${percentage}%` : null,
         color: direction === "up" ? "#16a34a" : "#ef4444",
         noArrow: false,
         direction,

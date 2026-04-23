@@ -128,7 +128,7 @@ function OrderCard({ order, onTrack }) {
   const isActive = order.status === "On the Way" || order.status === "Active";
   const isDelivered = order.status === "Delivered";
   const isCancelled = order.status === "Cancelled";
-console.log("Rendering OrderCard for order:", order, "isActive:", isActive, "isDelivered:", isDelivered, "isCancelled:", isCancelled);
+  
   return (
     <div style={{
       background: "white",
@@ -286,7 +286,6 @@ export default function MyOrdersPage() {
   useEffect(() => {
     customerApi.getDashboardStats()
       .then(res => {
-        console.log("API response for stats:", res);
         return setStats(res.data ?? null)
       })
       .catch(() => {});
@@ -304,7 +303,6 @@ export default function MyOrdersPage() {
 
       customerApi.getOrders(params)
         .then(res => {
-          console.log("API response for all orders:", res);
           const list = res.data?.data ?? [];
           setOrders(list.map(normalizeOrder));
         })

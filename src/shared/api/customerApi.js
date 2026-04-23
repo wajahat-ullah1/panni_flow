@@ -62,14 +62,13 @@ const customerApi = {
   // PRODUCTS
   // ════════════════════════════════════════════════════════════════════════════
 
-  // GET /api/customer/products
-  // Returns: [{ _id, name, description, price, unit, stock, ... }]
-  getProducts: () =>
-    api.get("/customer/products"),
+  // GET /api/v1/products?page=1&limit=1
+  getProducts: (params = {}) =>
+    api.get("/products", { params }),
 
-  // GET /api/customer/products/:id
+  // GET /api/v1/products/:id
   getProduct: (id) =>
-    api.get(`/customer/products/${id}`),
+    api.get(`/products/${id}`),
 
 
   // ════════════════════════════════════════════════════════════════════════════
@@ -85,10 +84,9 @@ const customerApi = {
   getOrder: (id) =>
     api.get(`/orders/${id}`),
 
-  // POST /api/customer/orders
-  // Body: { productId, quantity, addressId, orderType, deliveryDate, paymentMethod }
+  // POST /api/v1/orders
   placeOrder: (data) =>
-    api.post("/customer/orders", data),
+    api.post("/orders", data),
 
   // PUT /api/customer/orders/:id/cancel
   cancelOrder: (id) =>

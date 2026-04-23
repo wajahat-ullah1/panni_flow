@@ -1,5 +1,7 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { DropIcon, TruckIcon } from "../components/icons/Icons";
+import customerApi from "../../../shared/api/customerApi";
+import CheckoutDrawer from "../components/checkout/CheckoutDrawer";
 
 function CartIcon({ stroke = "#0ea5e9" }) {
   return (
@@ -89,19 +91,49 @@ const FEATURES = [
   },
 ];
 
-const PRICE_PER_BOTTLE = 8.99;
-
 export default function OrderWaterPage() {
   const [quantity, setQuantity] = useState(1);
   const [orderType, setOrderType] = useState("one-time");
   const [added, setAdded] = useState(false);
+  const [product, setProduct] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  const [checkoutOpen, setCheckoutOpen] = useState(false);
 
-  const total = (PRICE_PER_BOTTLE * quantity).toFixed(2);
+  useEffect(() => {
+    customerApi
+      .getProducts({ page: 1, limit: 1 })
+      .then((res) => {
+        const items = res.data?.data ?? [];
+        if (items && items.length > 0) setProduct(items[0]);
+      })
+      .catch(() => setError("Failed to load product."))
+      .finally(() => setLoading(false));
+  }, []);
+
+  const pricePerBottle = product?.unitPrice ?? 0;
+  const total = (pricePerBottle * quantity).toFixed(2);
 
   const handleOrder = () => {
     setAdded(true);
     setTimeout(() => setAdded(false), 2000);
   };
+
+  if (loading) {
+    return (
+      <div style={{ ...styles.page, display: "flex", alignItems: "center", justifyContent: "center" }}>
+        <span style={{ color: "#94a3b8", fontSize: 15 }}>Loading product...</span>
+      </div>
+    );
+  }
+
+  if (error || !product) {
+    return (
+      <div style={{ ...styles.page, display: "flex", alignItems: "center", justifyContent: "center" }}>
+        <span style={{ color: "#ef4444", fontSize: 15 }}>{error || "No product available."}</span>
+      </div>
+    );
+  }
 
   return (
     <div style={styles.page}>
@@ -128,16 +160,14 @@ export default function OrderWaterPage() {
             </div>
 
             <div style={styles.productInfo}>
-              <div style={styles.productName}>19 Liter Water Bottle</div>
-              <div style={styles.productDesc}>
-                Premium purified drinking water. Safe, clean, and refreshing.
-              </div>
+              <div style={styles.productName}>{product.name}</div>
+              <div style={styles.productDesc}>{product.description}</div>
               <div style={styles.ratingRow}>
                 {[1,2,3,4,5].map(i => <StarIcon key={i} />)}
                 <span style={styles.ratingText}>4.9 (2.4k reviews)</span>
               </div>
               <div style={styles.priceRow}>
-                <span style={styles.price}>${PRICE_PER_BOTTLE}</span>
+                <span style={styles.price}>${pricePerBottle}</span>
                 <span style={styles.perBottle}>per bottle</span>
               </div>
 
@@ -162,7 +192,7 @@ export default function OrderWaterPage() {
               </div>
 
               {/* Order Type */}
-              <div style={styles.section}>
+              {/* <div style={styles.section}>
                 <div style={styles.sectionLabel}>Order Type</div>
                 <div style={styles.typeRow}>
                   <button
@@ -190,16 +220,16 @@ export default function OrderWaterPage() {
                     </span>
                   </button>
                 </div>
-              </div>
+              </div> */}
 
               {/* Actions */}
               <div style={styles.actionRow}>
                 <button style={styles.orderBtn} onClick={handleOrder}>
                   {added ? "✓ Added to Cart!" : "Quick Order Now"}
                 </button>
-                <button style={styles.cartIconBtn}>
+                {/* <button style={styles.cartIconBtn}>
                   <CartIcon stroke="white" />
-                </button>
+                </button> */}
               </div>
             </div>
           </div>
@@ -211,16 +241,35 @@ export default function OrderWaterPage() {
           <div style={styles.summaryRows}>
             <div style={styles.summaryRow}>
               <span style={styles.summaryLabel}>Product</span>
-              <span style={styles.summaryValue}>19L Water Bottle</span>
+              <span style={styles.summaryValue}>{product.name}</span>
             </div>
             <div style={styles.summaryRow}>
               <span style={styles.summaryLabel}>Quantity</span>
               <span style={styles.summaryValue}>{quantity}</span>
             </div>
             <div style={styles.summaryRow}>
+              <span style={styles.summaryLabel}>Unit Price</span>
+              <span style={styles.summaryValue}>${pricePerBottle}</span>
+            </div>
+            {/* <div style={styles.summaryRow}>
               <span style={styles.summaryLabel}>Type</span>
               <span style={styles.summaryValue}>
                 {orderType === "one-time" ? "One-Time" : "Subscription"}
+              </span>
+            </div> */}
+            <div style={styles.summaryRow}>
+              <span style={styles.summaryLabel}>Discount</span>
+              <span style={styles.summaryValue}>0
+              </span>
+            </div>
+            <div style={styles.summaryRow}>
+              <span style={styles.summaryLabel}>Tax</span>
+              <span style={styles.summaryValue}>0
+              </span>
+            </div>
+            <div style={styles.summaryRow}>
+              <span style={styles.summaryLabel}>Shipping</span>
+              <span style={styles.summaryValue}>Free
               </span>
             </div>
           </div>
@@ -230,8 +279,12 @@ export default function OrderWaterPage() {
             <span style={styles.totalValue}>${total}</span>
           </div>
 
+          <button style={styles.checkoutBtn} onClick={() => setCheckoutOpen(true)}>
+            Proceed to Checkout
+          </button>
+
           {/* Delivery Info */}
-          <div style={styles.deliveryCard}>
+          {/* <div style={styles.deliveryCard}>
             <div style={styles.deliveryHeader}>
               <TruckIcon stroke="#0ea5e9" />
               <span style={styles.deliveryTitle}>Delivery Information</span>
@@ -249,9 +302,17 @@ export default function OrderWaterPage() {
                 </li>
               ))}
             </ul>
-          </div>
+          </div> */}
         </div>
       </div>
+
+      <CheckoutDrawer
+        open={checkoutOpen}
+        onClose={() => setCheckoutOpen(false)}
+        product={product}
+        quantity={quantity}
+        total={total}
+      />
 
       {/* Why Choose Section */}
       <div style={styles.whyCard}>
@@ -367,7 +428,7 @@ const styles = {
   },
   typeBtnActive: { border: "2px solid #0ea5e9", background: "#f0f9ff" },
 
-  actionRow: { display: "flex", gap: 10, marginTop: 4 },
+  actionRow: { display: "flex", gap: 10, marginTop: 4, width: "30%" },
   orderBtn: {
     flex: 1,
     padding: "14px",
@@ -411,6 +472,19 @@ const styles = {
   totalRow: { display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 },
   totalLabel: { fontSize: 14, fontWeight: 600, color: "#0f172a" },
   totalValue: { fontSize: 22, fontWeight: 800, color: "#0f172a" },
+
+  checkoutBtn: {
+    width: "100%",
+    padding: "14px",
+    borderRadius: 12,
+    border: "none",
+    background: "linear-gradient(135deg,#0ea5e9,#0284c7)",
+    color: "white",
+    fontWeight: 700,
+    fontSize: 15,
+    cursor: "pointer",
+    transition: "opacity 0.2s",
+  },
 
   deliveryCard: {
     background: "#f8fafc",
