@@ -125,6 +125,11 @@ const customerApi = {
   // GET /api/customer/payments/:id
   getPayment: (id) =>
     api.get(`/customer/payments/${id}`),
+  
+  // GET /api/v1/payments/my/dashboard
+  getPaymentsDashboard: () =>
+    api.get("/payments/my/dashboard"),
+
 
   // GET /api/customer/payments/:id/invoice
   // Returns PDF blob

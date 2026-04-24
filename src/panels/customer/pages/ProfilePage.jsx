@@ -297,6 +297,8 @@ export default function ProfilePage() {
   const [showAddressForm, setShowAddressForm] = useState(false);
   const [editingAddressId, setEditingAddressId] = useState(null);
   const [addressDraft, setAddressDraft] = useState(EMPTY_ADDRESS_FORM);
+  const [summaryStats, setSummaryStats] = useState(null);
+  const [profile, setProfile] = useState(null);
 
   useEffect(() => {
     let isMounted = true;
@@ -316,7 +318,7 @@ export default function ProfilePage() {
         setForm(nextForm);
         setDraft(nextForm);
         setAddresses(nextAddresses);
-
+        setProfile(response?.data|| {});
         if (profile.fullName || profile.email || profile.phone) {
           updateUser({
             fullName: profile.fullName || nextForm.name,
@@ -337,6 +339,13 @@ export default function ProfilePage() {
     };
 
     loadProfile();
+
+    customerApi.getPaymentsDashboard()
+      .then(res => {
+        const d = res.data;
+        console.log("Dashboard stats:", d);
+        setSummaryStats(d);
+      });
 
     return () => {
       isMounted = false;
@@ -658,7 +667,7 @@ export default function ProfilePage() {
             </div>
             <div style={styles.profileName}>{form.name}</div>
             <div style={styles.profileRole}>Premium Customer</div>
-            <div style={styles.memberBadge}>Member since Jan 2024</div>
+            <div style={styles.memberBadge}>Member since {new Date(profile?.createdAt).toLocaleString("en-US", { month: "short", year: "numeric" })}</div>
             <button style={styles.changePhotoBtn}>
               <CameraIcon /> Change Photo
             </button>
@@ -669,10 +678,10 @@ export default function ProfilePage() {
             <div style={styles.cardTitle}>Account Stats</div>
             <div style={styles.statsList}>
               {[
-                { label: "Total Orders",        value: "47",     color: "#0f172a" },
-                { label: "Total Spent",         value: "$842",   color: "#0f172a" },
-                { label: "Active Subscriptions",value: "1",      color: "#0f172a" },
-                { label: "Loyalty Points",      value: "2,450",  color: "#a855f7" },
+                { label: "Total Orders",        value: summaryStats?.totalOrders || 0,     color: "#0f172a" },
+                { label: "Total Spent",         value: `$${summaryStats?.totalPaid?.toFixed(2) || "0.00"}`,   color: "#0f172a" },
+                { label: "Active Subscriptions",value: "-",      color: "#0f172a" },
+                { label: "Loyalty Points",      value: "-",  color: "#a855f7" },
               ].map((s) => (
                 <div key={s.label} style={styles.statRow}>
                   <span style={styles.statLabel}>{s.label}</span>

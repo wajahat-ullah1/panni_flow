@@ -190,13 +190,28 @@ export default function PaymentsPage() {
   const [transactions, setTransactions] = useState([]);
   const [txLoading, setTxLoading] = useState(true);
   const [txError, setTxError]   = useState(null);
+  const [summaryStats, setSummaryStats] = useState(null);
 
   useEffect(() => {
     customerApi.getPayments(true)
       .then(res => setTransactions((res.data?.data ?? []).map(mapTransaction)))
       .catch(() => setTxError("Failed to load transactions."))
       .finally(() => setTxLoading(false));
+
+    customerApi.getPaymentsDashboard()
+      .then(res => {
+        const d = res.data;
+        console.log("Dashboard stats:", d);
+        setSummaryStats(d);
+      });
   }, []);
+
+  const getMonthTrend = () => {
+    if(!summaryStats?.thisMonthPaid?.percentage) return "0%";
+    const { trend } = summaryStats.thisMonthPaid || {};
+    const sign = trend?.direction === "up" ? "+" : trend?.direction === "down" ? "−" : null;
+    return sign ? `${sign}${trend.percentage}%` : `${trend?.percentage}%}`;
+  };
 
   return (
     <div style={styles.page}>
@@ -213,12 +228,12 @@ export default function PaymentsPage() {
             Total Spent This Month
           </div>
           <div style={{ fontSize: 38, fontWeight: 800, color: "white", marginBottom: 14 }}>
-            ${SUMMARY_STATS.totalSpentMonth.toFixed(2)}
+            ${summaryStats?.thisMonthPaid?.value?.toFixed(2) || "0.00"}
           </div>
           <div style={{ display: "flex", gap: 8 }}>
-            <span style={styles.heroPill}>{SUMMARY_STATS.orders} Orders</span>
+            <span style={styles.heroPill}>{summaryStats?.thisMonthPaid?.orders || 0} Orders</span>
             <span style={{ ...styles.heroPill, background: "rgba(255,255,255,0.25)" }}>
-              {SUMMARY_STATS.growth}
+              {`${getMonthTrend()} from last month`}
             </span>
           </div>
         </div>
@@ -367,7 +382,7 @@ export default function PaymentsPage() {
             iconBg="linear-gradient(135deg,#10b981,#059669)"
             icon={<GreenDollarIcon />}
             label="Total Paid"
-            value={`$${SUMMARY_STATS.totalPaid}`}
+            value={`$${summaryStats?.totalPaid?.toFixed(2) || "0.00"}`}
             sub="All time"
             subColor="#10b981"
           />
@@ -375,14 +390,14 @@ export default function PaymentsPage() {
             iconBg="linear-gradient(135deg,#6366f1,#4f46e5)"
             icon={<InvoiceIcon />}
             label="Total Invoices"
-            value={SUMMARY_STATS.totalInvoices}
+            value={summaryStats?.pendingPayments || 0}
             sub="Since Jan 2026"
           />
           <StatCard
             iconBg="linear-gradient(135deg,#f59e0b,#d97706)"
             icon={<PendingIcon />}
             label="Pending"
-            value={`$${SUMMARY_STATS.pending}`}
+            value={`$${summaryStats?.pendingPaymentAmount?.toFixed(2) || "0.00"}`}
             sub="No pending payments"
           />
         </div>
