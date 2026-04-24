@@ -117,10 +117,10 @@ const customerApi = {
   // PAYMENTS
   // ════════════════════════════════════════════════════════════════════════════
 
-  // GET /api/customer/payments
-  // Returns: [{ _id, orderId, amount, method, status, date }]
-  getPayments: (params = {}) =>
-    api.get("/customer/payments", { params }),
+  // GET /api/v1/payments/my?all=true|false
+  // Returns paginated list of the customer's payments
+  getPayments: (all = true) =>
+    api.get("/payments/my", { params: { all } }),
 
   // GET /api/customer/payments/:id
   getPayment: (id) =>

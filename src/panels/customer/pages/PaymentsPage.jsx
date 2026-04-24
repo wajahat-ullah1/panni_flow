@@ -1,4 +1,5 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import customerApi from "../../../shared/api/customerApi";
 
 // ─── Static Data ────────────────────────────────────────────────────────────────
 const PAYMENT_METHODS = [
@@ -9,29 +10,43 @@ const PAYMENT_METHODS = [
     desc: "Pay when you receive your order",
     isDefault: true,
   },
-  {
-    id: 2,
-    icon: "card",
-    label: "Credit Card",
-    desc: "•••• •••• •••• 4532",
-    isDefault: false,
-  },
+  // ── Hidden until online payments are supported ──
+  // {
+  //   id: 2,
+  //   icon: "card",
+  //   label: "Credit Card",
+  //   desc: "•••• •••• •••• 4532",
+  //   isDefault: false,
+  // },
 ];
 
 const PAYMENT_TIPS = [
-  "Cash on Delivery available for all orders",
-  "Online payments are secure and encrypted",
-  "Get 5% cashback on online payments",
-  "Auto-pay available for subscriptions",
+  "Cash on Delivery is the only accepted payment method",
+  "Have exact change ready when your order arrives",
+  "Payment is collected by the driver upon delivery",
+  "Online payment options coming soon",
 ];
 
-const TRANSACTIONS = [
-  { invoice: "INV-2451", order: "ORD-2451", amount: 26.97, date: "Mar 28, 2026", method: "Cash on Delivery", status: "Paid" },
-  { invoice: "INV-2450", order: "ORD-2450", amount: 44.95, date: "Mar 25, 2026", method: "Credit Card",      status: "Paid" },
-  { invoice: "INV-2449", order: "ORD-2449", amount: 26.97, date: "Mar 22, 2026", method: "Cash on Delivery", status: "Paid" },
-  { invoice: "INV-2448", order: "ORD-2448", amount: 35.96, date: "Mar 18, 2026", method: "Credit Card",      status: "Paid" },
-  { invoice: "INV-2447", order: "ORD-2447", amount: 17.98, date: "Mar 15, 2026", method: "Credit Card",      status: "Refunded" },
-];
+// ─── Helpers ─────────────────────────────────────────────────────────────────
+const METHOD_LABELS = { cod: "Cash on Delivery", card: "Credit Card" };
+
+function formatDate(iso) {
+  return new Date(iso).toLocaleDateString("en-US", {
+    year: "numeric", month: "short", day: "numeric",
+  });
+}
+
+function mapTransaction(tx) {
+  return {
+    id:     tx._id,
+    invoice: tx._id.slice(-8).toUpperCase(),
+    order:  tx.orderId?.orderNumber ?? "—",
+    amount: tx.amount,
+    date:   formatDate(tx.createdAt),
+    method: METHOD_LABELS[tx.method] ?? tx.method,
+    status: tx.status.charAt(0).toUpperCase() + tx.status.slice(1),
+  };
+}
 
 const SUMMARY_STATS = {
   totalSpentMonth: 342.0,
@@ -172,6 +187,16 @@ function StatCard({ iconBg, icon, label, value, sub, subColor }) {
 // ─── Main Page ────────────────────────────────────────────────────────────────────
 export default function PaymentsPage() {
   const [methods, setMethods] = useState(PAYMENT_METHODS);
+  const [transactions, setTransactions] = useState([]);
+  const [txLoading, setTxLoading] = useState(true);
+  const [txError, setTxError]   = useState(null);
+
+  useEffect(() => {
+    customerApi.getPayments(true)
+      .then(res => setTransactions((res.data?.data ?? []).map(mapTransaction)))
+      .catch(() => setTxError("Failed to load transactions."))
+      .finally(() => setTxLoading(false));
+  }, []);
 
   return (
     <div style={styles.page}>
@@ -214,10 +239,12 @@ export default function PaymentsPage() {
                 <div style={styles.cardTitle}>Payment Methods</div>
                 <div style={styles.cardSub}>Manage your payment options</div>
               </div>
+              {/* ── Hidden until online payments are supported ──
               <button style={styles.addBtn}>
                 <PlusIcon />
                 Add Method
               </button>
+              */}
             </div>
 
             <div style={{ display: "flex", flexDirection: "column", gap: 12, marginTop: 18 }}>
@@ -245,7 +272,7 @@ export default function PaymentsPage() {
                     </div>
                     <div style={{ fontSize: 12.5, color: "#94a3b8" }}>{m.desc}</div>
                   </div>
-                  <button style={styles.editBtn}>Edit</button>
+                  {/* <button style={styles.editBtn}>Edit</button> */}
                 </div>
               ))}
             </div>
@@ -288,8 +315,26 @@ export default function PaymentsPage() {
                   </tr>
                 </thead>
                 <tbody>
-                  {TRANSACTIONS.map((tx, idx) => (
-                    <tr key={idx}
+                  {txLoading ? (
+                    <tr>
+                      <td colSpan={7} style={{ ...styles.td, textAlign: "center", padding: "32px 0", color: "#94a3b8" }}>
+                        Loading transactions…
+                      </td>
+                    </tr>
+                  ) : txError ? (
+                    <tr>
+                      <td colSpan={7} style={{ ...styles.td, textAlign: "center", padding: "32px 0", color: "#ef4444" }}>
+                        {txError}
+                      </td>
+                    </tr>
+                  ) : transactions.length === 0 ? (
+                    <tr>
+                      <td colSpan={7} style={{ ...styles.td, textAlign: "center", padding: "32px 0", color: "#94a3b8" }}>
+                        No transactions found.
+                      </td>
+                    </tr>
+                  ) : transactions.map(tx => (
+                    <tr key={tx.id}
                       style={{ borderTop: "1px solid #f1f5f9" }}
                       onMouseEnter={e => e.currentTarget.style.background = "#f8fafc"}
                       onMouseLeave={e => e.currentTarget.style.background = "transparent"}
