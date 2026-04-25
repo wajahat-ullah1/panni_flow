@@ -1,13 +1,17 @@
 import { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import customerApi from "../../../shared/api/customerApi";
 
 // ─── Backend status → display label ───────────────────────────────────────────
 const STATUS_DISPLAY = {
-  pending:    "Pending",
-  assigned:   "On the Way",
-  on_the_way: "On the Way",
-  delivered:  "Delivered",
-  cancelled:  "Cancelled",
+  pending:          "Pending",
+  confirmed:        "Confirmed",
+  assigned:         "Assigned",
+  accepted:         "Accepted",
+  rejected:         "Rejected",
+  "out-for-delivery": "Out for Delivery",
+  delivered:        "Delivered",
+  cancelled:        "Cancelled",
 };
 
 // ─── Filter tab → API status param ────────────────────────────────────────────
@@ -18,7 +22,7 @@ const FILTER_TO_STATUS = {
   Cancelled: "cancelled",
 };
 
-const ACTIVE_STATUSES = ["Pending", "On the Way", "Assigned"];
+const ACTIVE_STATUSES = ["Pending", "Confirmed", "Assigned", "Accepted", "Out for Delivery"];
 
 // ─── Normalize a raw backend order to UI shape ─────────────────────────────────
 function normalizeOrder(o) {
@@ -51,10 +55,14 @@ const statVal = (f) => (typeof f === "object" && f !== null ? f.value : f);
 
 // ─── Status config ──────────────────────────────────────────────────────────────
 const STATUS_CONFIG = {
-  "On the Way": { bg: "#dbeafe", color: "#1d4ed8" },
-  Delivered:    { bg: "#dcfce7", color: "#15803d" },
-  Cancelled:    { bg: "#fee2e2", color: "#b91c1c" },
-  Active:       { bg: "#fef3c7", color: "#b45309" },
+  Pending:           { bg: "#fef3c7", color: "#b45309" },
+  Confirmed:         { bg: "#e0f2fe", color: "#0369a1" },
+  Assigned:          { bg: "#ede9fe", color: "#6d28d9" },
+  Accepted:          { bg: "#dbeafe", color: "#1d4ed8" },
+  Rejected:          { bg: "#fee2e2", color: "#b91c1c" },
+  "Out for Delivery": { bg: "#dbeafe", color: "#1d4ed8" },
+  Delivered:         { bg: "#dcfce7", color: "#15803d" },
+  Cancelled:         { bg: "#fee2e2", color: "#b91c1c" },
 };
 
 // ─── Icons (inline SVG) ─────────────────────────────────────────────────────────
@@ -125,7 +133,9 @@ function StatusBadge({ status }) {
 }
 
 function OrderCard({ order, onTrack }) {
-  const isActive = order.status === "On the Way" || order.status === "Active";
+  const navigate = useNavigate();
+  console.log("Rendering OrderCard for order:", order);
+  const isActive = ["Assigned", "Out for Delivery"].includes(order.status);
   const isDelivered = order.status === "Delivered";
   const isCancelled = order.status === "Cancelled";
   
@@ -185,7 +195,7 @@ function OrderCard({ order, onTrack }) {
         <div style={{ display: "flex", gap: 8 }}>
           {isActive && (
             <button
-              onClick={() => onTrack && onTrack(order)}
+              onClick={() => navigate(`../live-tracking/${order._id}`, { relative: "path" })}
               style={{
                 padding: "7px 16px",
                 borderRadius: 8,
