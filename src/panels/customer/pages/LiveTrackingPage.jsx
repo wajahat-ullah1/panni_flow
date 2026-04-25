@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { GoogleMap, useJsApiLoader, Marker, Polyline } from "@react-google-maps/api";
+import { GoogleMap, useJsApiLoader, Marker, Polyline, DirectionsRenderer } from "@react-google-maps/api";
 import { io } from "socket.io-client";
 import customerApi from "../../../shared/api/customerApi";
 
@@ -88,6 +88,29 @@ function MapView({ driverPos, customerPos, driverName, orderId, eta }) {
     googleMapsApiKey: import.meta.env.VITE_GOOGLE_MAPS_API_KEY || "",
   });
 
+  const [directions, setDirections] = useState(null);
+
+  // Fetch road-following route whenever driver or customer position changes
+  useEffect(() => {
+    if (!isLoaded || !driverPos || !customerPos) return;
+
+    const service = new window.google.maps.DirectionsService();
+    service.route(
+      {
+        origin: driverPos,
+        destination: customerPos,
+        travelMode: window.google.maps.TravelMode.DRIVING,
+      },
+      (result, status) => {
+        if (status === window.google.maps.DirectionsStatus.OK) {
+          setDirections(result);
+        } else {
+          setDirections(null);
+        }
+      }
+    );
+  }, [isLoaded, driverPos?.lat, driverPos?.lng, customerPos?.lat, customerPos?.lng]);
+
   const mapCenter = driverPos && customerPos
     ? { lat: (driverPos.lat + customerPos.lat) / 2, lng: (driverPos.lng + customerPos.lng) / 2 }
     : driverPos || customerPos || { lat: 24.85, lng: 67.01 };
@@ -126,26 +149,41 @@ function MapView({ driverPos, customerPos, driverName, orderId, eta }) {
         zoom={14}
         options={MAP_OPTIONS}
       >
-        {driverPos && customerPos && (
-          <Polyline
-            path={[driverPos, customerPos]}
+        {/* Road-following route via DirectionsRenderer; straight dashed line as fallback */}
+        {directions ? (
+          <DirectionsRenderer
+            directions={directions}
             options={{
-              strokeColor: "#3b82f6",
-              strokeOpacity: 0,
-              strokeWeight: 0,
-              icons: [{
-                icon: {
-                  path: "M 0,-1 0,1",
-                  strokeOpacity: 0.85,
-                  strokeWeight: 3,
-                  strokeColor: "#3b82f6",
-                  scale: 4,
-                },
-                offset: "0",
-                repeat: "20px",
-              }],
+              suppressMarkers: true,
+              polylineOptions: {
+                strokeColor: "#3b82f6",
+                strokeWeight: 4,
+                strokeOpacity: 0.85,
+              },
             }}
           />
+        ) : (
+          driverPos && customerPos && (
+            <Polyline
+              path={[driverPos, customerPos]}
+              options={{
+                strokeColor: "#3b82f6",
+                strokeOpacity: 0,
+                strokeWeight: 0,
+                icons: [{
+                  icon: {
+                    path: "M 0,-1 0,1",
+                    strokeOpacity: 0.85,
+                    strokeWeight: 3,
+                    strokeColor: "#3b82f6",
+                    scale: 4,
+                  },
+                  offset: "0",
+                  repeat: "20px",
+                }],
+              }}
+            />
+          )
         )}
         {driverPos && (
           <Marker
@@ -166,7 +204,7 @@ function MapView({ driverPos, customerPos, driverName, orderId, eta }) {
       </GoogleMap>
 
       {/* Bottom info bar */}
-      <div style={styles.mapInfoBar}>
+      {/* <div style={styles.mapInfoBar}>
         <div style={styles.mapInfoLeft}>
           <div style={{
             width: 38, height: 38, borderRadius: 10,
@@ -184,7 +222,7 @@ function MapView({ driverPos, customerPos, driverName, orderId, eta }) {
           <div style={{ fontSize: 11.5, color: "#94a3b8", marginBottom: 2 }}>Estimated Arrival</div>
           <div style={{ fontSize: 22, fontWeight: 800, color: "#0ea5e9" }}>{eta || "—"}</div>
         </div>
-      </div>
+      </div> */}
     </div>
   );
 }
@@ -446,7 +484,7 @@ const styles = {
   },
   header: { flexShrink: 0 },
   title: { margin: 0, fontSize: 22, fontWeight: 700, color: "#0f172a" },
-  subtitle: { margin: "4px 0 0", fontSize: 13.5, color: "#94a3b8" },
+  subtitle: { margin: "4px 0 0", fontSize: 13.5, color: "#585a5e" },
   backBtn: {
     width: 36, height: 36, borderRadius: 10,
     border: "1px solid #e2e8f0", background: "white",
@@ -457,9 +495,9 @@ const styles = {
     display: "flex", gap: 20, flex: 1,
     minHeight: 0, alignItems: "flex-start",
   },
-  mapWrapper: { flex: 1, minWidth: 0 },
+  mapWrapper: { flex: 1, minWidth: 0, height: "100%" },
   mapContainer: {
-    position: "relative", width: "100%", height: 380,
+    position: "relative", width: "100%", height: "100%",
     borderRadius: 16, overflow: "hidden",
     border: "1px solid #e2e8f0", background: "#e8f4f8",
   },
