@@ -133,6 +133,8 @@ const adminApi = {
   cancelOrder: (id) =>
     api.delete(`/admin/orders/${id}`),
 
+   getOrderStats: () => api.get("/reports/dashboard/order-stats"),
+
 
   // ════════════════════════════════════════════════════════════════════════════
   // INVENTORY
