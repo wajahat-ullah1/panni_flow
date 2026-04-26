@@ -6,9 +6,9 @@ import LoginPage      from "./pages/LoginPage";
 import SignUpPage     from "./pages/SignUpPage";
  
 // ── Panel apps ────────────────────────────────────────────────────────────────
-import CustomerApp    from "./panels/customer/CustomerApp.jsx.jsx";
-import DriverApp      from "./panels/driver/DriverApp.jsx.jsx";
-import AdminApp       from "./panels/admin/AdminApp.jsx.jsx";
+import CustomerApp    from "./panels/customer/CustomerApp.jsx";
+import DriverApp      from "./panels/driver/DriverApp.jsx";
+import AdminApp       from "./panels/admin/AdminApp.jsx";
 import AdminLoginPage from "./panels/admin/Components/Login/LoginPage";
  
 // ── Route guard ───────────────────────────────────────────────────────────────
@@ -55,7 +55,7 @@ export default function App() {
       />
  
       {/* ── 404 ─────────────────────────────────────────────────────────── */}
-      <Route path="*"    element={<Navigate to="/404" replace />} />
+      <Route path="*" element={<Navigate to="/404" replace />} />
  
     </Routes>
   );

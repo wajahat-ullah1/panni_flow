@@ -18,6 +18,8 @@ const api = axios.create({
 // ── Request interceptor — attach JWT token to every request ──────────────────
 api.interceptors.request.use(
   (config) => {
+    console.log(`[API Request] ${config.method.toUpperCase()} ${config.baseURL}${config.url}`);
+    
     // Multi-tenant backend requires the tenant slug header on every request.
     if (TENANT_ID) {
       config.headers["X-Tenant-ID"] = TENANT_ID;
@@ -35,11 +37,17 @@ api.interceptors.request.use(
 // ── Response interceptor — handle global errors ───────────────────────────────
 api.interceptors.response.use(
   // Success — just return the response data directly
-  (response) => response.data,
+  (response) => {
+    console.log(`[API Response] ${response.status}`, response.data);
+    return response.data;
+  },
 
   // Error — handle common cases globally
   (error) => {
     const status = error.response?.status;
+    const message = error.response?.data?.message || error.message;
+    
+    console.error(`[API Error] Status: ${status}, Message: ${message}`, error.response?.data);
 
     // 401 Unauthorized — token expired or invalid → force logout
     if (status === 401) {

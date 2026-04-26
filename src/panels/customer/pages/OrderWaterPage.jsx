@@ -225,7 +225,7 @@ export default function OrderWaterPage() {
               {/* Actions */}
               <div style={styles.actionRow}>
                 <button style={styles.orderBtn} onClick={handleOrder}>
-                  {added ? "✓ Added to Cart!" : "Quick Order Now"}
+                  {added ? "✓ Added to Cart!" : "Add to Cart"}
                 </button>
                 {/* <button style={styles.cartIconBtn}>
                   <CartIcon stroke="white" />
