@@ -10,7 +10,7 @@ import AdminDashboard    from "./Components/AdminDashboard/AdminDashboard";
 import OrderManagement   from "./Components/OrderManagement/OrderManagement";
 import LiveTracking      from "./Components/LiveTracking/LiveTracking";
 import DemandForecasting from "./Components/DemandForeCasting/DemandForecasting";
-import AddDriver         from "./Components/AddDriver/AddDriver";
+import AddDriver         from "./Components/AddDriver/AdDriver";
 
 // ── Auth (to get logout) ──────────────────────────────────────────────────────
 import useAuth from "../../shared/hooks/useAuth";
@@ -44,7 +44,7 @@ export default function AdminApp() {
           <Route path="tracking"   element={<LiveTracking />} />
           <Route path="forecast"   element={<DemandForecasting />} />
           <Route path="drivers"    element={<AddDriver />} />
-          
+
           {/* Catch-all inside admin panel */}
           <Route path="*" element={<Navigate to="dashboard" replace />} />
         </Routes>
