@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import {
   MapPin,
   Truck,
@@ -9,10 +9,15 @@ import {
   TrendingUp,
 } from 'lucide-react';
 import { GoogleMap, LoadScript, Marker, Polyline } from '@react-google-maps/api';
+import { io } from 'socket.io-client';
+import adminApi from '../../../../shared/api/adminApi';
 import './LiveTracking.css';
 
+const SOCKET_URL = (import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000/api/v1')
+  .replace(/\/api\/v\d+\/?$/, '');
+
 const LiveTracking = () => {
-  const [selectedTanker, setSelectedTanker] = useState(null);
+  const [selectedDelivery, setSelectedDelivery] = useState(null);
   const [mapCenter, setMapCenter] = useState({
     lat: 33.9992,
     lng: 71.4656,
@@ -23,6 +28,10 @@ const LiveTracking = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [mapLoaded, setMapLoaded] = useState(false);
   const [useRealMaps, setUseRealMaps] = useState(false);
+  const [directionsResult, setDirectionsResult] = useState(null);
+  const [routePath, setRoutePath] = useState([]);
+  const socketRef = useRef(null);
+  const subscribedOrdersRef = useRef([]);
 
   // Google Maps API Key - Replace with your actual key
   const GOOGLE_MAPS_API_KEY = import.meta.env.VITE_GOOGLE_MAPS_API_KEY || 'YOUR_GOOGLE_MAPS_API_KEY';
@@ -42,225 +51,253 @@ const LiveTracking = () => {
     fullscreenControl: true,
   };
 
-  // Destinations - static for now
-  const destinations = [
-    { position: { lat: 34.0080, lng: 71.4720 }, label: 'Industrial Zone A' },
-    { position: { lat: 33.9920, lng: 71.4600 }, label: 'Residential Area B' },
-    { position: { lat: 34.0000, lng: 71.4640 }, label: 'Commercial District' },
-    { position: { lat: 33.9960, lng: 71.4560 }, label: 'Tech Park' },
-  ];
-
-  // Initial data fetch
+  // Initial data fetch + WebSocket setup on mount
   useEffect(() => {
-    console.log('Component mounted - fetching initial data');
     fetchInitialData();
-    
-    // Cleanup function
+
     return () => {
-      console.log('Component unmounting - cleaning up');
+      // Unsubscribe all orders and disconnect socket on unmount
+      if (socketRef.current) {
+        subscribedOrdersRef.current.forEach((orderId) => {
+          socketRef.current.emit('unsubscribe-order', { orderId });
+        });
+        socketRef.current.disconnect();
+        socketRef.current = null;
+      }
     };
-  }, []); // Empty dependency array - runs once on mount
-
-  // Real-time updates - fetch tanker locations every 10 seconds
-  useEffect(() => {
-    if (!isLoading) {
-      console.log('Starting real-time updates');
-      const interval = setInterval(() => {
-        fetchTankerLocations();
-      }, 10000); // Update every 10 seconds
-
-      // Cleanup interval on unmount
-      return () => {
-        console.log('Stopping real-time updates');
-        clearInterval(interval);
-      };
-    }
-  }, [isLoading]); // Depends on isLoading
+  }, []);
 
   // Update selected tanker when tankers data changes
   useEffect(() => {
-    if (selectedTanker && tankers.length > 0) {
-      const updatedTanker = tankers.find(t => t.id === selectedTanker.id);
+    if (selectedDelivery && tankers.length > 0) {
+      const updatedTanker = tankers.find(t => t.driverId === selectedDelivery.driverId);
       if (updatedTanker) {
-        setSelectedTanker(updatedTanker);
-        console.log(`Updated selected tanker: ${updatedTanker.id}`);
+        setSelectedDelivery(prev => ({ ...prev, tanker: updatedTanker }));
       }
     }
-  }, [tankers]); // Depends on tankers array
+  }, [tankers]);
+
+  // Set up WebSocket after initial data is loaded
+  const setupWebSocket = useCallback((orderIds) => {
+    if (socketRef.current) return; // already connected
+
+    const socket = io(`${SOCKET_URL}/tracking`);
+    socketRef.current = socket;
+
+    socket.on('connect', () => {
+      // Subscribe to each active order
+      orderIds.forEach((orderId) => {
+        socket.emit('subscribe-order', { orderId });
+      });
+      subscribedOrdersRef.current = orderIds;
+    });
+
+    // Real-time driver location updates
+    socket.on('location-update', ({ orderId, driverId, lat, lng }) => {
+      setTankers((prev) =>
+        prev.map((tanker) =>
+          tanker.driverId === driverId
+            ? { ...tanker, position: { lat, lng } }
+            : tanker
+        )
+      );
+    });
+
+    // Real-time order status updates
+    socket.on('status-update', ({ orderId, status }) => {
+      setActiveDeliveries((prev) =>
+        prev.map((delivery) =>
+          delivery.orderId === orderId
+            ? { ...delivery, status, arrived: status === 'out-for-delivery' }
+            : delivery
+        )
+      );
+    });
+
+    socket.on('connect_error', (err) => {
+      console.error('WebSocket connection error:', err.message);
+    });
+  }, []);
+
+  // Map API response to component data model
+  const mapApiResponse = (data) => {
+    const { activeDeliveries: deliveries, summary, driverSummary } = data;
+    // Build tankers from driver locations within each delivery
+    const tankerMap = new Map();
+    deliveries.forEach((delivery) => {
+      const { driver, orderId, orderNumber, customerName, deliveryAddress, status } = delivery;
+      if (!driver || !driver.currentLocation) return;
+
+      const tankerId = driver.vehicleNumber;
+      if (!tankerMap.has(tankerId)) {
+        tankerMap.set(tankerId, {
+          id: tankerId,
+          position: {
+            lat: driver.currentLocation.lat,
+            lng: driver.currentLocation.lng,
+          },
+          driver: driver.name,
+          driverPhone: driver.phone,
+          driverId: driver.id,
+          orderId: orderNumber,
+          customer: customerName,
+          destination: `${deliveryAddress.street}, ${deliveryAddress.city}`,
+          destinationCoords: deliveryAddress.coordinates,
+          eta: delivery.eta || '—',
+          status: status,
+        });
+      }
+    });
+
+    const mappedTankers = Array.from(tankerMap.values());
+
+    // Build active deliveries list
+    const mappedDeliveries = deliveries.map((delivery) => ({
+      id: delivery.orderNumber,
+      orderId: delivery.orderId,
+      customer: delivery.customerName,
+      tankerId: delivery.driver?.vehicleNumber || '—',
+      eta: delivery.eta || '—',
+      status: delivery.status,
+      arrived: delivery.status === 'out-for-delivery',
+      destination: `${delivery.deliveryAddress.street}, ${delivery.deliveryAddress.city}`,
+      destinationCoords: delivery.deliveryAddress.coordinates ?? null,
+    }));
+
+    return { mappedTankers, mappedDeliveries, activeTankers: String(summary.totalActive) };
+  };
+
+  // Build stats array from monitoring + order-stats data
+  const buildStats = (activeTankers, orderStats) => [
+    {
+      icon: Truck,
+      value: activeTankers,
+      label: 'Active Tankers',
+      color: '#2196F3',
+      bgColor: '#E3F2FD',
+    },
+    {
+      icon: CheckCircle,
+      value: orderStats ? String(orderStats.todayCompleted) : '—',
+      label: 'Completed Today',
+      color: '#4CAF50',
+      bgColor: '#E8F5E9',
+    },
+    {
+      icon: Clock,
+      value: '—',
+      label: 'Avg. Delivery Time',
+      color: '#FF9800',
+      bgColor: '#FFF3E0',
+    },
+    {
+      icon: MapPin,
+      value: orderStats ? String(orderStats.pendingPickups) : '—',
+      label: 'Pending Pickups',
+      color: '#9C27B0',
+      bgColor: '#F3E5F5',
+    },
+  ];
 
   // Fetch initial data
   const fetchInitialData = async () => {
     try {
       setIsLoading(true);
-      console.log('Fetching initial data...');
 
-      // Simulate API call - replace with actual API endpoint
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      const [monitoringRes, orderStatsRes] = await Promise.all([
+        adminApi.getLiveMonitoring(),
+        adminApi.getOrderStats().catch(() => null), // non-blocking if it fails
+      ]);
 
-      // Initial tankers data
-      const initialTankers = [
-        {
-          id: 'TK-102',
-          position: { lat: 34.0050, lng: 71.4700 },
-          driver: 'Mike Johnson',
-          orderId: 'ORD-2461',
-          customer: 'Robert Wilson',
-          destination: 'Business Park, Sector 15',
-          eta: '8 mins',
-          status: 'In Transit',
-        },
-        {
-          id: 'TK-103',
-          position: { lat: 33.9980, lng: 71.4620 },
-          driver: 'David Brown',
-          orderId: 'ORD-2462',
-          customer: 'Emily Chen',
-          destination: 'Green Valley Complex',
-          eta: '12 mins',
-          status: 'In Transit',
-        },
-        {
-          id: 'TK-104',
-          position: { lat: 34.0020, lng: 71.4680 },
-          driver: 'Sarah Williams',
-          orderId: 'ORD-2457',
-          customer: 'Green Valley Resort',
-          destination: 'Valley Road, Sector 12',
-          eta: 'Arrived',
-          status: 'Delivering',
-        },
-        {
-          id: 'TK-108',
-          position: { lat: 33.9940, lng: 71.4580 },
-          driver: 'James Miller',
-          orderId: 'ORD-2463',
-          customer: 'Tech Innovations',
-          destination: 'Innovation Hub',
-          eta: '5 mins',
-          status: 'In Transit',
-        },
-      ];
+      const monitoringData = monitoringRes.data?.data ?? monitoringRes.data;
+      const orderStats = orderStatsRes?.data ?? null;
 
-      setTankers(initialTankers);
+      const { mappedTankers, mappedDeliveries, activeTankers } = mapApiResponse(monitoringData);
 
-      // Active deliveries
-      const initialDeliveries = [
-        {
-          id: 'ORD-2463',
-          customer: 'Robert Wilson',
-          tankerId: 'TK-102',
-          eta: '8 mins',
-          status: 'In Transit',
-          arrived: false,
-        },
-        {
-          id: 'ORD-2457',
-          tankerId: 'TK-104',
-          customer: 'Sarah Williams',
-          status: 'Delivering',
-          arrived: true,
-        },
-      ];
+      setTankers(mappedTankers);
+      setActiveDeliveries(mappedDeliveries);
+      setStats(buildStats(activeTankers, orderStats));
 
-      setActiveDeliveries(initialDeliveries);
+      if (mappedTankers.length > 0) {
+        setMapCenter(mappedTankers[0].position);
+      }
 
-      // Statistics
-      const initialStats = [
-        {
-          icon: Truck,
-          value: '4',
-          label: 'Active Tankers',
-          color: '#2196F3',
-          bgColor: '#E3F2FD',
-        },
-        {
-          icon: CheckCircle,
-          value: '12',
-          label: 'Completed Today',
-          color: '#4CAF50',
-          bgColor: '#E8F5E9',
-        },
-        {
-          icon: Clock,
-          value: '18 min',
-          label: 'Avg. Delivery Time',
-          color: '#FF9800',
-          bgColor: '#FFF3E0',
-        },
-        {
-          icon: MapPin,
-          value: '6',
-          label: 'Pending Pickups',
-          color: '#9C27B0',
-          bgColor: '#F3E5F5',
-        },
-      ];
+      // Start WebSocket for real-time updates
+      const orderIds = mappedDeliveries.map((d) => d.orderId).filter(Boolean);
+      setupWebSocket(orderIds);
 
-      setStats(initialStats);
       setIsLoading(false);
-      console.log('Initial data loaded successfully');
-
     } catch (error) {
-      console.error('Error fetching initial data:', error);
+      console.error('Error fetching live monitoring data:', error);
       setIsLoading(false);
     }
   };
 
-  // Fetch tanker locations (for real-time updates)
-  const fetchTankerLocations = useCallback(async () => {
-    try {
-      console.log('Updating tanker locations...');
-
-      // Simulate API call - replace with actual API endpoint
-      // const response = await fetch('YOUR_API_URL/tankers/locations');
-      // const data = await response.json();
-
-      // Simulate position updates (small random movements)
-      setTankers(prevTankers => 
-        prevTankers.map(tanker => ({
-          ...tanker,
-          position: {
-            lat: tanker.position.lat + (Math.random() - 0.5) * 0.001,
-            lng: tanker.position.lng + (Math.random() - 0.5) * 0.001,
-          },
-        }))
-      );
-
-      console.log('Tanker locations updated');
-
-    } catch (error) {
-      console.error('Error updating tanker locations:', error);
-    }
-  }, []); // No dependencies - function doesn't change
-
-  // Sample route for selected tanker
-  const getRouteCoordinates = useCallback((tanker) => {
-    if (!tanker) return [];
-    
-    return [
-      tanker.position,
-      { lat: tanker.position.lat + 0.005, lng: tanker.position.lng + 0.005 },
-      { lat: tanker.position.lat + 0.010, lng: tanker.position.lng + 0.008 },
-    ];
-  }, []); // No dependencies
-
-  const handleTankerSelect = useCallback((tanker) => {
-    console.log('Tanker selected:', tanker.id);
-    setSelectedTanker(tanker);
+  const handleDeliverySelect = useCallback((delivery, tanker) => {
+    if (!tanker) return;
+    setSelectedDelivery({ ...delivery, tanker });
     setMapCenter(tanker.position);
-  }, []); // No dependencies
+    setRoutePath([]); // clear previous route when switching delivery
+  }, []);
 
   const handleContactDriver = useCallback((tanker) => {
-    console.log('Calling driver:', tanker.driver);
     alert(`Calling ${tanker.driver}...`);
-    // In production, implement actual phone call functionality
-  }, []); // No dependencies
+  }, []);
 
-  const handleViewRoute = useCallback((tanker) => {
-    console.log('Viewing route for:', tanker.id);
-    alert(`Opening route for ${tanker.id}...`);
-    // In production, implement route viewing functionality
-  }, []); // No dependencies
+  // Fallback: fetch route from OSRM (free, no key required)
+  const fetchOsrmRoute = useCallback(async (origin, destination) => {
+    try {
+      const url =
+        `https://router.project-osrm.org/route/v1/driving/` +
+        `${origin.lng},${origin.lat};${destination.lng},${destination.lat}` +
+        `?overview=full&geometries=geojson`;
+      const res = await fetch(url);
+      const data = await res.json();
+      if (data.code === 'Ok' && data.routes?.[0]) {
+        const path = data.routes[0].geometry.coordinates.map(([lng, lat]) => ({ lat, lng }));
+        setRoutePath(path);
+      } else {
+        console.error('OSRM returned no route:', data.code);
+      }
+    } catch (err) {
+      console.error('OSRM route fetch failed:', err);
+    }
+  }, []);
+
+  const handleViewRoute = useCallback((tanker, delivery) => {
+    if (!delivery?.destinationCoords?.lat || !tanker?.position) return;
+
+    setRoutePath([]); // clear previous route before fetching new one
+
+    const origin = tanker.position;
+    const destination = delivery.destinationCoords;
+
+    // Try Google Directions first; fall back to OSRM if unavailable or failed
+    if (window.google?.maps?.DirectionsService) {
+      const directionsService = new window.google.maps.DirectionsService();
+      directionsService.route(
+        {
+          origin,
+          destination,
+          travelMode: window.google.maps.TravelMode.DRIVING,
+        },
+        (result, status) => {
+          if (status === window.google.maps.DirectionsStatus.OK) {
+            const path = result.routes[0].overview_path.map((p) => ({
+              lat: p.lat(),
+              lng: p.lng(),
+            }));
+            setRoutePath(path);
+          } else {
+            console.warn('Google Directions failed, falling back to OSRM:', status);
+            fetchOsrmRoute(origin, destination);
+          }
+        }
+      );
+    } else {
+      fetchOsrmRoute(origin, destination);
+    }
+  }, [fetchOsrmRoute]);
 
   const handleMapLoad = useCallback(() => {
     console.log('Google Maps loaded successfully');
@@ -420,12 +457,16 @@ const LiveTracking = () => {
                   icon={{
                     path: window.google?.maps?.SymbolPath?.CIRCLE,
                     scale: 12,
-                    fillColor: selectedTanker?.id === tanker.id ? '#FF5722' : '#2196F3',
+                    fillColor: selectedDelivery?.tanker?.id === tanker.id ? '#FF5722' : '#2196F3',
                     fillOpacity: 1,
                     strokeColor: '#fff',
                     strokeWeight: 3,
                   }}
-                  onClick={() => handleTankerSelect(tanker)}
+                  onClick={() => {
+                    // Find the first delivery for this tanker and select it
+                    const delivery = activeDeliveries.find(d => d.tankerId === tanker.id);
+                    if (delivery) handleDeliverySelect(delivery, tanker);
+                  }}
                   label={{
                     text: tanker.id,
                     color: '#424242',
@@ -435,33 +476,32 @@ const LiveTracking = () => {
                 />
               ))}
 
-              {/* Destination Markers */}
-              {destinations.map((dest, index) => (
-                <Marker
-                  key={`dest-${index}`}
-                  position={dest.position}
-                  icon={{
-                    url: 'data:image/svg+xml;charset=UTF-8,' + encodeURIComponent(
-                      '<svg xmlns="http://www.w3.org/2000/svg" width="30" height="40" viewBox="0 0 24 24" fill="#4CAF50"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/></svg>'
-                    ),
-                  }}
-                />
-              ))}
+              {/* Destination Markers — real delivery addresses from API */}
+              {activeDeliveries
+                .filter((d) => d.destinationCoords?.lat && d.destinationCoords?.lng)
+                .map((d, index) => (
+                  <Marker
+                    key={`dest-${index}`}
+                    position={d.destinationCoords}
+                    title={d.destination}
+                    icon={{
+                      url: 'data:image/svg+xml;charset=UTF-8,' + encodeURIComponent(
+                        '<svg xmlns="http://www.w3.org/2000/svg" width="30" height="40" viewBox="0 0 24 24" fill="#4CAF50"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/></svg>'
+                      ),
+                    }}
+                  />
+                ))
+              }
 
-              {/* Route Polyline */}
-              {selectedTanker && (
+              {/* Route — Google Directions if available, OSRM as fallback */}
+              {routePath.length > 0 && (
                 <Polyline
-                  path={getRouteCoordinates(selectedTanker)}
+                  path={routePath}
                   options={{
                     strokeColor: '#2196F3',
-                    strokeOpacity: 0.8,
-                    strokeWeight: 3,
+                    strokeOpacity: 0.85,
+                    strokeWeight: 4,
                     geodesic: true,
-                    icons: [{
-                      icon: { path: 'M 0,-1 0,1', strokeOpacity: 1, scale: 2 },
-                      offset: '0',
-                      repeat: '10px',
-                    }],
                   }}
                 />
               )}
@@ -497,102 +537,94 @@ const LiveTracking = () => {
 
               {activeDeliveries.map((delivery, index) => {
                 const tanker = tankers.find((t) => t.id === delivery.tankerId);
+                const isSelected = selectedDelivery?.id === delivery.id;
                 return (
-                  <div
-                    key={index}
-                    className="delivery-card"
-                    onClick={() => tanker && handleTankerSelect(tanker)}
-                  >
-                    <div className="delivery-header">
-                      <div>
-                        <p className="delivery-customer">{delivery.customer}</p>
-                        <p className="delivery-order-id">{delivery.id}</p>
-                      </div>
-                      {delivery.eta && (
-                        <div className="eta-badge">
-                          <Clock size={12} />
-                          <span>{delivery.eta}</span>
+                  <React.Fragment key={index}>
+                    <div
+                      className={`delivery-card${isSelected ? ' selected' : ''}`}
+                      onClick={() => handleDeliverySelect(delivery, tanker)}
+                    >
+                      <div className="delivery-header">
+                        <div>
+                          <p className="delivery-customer">{delivery.customer}</p>
+                          <p className="delivery-order-id">{delivery.id}</p>
                         </div>
-                      )}
+                        {delivery.eta && delivery.eta !== '—' && (
+                          <div className="eta-badge">
+                            <Clock size={12} />
+                            <span>{delivery.eta}</span>
+                          </div>
+                        )}
+                      </div>
+
+                      <div className="delivery-footer">
+                        <div className="tanker-badge">
+                          <Truck size={14} />
+                          <span>{delivery.tankerId}</span>
+                        </div>
+                        <div className={`status-badge ${delivery.arrived ? 'arrived' : ''}`}>
+                          {delivery.status}
+                        </div>
+                      </div>
                     </div>
 
-                    <div className="delivery-footer">
-                      <div className="tanker-badge">
-                        <Truck size={14} />
-                        <span>{delivery.tankerId}</span>
+                    {/* Inline Tanker Details — shown below the selected card */}
+                    {isSelected && tanker && (
+                      <div className="tanker-details inline-tanker-details">
+                        <h2 className="sidebar-title">Tanker Details</h2>
+
+                        <div className="detail-row">
+                          <span className="detail-label">Tanker ID</span>
+                          <span className="detail-value tanker-id">{tanker.id}</span>
+                        </div>
+
+                        <div className="detail-row">
+                          <span className="detail-label">Driver</span>
+                          <span className="detail-value">{tanker.driver}</span>
+                        </div>
+
+                        <div className="detail-row">
+                          <span className="detail-label">Order ID</span>
+                          <span className="detail-value order-id">{delivery.id}</span>
+                        </div>
+
+                        <div className="destination-detail">
+                          <MapPin size={16} color="#4CAF50" />
+                          <div className="destination-info">
+                            <span className="destination-label">Destination</span>
+                            <span className="destination-value">{delivery.destination}</span>
+                          </div>
+                        </div>
+
+                        <div className="eta-detail">
+                          <Clock size={16} color="#FF9800" />
+                          <div className="eta-info">
+                            <span className="eta-label">ETA</span>
+                            <span className="eta-value">{delivery.eta}</span>
+                          </div>
+                        </div>
+
+                        <button
+                          className="contact-button"
+                          onClick={() => handleContactDriver(tanker)}
+                        >
+                          <Phone size={18} />
+                          <span>Contact Driver</span>
+                        </button>
+
+                        <button
+                          className="route-button"
+                          onClick={() => handleViewRoute(tanker, delivery)}
+                        >
+                          <Navigation size={18} />
+                          <span>View Route</span>
+                        </button>
                       </div>
-                      <div
-                        className={`status-badge ${
-                          delivery.arrived ? 'arrived' : ''
-                        }`}
-                      >
-                        {delivery.status}
-                      </div>
-                    </div>
-                  </div>
+                    )}
+                  </React.Fragment>
                 );
               })}
             </div>
-
-            {/* Selected Tanker Details */}
-            {selectedTanker && (
-              <div className="tanker-details">
-                <h2 className="sidebar-title">Tanker Details</h2>
-
-                <div className="detail-row">
-                  <span className="detail-label">Tanker ID</span>
-                  <span className="detail-value tanker-id">
-                    {selectedTanker.id}
-                  </span>
-                </div>
-
-                <div className="detail-row">
-                  <span className="detail-label">Driver</span>
-                  <span className="detail-value">{selectedTanker.driver}</span>
-                </div>
-
-                <div className="detail-row">
-                  <span className="detail-label">Order ID</span>
-                  <span className="detail-value order-id">
-                    {selectedTanker.orderId}
-                  </span>
-                </div>
-
-                <div className="destination-detail">
-                  <MapPin size={16} color="#4CAF50" />
-                  <div className="destination-info">
-                    <span className="destination-label">Destination</span>
-                    <span className="destination-value">
-                      {selectedTanker.destination}
-                    </span>
-                  </div>
-                </div>
-
-                <div className="eta-detail">
-                  <Clock size={16} color="#FF9800" />
-                  <div className="eta-info">
-                    <span className="eta-label">ETA</span>
-                    <span className="eta-value">{selectedTanker.eta}</span>
-                  </div>
-                </div>
-
-                <button
-                  className="contact-button"
-                  onClick={() => handleContactDriver(selectedTanker)}
-                >
-                  <Phone size={18} />
-                  <span>Contact Driver</span>
-                </button>
-
-                <button
-                  className="route-button"
-                  onClick={() => handleViewRoute(selectedTanker)}
-                >
-                  <Navigation size={18} />
-                  <span>View Route</span>
-                </button>
-              </div>
-            )}
           </div>
         </div>
       </div>

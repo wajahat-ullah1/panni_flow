@@ -213,6 +213,12 @@
   transform: translateY(-2px);
 }
 
+.delivery-card.selected {
+  background-color: #fff;
+  border: 2px solid #2196F3;
+  box-shadow: 0 4px 16px rgba(33, 150, 243, 0.15);
+}
+
 .delivery-header {
   display: flex;
   justify-content: space-between;
@@ -283,6 +289,19 @@
   border: 1px solid #e0e0e0;
   border-radius: 12px;
   padding: 16px;
+}
+
+.inline-tanker-details {
+  margin-top: -4px;
+  margin-bottom: 12px;
+  border-top: 2px solid #2196F3;
+  border-radius: 0 0 12px 12px;
+  animation: slideDown 0.2s ease;
+}
+
+@keyframes slideDown {
+  from { opacity: 0; transform: translateY(-8px); }
+  to   { opacity: 1; transform: translateY(0); }
 }
 
 .detail-row {
