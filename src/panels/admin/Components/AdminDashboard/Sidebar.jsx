@@ -7,6 +7,7 @@ import {
   TrendingUp,
   LogOut,
   Droplet,
+  UserPlus,
 } from 'lucide-react';
 import './Sidebar.css';
 
@@ -18,6 +19,12 @@ const Sidebar = ({ onLogout }) => {
       label: 'Dashboard',
       icon: LayoutDashboard,
       path: '/admin/dashboard',
+    },
+    {
+      id: 'addDriver',
+      label: 'Add Driver',
+      icon: UserPlus,
+      path: '/admin/drivers',
     },
     {
       id: 'orders',
