@@ -1,53 +1,32 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
+import { useParams, useNavigate } from "react-router-dom";
+import { GoogleMap, useJsApiLoader, Marker, Polyline, DirectionsRenderer } from "@react-google-maps/api";
+import { io } from "socket.io-client";
+import customerApi from "../../../shared/api/customerApi";
 
-// ─── Static Data ────────────────────────────────────────────────────────────────
-const ACTIVE_ORDER = {
-  id: "ORD-2452",
-  driver: {
-    name: "Michael Johnson",
-    initials: "MJ",
-    role: "Delivery Driver",
-    status: "Active",
-    phone: "+1 (555) 234-5678",
-  },
-  eta: "15 min",
+// ─── Constants ───────────────────────────────────────────────────────────────────
+const SOCKET_URL = import.meta.env.VITE_SOCKET_URL;
+
+// Backend status → timeline step index (0-based)
+const STATUS_TO_STEP = {
+  pending:            0,
+  confirmed:          0,
+  assigned:           1,
+  accepted:           1,
+  rejected:           1,
+  "out-for-delivery": 2,
+  delivered:          3,
+  cancelled:          3,
 };
 
-const ORDER_STATUS_STEPS = [
-  {
-    label: "Order Confirmed",
-    desc: "Your order has been placed",
-    time: "10:30 AM",
-    done: true,
-  },
-  {
-    label: "Driver Assigned",
-    desc: "Michael is your driver",
-    time: "10:45 AM",
-    done: true,
-  },
-  {
-    label: "On the Way",
-    desc: "Driver is heading to you",
-    time: "11:00 AM",
-    done: true,
-  },
-  {
-    label: "Delivered",
-    desc: "Order will be delivered soon",
-    time: "ETA 11:15 AM",
-    done: false,
-  },
-];
-
-const OTHER_DELIVERIES = [
-  {
-    id: "ORD-2453",
-    driver: "Sarah Williams",
-    eta: "45 minutes",
-    status: "Assigned",
-  },
-];
+const MAP_CONTAINER_STYLE = { width: "100%", height: "100%" };
+const MAP_OPTIONS = {
+  zoomControl: true,
+  streetViewControl: false,
+  mapTypeControl: false,
+  fullscreenControl: true,
+  gestureHandling: "cooperative",
+};
 
 // ─── SVG Icons ───────────────────────────────────────────────────────────────────
 const TruckIcon = ({ size = 22, stroke = "white" }) => (
@@ -67,13 +46,6 @@ const PhoneIcon = () => (
   </svg>
 );
 
-const NavIcon = () => (
-  <svg width="16" height="16" viewBox="0 0 24 24" fill="none"
-    stroke="#64748b" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-    <polygon points="3 11 22 2 13 21 11 13 3 11"/>
-  </svg>
-);
-
 const WaterBottleIcon = ({ size = 18, stroke = "white" }) => (
   <svg width={size} height={size} viewBox="0 0 24 24" fill="none"
     stroke={stroke} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -82,238 +54,258 @@ const WaterBottleIcon = ({ size = 18, stroke = "white" }) => (
   </svg>
 );
 
-// ─── Animated Map Component ──────────────────────────────────────────────────────
-function MapView() {
-  const [pulse, setPulse] = useState(0);
+const BackIcon = () => (
+  <svg width="18" height="18" viewBox="0 0 24 24" fill="none"
+    stroke="#64748b" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M19 12H5M12 19l-7-7 7-7"/>
+  </svg>
+);
 
+// ─── No Order Selected State ─────────────────────────────────────────────────────
+function NoOrderState({ onGoToOrders }) {
+  return (
+    <div style={styles.emptyState}>
+      <div style={styles.emptyIcon}>
+        <TruckIcon size={32} stroke="#94a3b8" />
+      </div>
+      <div style={{ fontWeight: 700, fontSize: 17, color: "#0f172a", marginBottom: 8 }}>
+        No Order Selected
+      </div>
+      <div style={{ fontSize: 13.5, color: "#94a3b8", marginBottom: 24, textAlign: "center", maxWidth: 280 }}>
+        Select an active order from My Orders to track it in real-time.
+      </div>
+      <button style={styles.goToOrdersBtn} onClick={onGoToOrders}>
+        Go to My Orders
+      </button>
+    </div>
+  );
+}
+
+// ─── Google Map Component ────────────────────────────────────────────────────────
+function MapView({ driverPos, customerPos, driverName, orderId, eta }) {
+  const { isLoaded } = useJsApiLoader({
+    id: "google-map-script",
+    googleMapsApiKey: import.meta.env.VITE_GOOGLE_MAPS_API_KEY || "",
+  });
+
+  const [directions, setDirections] = useState(null);
+
+  // Fetch road-following route whenever driver or customer position changes
   useEffect(() => {
-    const interval = setInterval(() => {
-      setPulse(p => (p + 1) % 3);
-    }, 1000);
-    return () => clearInterval(interval);
-  }, []);
+    if (!isLoaded || !driverPos || !customerPos) return;
 
-  // Grid dots for the map background
-  const gridDots = [];
-  for (let row = 0; row < 10; row++) {
-    for (let col = 0; col < 16; col++) {
-      gridDots.push(
-        <circle
-          key={`${row}-${col}`}
-          cx={col * 46 + 23}
-          cy={row * 46 + 23}
-          r="1.5"
-          fill="#c7dfe8"
-          opacity="0.5"
-        />
-      );
-    }
+    const service = new window.google.maps.DirectionsService();
+    service.route(
+      {
+        origin: driverPos,
+        destination: customerPos,
+        travelMode: window.google.maps.TravelMode.DRIVING,
+      },
+      (result, status) => {
+        if (status === window.google.maps.DirectionsStatus.OK) {
+          setDirections(result);
+        } else {
+          setDirections(null);
+        }
+      }
+    );
+  }, [isLoaded, driverPos?.lat, driverPos?.lng, customerPos?.lat, customerPos?.lng]);
+
+  const mapCenter = driverPos && customerPos
+    ? { lat: (driverPos.lat + customerPos.lat) / 2, lng: (driverPos.lng + customerPos.lng) / 2 }
+    : driverPos || customerPos || { lat: 24.85, lng: 67.01 };
+
+  if (!isLoaded) {
+    return (
+      <div style={{ ...styles.mapContainer, display: "flex", alignItems: "center", justifyContent: "center" }}>
+        <span style={{ color: "#94a3b8", fontSize: 14 }}>Loading map…</span>
+      </div>
+    );
   }
+
+  const driverIcon = {
+    path: window.google.maps.SymbolPath.CIRCLE,
+    scale: 14,
+    fillColor: "#0ea5e9",
+    fillOpacity: 1,
+    strokeColor: "white",
+    strokeWeight: 3,
+  };
+
+  const customerIcon = {
+    path: window.google.maps.SymbolPath.CIRCLE,
+    scale: 10,
+    fillColor: "#f97316",
+    fillOpacity: 1,
+    strokeColor: "white",
+    strokeWeight: 2,
+  };
 
   return (
     <div style={styles.mapContainer}>
-      <svg
-        width="100%"
-        height="100%"
-        viewBox="0 0 736 380"
-        preserveAspectRatio="xMidYMid slice"
-        style={{ position: "absolute", inset: 0 }}
+      <GoogleMap
+        mapContainerStyle={MAP_CONTAINER_STYLE}
+        center={mapCenter}
+        zoom={14}
+        options={MAP_OPTIONS}
       >
-        {/* Map background */}
-        <rect width="736" height="380" fill="#e8f4f8" />
-        {gridDots}
-
-        {/* Subtle road lines */}
-        <line x1="0" y1="190" x2="736" y2="190" stroke="#cde7f0" strokeWidth="10" />
-        <line x1="368" y1="0" x2="368" y2="380" stroke="#cde7f0" strokeWidth="10" />
-        <line x1="0" y1="95" x2="736" y2="95" stroke="#d8eef5" strokeWidth="5" />
-        <line x1="0" y1="285" x2="736" y2="285" stroke="#d8eef5" strokeWidth="5" />
-        <line x1="180" y1="0" x2="180" y2="380" stroke="#d8eef5" strokeWidth="5" />
-        <line x1="550" y1="0" x2="550" y2="380" stroke="#d8eef5" strokeWidth="5" />
-
-        {/* Route line: Driver → Your Location */}
-        <line
-          x1="390" y1="155"
-          x2="270" y2="310"
-          stroke="#3b82f6"
-          strokeWidth="2.5"
-          strokeDasharray="6 4"
-          opacity="0.8"
-        />
-
-        {/* Driver location marker */}
-        {/* Outer pulse ring */}
-        <circle
-          cx="390" cy="155" r={20 + pulse * 4}
-          fill="none"
-          stroke="#0ea5e9"
-          strokeWidth="1.5"
-          opacity={0.4 - pulse * 0.1}
-        />
-        {/* Inner glow */}
-        <circle cx="390" cy="155" r="28" fill="#0ea5e9" opacity="0.15" />
-        {/* Main circle */}
-        <circle cx="390" cy="155" r="22" fill="white" stroke="#0ea5e9" strokeWidth="2" />
-        {/* Truck icon inside */}
-        <g transform="translate(379, 144)">
-          <rect x="0" y="3" width="12" height="9" rx="1" fill="#0ea5e9"/>
-          <path d="M12 6h3l2.5 3.5V13H12V6z" fill="#0284c7"/>
-          <circle cx="3.5" cy="14" r="2" fill="#0f172a"/>
-          <circle cx="13.5" cy="14" r="2" fill="#0f172a"/>
-        </g>
-        {/* Driver location label */}
-        <rect x="340" y="180" width="100" height="20" rx="10" fill="white" opacity="0.9"
-          filter="url(#shadow)" />
-        <text x="390" y="194" textAnchor="middle" fontSize="10" fill="#0ea5e9" fontWeight="600"
-          fontFamily="DM Sans, Segoe UI, sans-serif">
-          Driver Location
-        </text>
-
-        {/* Your location marker */}
-        <circle cx="270" cy="310" r="8" fill="#f97316" opacity="0.2" />
-        <circle cx="270" cy="310" r="5" fill="#f97316" />
-        <circle cx="270" cy="310" r="2.5" fill="white" />
-        <text x="270" y="328" textAnchor="middle" fontSize="10" fill="#f97316" fontWeight="600"
-          fontFamily="DM Sans, Segoe UI, sans-serif">
-          Your Location
-        </text>
-
-        <defs>
-          <filter id="shadow" x="-20%" y="-20%" width="140%" height="140%">
-            <feDropShadow dx="0" dy="1" stdDeviation="2" floodOpacity="0.15" />
-          </filter>
-        </defs>
-      </svg>
-
-      {/* Navigate button */}
-      <button style={styles.navBtn}>
-        <NavIcon />
-      </button>
+        {/* Road-following route via DirectionsRenderer; straight dashed line as fallback */}
+        {directions ? (
+          <DirectionsRenderer
+            directions={directions}
+            options={{
+              suppressMarkers: true,
+              polylineOptions: {
+                strokeColor: "#3b82f6",
+                strokeWeight: 4,
+                strokeOpacity: 0.85,
+              },
+            }}
+          />
+        ) : (
+          driverPos && customerPos && (
+            <Polyline
+              path={[driverPos, customerPos]}
+              options={{
+                strokeColor: "#3b82f6",
+                strokeOpacity: 0,
+                strokeWeight: 0,
+                icons: [{
+                  icon: {
+                    path: "M 0,-1 0,1",
+                    strokeOpacity: 0.85,
+                    strokeWeight: 3,
+                    strokeColor: "#3b82f6",
+                    scale: 4,
+                  },
+                  offset: "0",
+                  repeat: "20px",
+                }],
+              }}
+            />
+          )
+        )}
+        {driverPos && (
+          <Marker
+            position={driverPos}
+            icon={driverIcon}
+            title={`Driver: ${driverName}`}
+            label={{ text: "🚚", fontSize: "18px" }}
+          />
+        )}
+        {customerPos && (
+          <Marker
+            position={customerPos}
+            icon={customerIcon}
+            title="Your Location"
+            label={{ text: "📍", fontSize: "18px" }}
+          />
+        )}
+      </GoogleMap>
 
       {/* Bottom info bar */}
-      <div style={styles.mapInfoBar}>
+      {/* <div style={styles.mapInfoBar}>
         <div style={styles.mapInfoLeft}>
           <div style={{
-            width: 38,
-            height: 38,
-            borderRadius: 10,
+            width: 38, height: 38, borderRadius: 10,
             background: "linear-gradient(135deg,#0ea5e9,#0284c7)",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            flexShrink: 0,
+            display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0,
           }}>
             <TruckIcon size={18} />
           </div>
           <div>
-            <div style={{ fontWeight: 700, fontSize: 14, color: "#0f172a" }}>
-              {ACTIVE_ORDER.driver.name}
-            </div>
-            <div style={{ fontSize: 12, color: "#64748b" }}>
-              Order #{ACTIVE_ORDER.id}
-            </div>
+            <div style={{ fontWeight: 700, fontSize: 14, color: "#0f172a" }}>{driverName}</div>
+            <div style={{ fontSize: 12, color: "#64748b" }}>Order #{orderId}</div>
           </div>
         </div>
         <div style={{ textAlign: "right" }}>
-          <div style={{ fontSize: 11.5, color: "#94a3b8", marginBottom: 2 }}>
-            Estimated Arrival
-          </div>
-          <div style={{ fontSize: 22, fontWeight: 800, color: "#0ea5e9" }}>
-            {ACTIVE_ORDER.eta}
-          </div>
+          <div style={{ fontSize: 11.5, color: "#94a3b8", marginBottom: 2 }}>Estimated Arrival</div>
+          <div style={{ fontSize: 22, fontWeight: 800, color: "#0ea5e9" }}>{eta || "—"}</div>
         </div>
-      </div>
+      </div> */}
     </div>
   );
 }
 
 // ─── Driver Card ─────────────────────────────────────────────────────────────────
-function DriverCard() {
+function DriverCard({ driver }) {
+  const initials = driver?.name
+    ? driver.name.split(" ").map(n => n[0]).join("").slice(0, 2).toUpperCase()
+    : "?";
+
   return (
     <div style={styles.card}>
       <div style={{ display: "flex", alignItems: "center", gap: 14, marginBottom: 16 }}>
         <div style={styles.driverAvatar}>
-          <span style={{ color: "white", fontWeight: 700, fontSize: 17 }}>
-            {ACTIVE_ORDER.driver.initials}
-          </span>
+          <span style={{ color: "white", fontWeight: 700, fontSize: 17 }}>{initials}</span>
         </div>
         <div>
           <div style={{ fontWeight: 700, fontSize: 15, color: "#0f172a" }}>
-            {ACTIVE_ORDER.driver.name}
+            {driver?.name || "Assigning driver…"}
           </div>
-          <div style={{ fontSize: 12.5, color: "#64748b", marginBottom: 5 }}>
-            {ACTIVE_ORDER.driver.role}
-          </div>
-          <span style={styles.activeBadge}>
-            {ACTIVE_ORDER.driver.status}
-          </span>
+          <div style={{ fontSize: 12.5, color: "#64748b", marginBottom: 5 }}>Delivery Driver</div>
+          <span style={styles.activeBadge}>Active</span>
         </div>
       </div>
-      <button style={styles.callBtn}>
+      <button
+        style={styles.callBtn}
+        onClick={() => driver?.phone && window.open(`tel:${driver.phone}`)}
+        disabled={!driver?.phone}
+      >
         <PhoneIcon />
-        Call Driver
+        {driver?.phone ? "Call Driver" : "Phone unavailable"}
       </button>
     </div>
   );
 }
 
 // ─── Order Status Timeline ───────────────────────────────────────────────────────
-function OrderStatusCard() {
+function OrderStatusCard({ currentStatus }) {
+  const doneUntil = STATUS_TO_STEP[currentStatus] ?? 0;
+
+  const steps = [
+    { label: "Order Confirmed",  desc: "Your order has been placed" },
+    { label: "Driver Assigned",  desc: "A driver has been assigned" },
+    { label: "Out for Delivery", desc: "Driver is heading to you" },
+    { label: "Delivered",        desc: "Order delivered successfully" },
+  ];
+
   return (
     <div style={styles.card}>
       <div style={{ fontWeight: 700, fontSize: 15, color: "#0f172a", marginBottom: 18 }}>
         Order Status
       </div>
       <div style={{ display: "flex", flexDirection: "column", gap: 0 }}>
-        {ORDER_STATUS_STEPS.map((step, idx) => {
-          const isLast = idx === ORDER_STATUS_STEPS.length - 1;
+        {steps.map((step, idx) => {
+          const done = idx <= doneUntil;
+          const isLast = idx === steps.length - 1;
           return (
             <div key={idx} style={{ display: "flex", gap: 14 }}>
-              {/* Timeline column */}
               <div style={{ display: "flex", flexDirection: "column", alignItems: "center" }}>
                 <div style={{
-                  width: 32,
-                  height: 32,
-                  borderRadius: "50%",
-                  background: step.done
-                    ? "linear-gradient(135deg,#10b981,#059669)"
-                    : "#e2e8f0",
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  flexShrink: 0,
+                  width: 32, height: 32, borderRadius: "50%",
+                  background: done ? "linear-gradient(135deg,#10b981,#059669)" : "#e2e8f0",
+                  display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0,
                 }}>
-                  {step.done
+                  {done
                     ? <WaterBottleIcon size={14} />
                     : <div style={{ width: 10, height: 10, borderRadius: "50%", background: "#cbd5e1" }} />
                   }
                 </div>
                 {!isLast && (
                   <div style={{
-                    width: 2,
-                    flex: 1,
-                    minHeight: 24,
-                    background: step.done ? "#10b981" : "#e2e8f0",
+                    width: 2, flex: 1, minHeight: 24,
+                    background: done ? "#10b981" : "#e2e8f0",
                     margin: "3px 0",
                   }} />
                 )}
               </div>
-
-              {/* Content column */}
               <div style={{ paddingBottom: isLast ? 0 : 20 }}>
-                <div style={{
-                  fontWeight: 600,
-                  fontSize: 13.5,
-                  color: step.done ? "#0f172a" : "#94a3b8",
-                  marginBottom: 2,
-                }}>
+                <div style={{ fontWeight: 600, fontSize: 13.5, color: done ? "#0f172a" : "#94a3b8", marginBottom: 2 }}>
                   {step.label}
                 </div>
-                <div style={{ fontSize: 12, color: step.done ? "#64748b" : "#cbd5e1", marginBottom: 2 }}>
+                <div style={{ fontSize: 12, color: done ? "#64748b" : "#cbd5e1" }}>
                   {step.desc}
-                </div>
-                <div style={{ fontSize: 11, color: step.done ? "#94a3b8" : "#cbd5e1" }}>
-                  {step.time}
                 </div>
               </div>
             </div>
@@ -324,71 +316,155 @@ function OrderStatusCard() {
   );
 }
 
-// ─── Other Active Deliveries ─────────────────────────────────────────────────────
-function OtherDeliveriesCard() {
-  return (
-    <div style={styles.card}>
-      <div style={{ fontWeight: 700, fontSize: 15, color: "#0f172a", marginBottom: 14 }}>
-        Other Active Deliveries
-      </div>
-      <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-        {OTHER_DELIVERIES.map(d => (
-          <div key={d.id} style={{
-            display: "flex",
-            justifyContent: "space-between",
-            alignItems: "center",
-            background: "#f8fafc",
-            borderRadius: 10,
-            padding: "12px 14px",
-            border: "1px solid #f1f5f9",
-          }}>
-            <div>
-              <div style={{ fontWeight: 700, fontSize: 13.5, color: "#0f172a", marginBottom: 3 }}>
-                {d.id}
-              </div>
-              <div style={{ fontSize: 12, color: "#64748b" }}>
-                {d.driver} &bull; ETA: {d.eta}
-              </div>
-            </div>
-            <span style={{
-              padding: "3px 10px",
-              borderRadius: 20,
-              fontSize: 11.5,
-              fontWeight: 600,
-              background: "#fff7ed",
-              color: "#ea580c",
-            }}>
-              {d.status}
-            </span>
-          </div>
-        ))}
-      </div>
-    </div>
-  );
-}
-
 // ─── Main Page ───────────────────────────────────────────────────────────────────
 export default function LiveTrackingPage() {
+  const { orderId } = useParams();
+  const navigate = useNavigate();
+
+  const [order, setOrder]           = useState(null);
+  const [driverPos, setDriverPos]   = useState(null);
+  const [liveStatus, setLiveStatus] = useState(null);
+  const [loading, setLoading]       = useState(!!orderId);
+  const [error, setError]           = useState(null);
+  const socketRef = useRef(null);
+
+  // ── 1. Fetch initial tracking snapshot ──────────────────────────────────────
+  useEffect(() => {
+    if (!orderId) return;
+
+    setLoading(true);
+    setError(null);
+
+    customerApi.getTrackingInfo(orderId)
+      .then(res => {
+        const data = res.data ?? res;
+        console.log("Initial tracking snapshot:", data);
+        setOrder(data);
+        setLiveStatus(data.status);
+        const { lat, lng } = data?.driver?.currentLocation || {};
+        if (lat && lng) {
+          setDriverPos({ lat, lng });
+        }
+      })
+      .catch(() => setError("Could not load tracking information. Please try again."))
+      .finally(() => setLoading(false));
+  }, [orderId]);
+
+  // ── 2. Connect WebSocket and subscribe to live events ───────────────────────
+  useEffect(() => {
+    if (!order?.orderId) return;
+    console.log("Connecting to WebSocket for live tracking...");
+    const socket = io(`${SOCKET_URL}/tracking`, { transports: ["websocket"] });
+    socketRef.current = socket;
+    console.log("socketRef.current:", socketRef.current);
+    socket.emit("subscribe-order", { orderId: order?.orderId });
+
+    socket.on("location-update", ({ lat, lng }) => {
+      console.log("Received location update:", { lat, lng });
+      if (lat != null && lng != null) {
+        setDriverPos({ lat, lng });
+      }
+    });
+
+    socket.on("status-update", ({ status }) => {
+      console.log("Received status update:", { status });
+      if (status) setLiveStatus(status);
+    });
+
+    return () => {
+      socket.disconnect();
+      socketRef.current = null;
+    };
+  }, [order?.orderId]);
+
+  // ── Derive display values ───────────────────────────────────────────────────
+  const driver = order?.driver ?? null;
+  const driverName = driver?.name || "Assigning driver…";
+  const displayOrderId = order?.orderNumber || "—";
+  const eta = "—";
+
+  const customerPos = order?.deliveryAddress?.coordinates
+    ? { lat: order.deliveryAddress.coordinates.lat, lng: order.deliveryAddress.coordinates.lng }
+    : null;
+
+  // ── Render: no orderId ──────────────────────────────────────────────────────
+  if (!orderId) {
+    return (
+      <div style={styles.page}>
+        <div style={styles.header}>
+          <h1 style={styles.title}>Live Tracking</h1>
+          <p style={styles.subtitle}>Track your deliveries in real-time</p>
+        </div>
+        <NoOrderState onGoToOrders={() => navigate("/customer/my-orders")} />
+      </div>
+    );
+  }
+
+  // ── Render: loading ─────────────────────────────────────────────────────────
+  if (loading) {
+    return (
+      <div style={styles.page}>
+        <div style={styles.header}>
+          <h1 style={styles.title}>Live Tracking</h1>
+          <p style={styles.subtitle}>Loading order details…</p>
+        </div>
+        <div style={styles.loadingBox}>
+          <div style={styles.spinner} />
+          <span style={{ color: "#94a3b8", fontSize: 14, marginTop: 12 }}>Fetching tracking info…</span>
+        </div>
+      </div>
+    );
+  }
+
+  // ── Render: error ───────────────────────────────────────────────────────────
+  if (error) {
+    return (
+      <div style={styles.page}>
+        <div style={styles.header}>
+          <h1 style={styles.title}>Live Tracking</h1>
+        </div>
+        <div style={styles.emptyState}>
+          <div style={{ fontWeight: 700, fontSize: 16, color: "#ef4444", marginBottom: 8 }}>
+            {error}
+          </div>
+          <button style={styles.goToOrdersBtn} onClick={() => navigate("/customer/my-orders")}>
+            Back to My Orders
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  // ── Render: main view ───────────────────────────────────────────────────────
   return (
     <div style={styles.page}>
       {/* Header */}
       <div style={styles.header}>
-        <h1 style={styles.title}>Live Tracking</h1>
-        <p style={styles.subtitle}>Track your deliveries in real-time</p>
+        <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+          <button style={styles.backBtn} onClick={() => navigate("/customer/my-orders")}>
+            <BackIcon />
+          </button>
+          <div>
+            <h1 style={styles.title}>Live Tracking</h1>
+            <p style={styles.subtitle}>Order #{displayOrderId}</p>
+          </div>
+        </div>
       </div>
 
-      {/* Body: map left, sidebar right */}
+      {/* Body */}
       <div style={styles.body}>
-        {/* Left: Map */}
         <div style={styles.mapWrapper}>
-          <MapView />
+          <MapView
+            driverPos={driverPos}
+            customerPos={customerPos}
+            driverName={driverName}
+            orderId={displayOrderId}
+            eta={eta}
+          />
         </div>
-
-        {/* Right: Driver info + status + other deliveries */}
         <div style={styles.rightPanel}>
-          <DriverCard />
-          <OrderStatusCard />
-          <OtherDeliveriesCard />
+          <DriverCard driver={driver} />
+          <OrderStatusCard currentStatus={liveStatus || order?.status} />
         </div>
       </div>
     </div>
@@ -406,118 +482,80 @@ const styles = {
     gap: 20,
     background: "#f8fafc",
   },
-  header: {
-    flexShrink: 0,
-  },
-  title: {
-    margin: 0,
-    fontSize: 22,
-    fontWeight: 700,
-    color: "#0f172a",
-  },
-  subtitle: {
-    margin: "4px 0 0",
-    fontSize: 13.5,
-    color: "#94a3b8",
+  header: { flexShrink: 0 },
+  title: { margin: 0, fontSize: 22, fontWeight: 700, color: "#0f172a" },
+  subtitle: { margin: "4px 0 0", fontSize: 13.5, color: "#585a5e" },
+  backBtn: {
+    width: 36, height: 36, borderRadius: 10,
+    border: "1px solid #e2e8f0", background: "white",
+    display: "flex", alignItems: "center", justifyContent: "center",
+    cursor: "pointer", flexShrink: 0,
   },
   body: {
-    display: "flex",
-    gap: 20,
-    flex: 1,
-    minHeight: 0,
-    alignItems: "flex-start",
+    display: "flex", gap: 20, flex: 1,
+    minHeight: 0, alignItems: "flex-start",
   },
-  mapWrapper: {
-    flex: 1,
-    minWidth: 0,
-  },
+  mapWrapper: { flex: 1, minWidth: 0, height: "100%" },
   mapContainer: {
-    position: "relative",
-    width: "100%",
-    height: 380,
-    borderRadius: 16,
-    overflow: "hidden",
-    border: "1px solid #e2e8f0",
-    background: "#e8f4f8",
-  },
-  navBtn: {
-    position: "absolute",
-    top: 14,
-    right: 14,
-    width: 36,
-    height: 36,
-    borderRadius: 10,
-    border: "1px solid #e2e8f0",
-    background: "white",
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "center",
-    cursor: "pointer",
-    boxShadow: "0 2px 8px rgba(0,0,0,0.08)",
-    zIndex: 2,
+    position: "relative", width: "100%", height: "100%",
+    borderRadius: 16, overflow: "hidden",
+    border: "1px solid #e2e8f0", background: "#e8f4f8",
   },
   mapInfoBar: {
-    position: "absolute",
-    bottom: 0,
-    left: 0,
-    right: 0,
-    background: "white",
-    borderTop: "1px solid #e2e8f0",
-    padding: "14px 18px",
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "space-between",
-    zIndex: 2,
+    position: "absolute", bottom: 0, left: 0, right: 0,
+    background: "white", borderTop: "1px solid #e2e8f0",
+    padding: "14px 18px", display: "flex",
+    alignItems: "center", justifyContent: "space-between", zIndex: 2,
   },
-  mapInfoLeft: {
-    display: "flex",
-    alignItems: "center",
-    gap: 12,
-  },
+  mapInfoLeft: { display: "flex", alignItems: "center", gap: 12 },
   rightPanel: {
-    width: 270,
-    flexShrink: 0,
-    display: "flex",
-    flexDirection: "column",
-    gap: 16,
+    width: 270, flexShrink: 0,
+    display: "flex", flexDirection: "column", gap: 16,
   },
   card: {
-    background: "white",
-    borderRadius: 14,
-    border: "1px solid #e2e8f0",
-    padding: "18px 20px",
+    background: "white", borderRadius: 14,
+    border: "1px solid #e2e8f0", padding: "18px 20px",
   },
   driverAvatar: {
-    width: 50,
-    height: 50,
-    borderRadius: "50%",
+    width: 50, height: 50, borderRadius: "50%",
     background: "linear-gradient(135deg,#0ea5e9,#0284c7)",
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "center",
-    flexShrink: 0,
+    display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0,
   },
   activeBadge: {
-    padding: "3px 10px",
-    borderRadius: 20,
-    fontSize: 11.5,
-    fontWeight: 600,
-    background: "#dcfce7",
-    color: "#15803d",
+    padding: "3px 10px", borderRadius: 20,
+    fontSize: 11.5, fontWeight: 600,
+    background: "#dcfce7", color: "#15803d",
   },
   callBtn: {
-    width: "100%",
-    padding: "11px 0",
-    borderRadius: 10,
-    border: "none",
+    width: "100%", padding: "11px 0", borderRadius: 10,
+    border: "none", background: "linear-gradient(135deg,#0ea5e9,#0284c7)",
+    color: "white", fontSize: 13.5, fontWeight: 600,
+    cursor: "pointer", display: "flex",
+    alignItems: "center", justifyContent: "center", gap: 8,
+  },
+  emptyState: {
+    flex: 1, display: "flex", flexDirection: "column",
+    alignItems: "center", justifyContent: "center",
+    padding: "60px 24px",
+  },
+  emptyIcon: {
+    width: 72, height: 72, borderRadius: 20,
+    background: "#f1f5f9", display: "flex",
+    alignItems: "center", justifyContent: "center", marginBottom: 16,
+  },
+  goToOrdersBtn: {
+    padding: "11px 28px", borderRadius: 10, border: "none",
     background: "linear-gradient(135deg,#0ea5e9,#0284c7)",
-    color: "white",
-    fontSize: 13.5,
-    fontWeight: 600,
-    cursor: "pointer",
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "center",
-    gap: 8,
+    color: "white", fontSize: 13.5, fontWeight: 600, cursor: "pointer",
+  },
+  loadingBox: {
+    flex: 1, display: "flex", flexDirection: "column",
+    alignItems: "center", justifyContent: "center",
+  },
+  spinner: {
+    width: 36, height: 36, borderRadius: "50%",
+    border: "3px solid #e2e8f0",
+    borderTopColor: "#0ea5e9",
+    animation: "spin 0.8s linear infinite",
   },
 };

@@ -52,6 +52,7 @@ export default function CustomerApp() {
           <Route path="dashboard"     element={<DashboardPage />} />
           <Route path="order-water"   element={<OrderWaterPage />} />
           <Route path="my-orders"     element={<MyOrdersPage />} />
+          <Route path="live-tracking/:orderId" element={<LiveTrackingPage />} />
           <Route path="live-tracking" element={<LiveTrackingPage />} />
           <Route path="payments"      element={<PaymentsPage />} />
           <Route path="profile"       element={<ProfilePage />} />

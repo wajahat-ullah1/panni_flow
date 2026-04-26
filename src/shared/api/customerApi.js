@@ -107,10 +107,10 @@ const customerApi = {
   // LIVE TRACKING
   // ════════════════════════════════════════════════════════════════════════════
 
-  // GET /api/customer/orders/:id/tracking
+  // GET /api/v1/orders/:id/tracking
   // Returns: { driverLocation: { lat, lng }, status, eta }
   getTrackingInfo: (orderId) =>
-    api.get(`/customer/orders/${orderId}/tracking`),
+    api.get(`/orders/${orderId}/tracking`),
 
 
   // ════════════════════════════════════════════════════════════════════════════
