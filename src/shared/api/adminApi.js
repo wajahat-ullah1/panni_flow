@@ -17,6 +17,16 @@ const adminApi = {
   getDashboardStats: () =>
     api.get("/admin/dashboard"),
 
+  // GET /reports/dashboard/summary
+  // Returns: { totalOrders, activeDeliveries, monthlyRevenue, tankers }
+  getDashboardSummary: () =>
+    api.get("/reports/dashboard/summary"),
+
+  // GET /reports/dashboard/monthly-revenue?year=YYYY
+  // Returns: [{ month, revenue }, ...]
+  getMonthlyRevenue: (year = new Date().getFullYear()) =>
+    api.get("/reports/dashboard/monthly-revenue", { params: { year } }),
+
 
   // ════════════════════════════════════════════════════════════════════════════
   // CUSTOMERS

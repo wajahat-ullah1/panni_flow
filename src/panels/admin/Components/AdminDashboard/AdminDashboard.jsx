@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   LineChart,
   Line,
@@ -13,6 +13,7 @@ import {
 } from 'recharts';
 import {
   TrendingUp,
+  TrendingDown,
   Droplet,
   Truck,
   DollarSign,
@@ -21,56 +22,95 @@ import {
   Clock,
   MapPin,
 } from 'lucide-react';
+import adminApi from '/src/shared/api/adminApi';
+import customerApi from '/src/shared/api/customerApi';
 import './AdminDashboard.css';
 
 const AdminDashboard = () => {
   const [selectedMonth, setSelectedMonth] = useState(null);
+  const [summary, setSummary] = useState(null);
+  const [revenueData, setRevenueData] = useState([]);
+  const [recentOrders, setRecentOrders] = useState([]);
+  const [loading, setLoading] = useState(true);
 
-  // Stats data
-  const stats = [
-    {
-      title: 'Total Orders',
-      value: '1,847',
-      change: '+12.5%',
-      icon: Droplet,
-      color: '#00A8E8',
-      bgColor: '#E3F2FD',
-    },
-    {
-      title: 'Active Deliveries',
-      value: '24',
-      status: 'In Progress',
-      icon: Truck,
-      color: '#FF9800',
-      bgColor: '#FFF3E0',
-    },
-    {
-      title: 'Revenue (Month)',
-      value: '$67K',
-      change: '+21.8%',
-      icon: DollarSign,
-      color: '#4CAF50',
-      bgColor: '#E8F5E9',
-    },
-    {
-      title: 'Active Tankers',
-      value: '18/25',
-      status: '72% Utilization',
-      icon: Users,
-      color: '#9C27B0',
-      bgColor: '#F3E5F5',
-    },
-  ];
+  useEffect(() => {
+    const fetchDashboardData = async () => {
+      try {
+        const [summaryRes, revenueRes, ordersRes] = await Promise.all([
+          adminApi.getDashboardSummary(),
+          adminApi.getMonthlyRevenue(new Date().getFullYear()),
+          customerApi.getOrders({ page: 1, limit: 5, sort: 'createdAt' }),
+        ]);
+        setSummary(summaryRes.data);
+        setRevenueData(revenueRes.data);
+        const orderList = ordersRes.data?.data ?? [];
+        setRecentOrders(orderList.map((o) => ({
+          id: o.orderNumber ?? o._id,
+          company: o.customerName ?? '—',
+          quantity: o.items[0]?.quantity ? `${o.items[0]?.quantity * 19}L` : '',
+          status: o.status,
+          statusColor:
+            o.status === 'delivered' ? '#4CAF50'
+            : o.status === 'pending'   ? '#FFC107'
+            : '#2196F3',
+        })));
+      } catch (err) {
+        console.error('Failed to load dashboard data:', err);
+      } finally {
+        setLoading(false);
+      }
+    };
 
-  // Revenue data
-  const revenueData = [
-    { month: 'Jan', revenue: 45000 },
-    { month: 'Feb', revenue: 52000 },
-    { month: 'Mar', revenue: 48000 },
-    { month: 'Apr', revenue: 58000 },
-    { month: 'May', revenue: 62000 },
-    { month: 'Jun', revenue: 68000 },
-  ];
+    fetchDashboardData();
+  }, []);
+
+  const buildStats = (s) => {
+    if (!s) return [];
+    const { totalOrders, activeDeliveries, monthlyRevenue, tankers } = s;
+    const revenueChange = monthlyRevenue.changePercent;
+    return [
+      {
+        title: 'Total Orders',
+        value: totalOrders.value.toLocaleString(),
+        change: totalOrders.changePercent !== undefined
+          ? `${totalOrders.changePercent > 0 ? '+' : ''}${totalOrders.changePercent}%`
+          : null,
+        trend: totalOrders.trend,
+        icon: Droplet,
+        color: '#00A8E8',
+        bgColor: '#E3F2FD',
+      },
+      {
+        title: 'Active Deliveries',
+        value: activeDeliveries.value.toString(),
+        status: 'In Progress',
+        icon: Truck,
+        color: '#FF9800',
+        bgColor: '#FFF3E0',
+      },
+      {
+        title: 'Revenue (Month)',
+        value: `$${monthlyRevenue.value.toFixed(2)}`,
+        change: revenueChange !== undefined
+          ? `${revenueChange > 0 ? '+' : ''}${revenueChange}%`
+          : null,
+        trend: monthlyRevenue.trend,
+        icon: DollarSign,
+        color: '#4CAF50',
+        bgColor: '#E8F5E9',
+      },
+      {
+        title: 'Active Tankers',
+        value: `${tankers.active}/${tankers.total}`,
+        status: `${tankers.utilizationPercent}% Utilization`,
+        icon: Users,
+        color: '#9C27B0',
+        bgColor: '#F3E5F5',
+      },
+    ];
+  };
+
+  const stats = buildStats(summary);
 
   // Demand forecast data
   const demandData = [
@@ -83,37 +123,7 @@ const AdminDashboard = () => {
     { day: 'Sun', demand: 98 },
   ];
 
-  // Recent orders
-  const recentOrders = [
-    {
-      id: 'ORD-2456',
-      company: 'ABC Industries',
-      quantity: '5000L',
-      status: 'In-Transit',
-      statusColor: '#2196F3',
-    },
-    {
-      id: 'ORD-2457',
-      company: 'Green Valley Resort',
-      quantity: '8000L',
-      status: 'Delivered',
-      statusColor: '#4CAF50',
-    },
-    {
-      id: 'ORD-2458',
-      company: 'Sunrise Apartments',
-      quantity: '3000L',
-      status: 'Pending',
-      statusColor: '#FFC107',
-    },
-    {
-      id: 'ORD-2459',
-      company: 'Tech Park Plaza',
-      quantity: '6000L',
-      status: 'In-Transit',
-      statusColor: '#2196F3',
-    },
-  ];
+
 
   // Alerts and notifications
   const alerts = [
@@ -164,44 +174,49 @@ const AdminDashboard = () => {
           <p className="header-subtitle">Welcome back! Here's what's happening today.</p>
         </div>
         <div className="date-container">
-          <span className="date-text">Today: Jan 26, 2026</span>
+          <span className="date-text">Today: {new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</span>
         </div>
       </div>
 
       <div className="dashboard-content">
         {/* Stats Cards */}
         <div className="stats-container">
-          {stats.map((stat, index) => {
-            const IconComponent = stat.icon;
-            return (
-              <div key={index} className="stat-card">
-                <div className="stat-header">
-                  <div className="stat-info">
-                    <p className="stat-title">{stat.title}</p>
-                    <h2 className="stat-value">{stat.value}</h2>
-                    {stat.change && (
-                      <p className="stat-change positive">
-                        <TrendingUp size={14} />
-                        {stat.change}
-                      </p>
-                    )}
-                    {stat.status && (
-                      <p className="stat-status" style={{ color: stat.color }}>
-                        <Clock size={14} />
-                        {stat.status}
-                      </p>
-                    )}
+          {loading
+            ? Array.from({ length: 4 }).map((_, i) => (
+                <div key={i} className="stat-card stat-card--loading" />
+              ))
+            : stats.map((stat, index) => {
+                const IconComponent = stat.icon;
+                const isDown = stat.trend === 'down';
+                return (
+                  <div key={index} className="stat-card">
+                    <div className="stat-header">
+                      <div className="stat-info">
+                        <p className="stat-title">{stat.title}</p>
+                        <h2 className="stat-value">{stat.value}</h2>
+                        {stat.change && (
+                          <p className={`stat-change ${isDown ? 'negative' : 'positive'}`}>
+                            {isDown ? <TrendingDown size={14} /> : <TrendingUp size={14} />}
+                            {stat.change}
+                          </p>
+                        )}
+                        {stat.status && (
+                          <p className="stat-status" style={{ color: stat.color }}>
+                            <Clock size={14} />
+                            {stat.status}
+                          </p>
+                        )}
+                      </div>
+                      <div
+                        className="stat-icon"
+                        style={{ backgroundColor: stat.bgColor }}
+                      >
+                        <IconComponent size={28} color={stat.color} />
+                      </div>
+                    </div>
                   </div>
-                  <div
-                    className="stat-icon"
-                    style={{ backgroundColor: stat.bgColor }}
-                  >
-                    <IconComponent size={28} color={stat.color} />
-                  </div>
-                </div>
-              </div>
-            );
-          })}
+                );
+              })}
         </div>
 
         {/* Charts Section */}
@@ -215,6 +230,9 @@ const AdminDashboard = () => {
               </div>
             </div>
 
+            {loading ? (
+              <div className="chart-skeleton" />
+            ) : (
             <ResponsiveContainer width="100%" height={250}>
               <LineChart data={revenueData}>
                 <defs>
@@ -242,6 +260,7 @@ const AdminDashboard = () => {
                 />
               </LineChart>
             </ResponsiveContainer>
+            )}
           </div>
 
           {/* Demand Forecast */}
@@ -253,6 +272,9 @@ const AdminDashboard = () => {
               </div>
             </div>
 
+            {loading ? (
+              <div className="chart-skeleton" />
+            ) : (
             <ResponsiveContainer width="100%" height={250}>
               <BarChart data={demandData}>
                 <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
@@ -273,6 +295,7 @@ const AdminDashboard = () => {
                 <Bar dataKey="demand" fill="#00BCD4" radius={[8, 8, 0, 0]} />
               </BarChart>
             </ResponsiveContainer>
+            )}
           </div>
         </div>
 
@@ -283,7 +306,11 @@ const AdminDashboard = () => {
             <h3 className="section-title">Recent Orders</h3>
 
             <div className="orders-list">
-              {recentOrders.map((order, index) => (
+              {loading
+                ? Array.from({ length: 4 }).map((_, i) => (
+                    <div key={i} className="order-item order-item--loading" />
+                  ))
+                : recentOrders.map((order, index) => (
                 <div key={index} className="order-item">
                   <div className="order-icon">
                     <Droplet size={24} color="#00A8E8" />
@@ -312,7 +339,11 @@ const AdminDashboard = () => {
             <h3 className="section-title">Alerts & Notifications</h3>
 
             <div className="alerts-list">
-              {alerts.map((alert) => {
+              {loading
+                ? Array.from({ length: 3 }).map((_, i) => (
+                    <div key={i} className="alert-item alert-item--loading" />
+                  ))
+                : alerts.map((alert) => {
                 const AlertIcon = alert.icon;
                 return (
                   <div key={alert.id} className="alert-item">
