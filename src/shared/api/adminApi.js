@@ -58,7 +58,7 @@ const adminApi = {
   // GET /api/admin/drivers
   // Query: ?status=active|inactive&available=true
   getDrivers: (params = {}) =>
-    api.get("/admin/drivers", { params }),
+    api.get("/drivers", { params }),
 
   // GET /api/admin/drivers/:id
   getDriver: (id) =>
@@ -90,20 +90,23 @@ const adminApi = {
 
   // GET /api/admin/vehicles
   getVehicles: (params = {}) =>
-    api.get("/admin/vehicles", { params }),
+    api.get("/vehicles", { params }),
 
-  // POST /api/admin/vehicles
-  // Body: { plateNo, type, capacityLiters }
+  // POST /vehicles
+  // Body: { registrationNumber, type, make?, model?, year?, capacity?,
+  //         insuranceNumber?, insuranceExpiry?, fuelType?, notes? }
   createVehicle: (data) =>
-    api.post("/admin/vehicles", data),
+    api.post("/vehicles", data),
 
-  // PUT /api/admin/vehicles/:id
+  // PATCH /vehicles/:id
+  // Body: { make?, model?, status?, capacity?, fuelType?,
+  //         insuranceNumber?, insuranceExpiry?, notes? }
   updateVehicle: (id, data) =>
-    api.put(`/admin/vehicles/${id}`, data),
+    api.patch(`/vehicles/${id}`, data),
 
-  // DELETE /api/admin/vehicles/:id
+  // DELETE /vehicles/:id
   deleteVehicle: (id) =>
-    api.delete(`/admin/vehicles/${id}`),
+    api.delete(`/vehicles/${id}`),
 
 
   // ════════════════════════════════════════════════════════════════════════════

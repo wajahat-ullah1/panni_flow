@@ -114,6 +114,7 @@
 
 .stat-info {
   flex: 1;
+  text-align: start;
 }
 
 .stat-title {

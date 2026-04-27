@@ -78,7 +78,55 @@ Header: `X-Tenant-ID: <tenant-slug>`
 
 ---
 
-### 3. Login
+### 3. Admin: Create Driver (one-step)
+**`POST /auth/driver-register`**  
+Roles: `admin` — requires `Authorization: Bearer <token>`  
+Creates the driver's User account and Driver profile in a single request.
+
+#### Request Body
+```ts
+{
+  fullName: string                               // required
+  email: string                                  // required
+  phone: string                                  // required
+  password: string                               // required, min 6 chars
+  licenseNumber?: string
+  vehicleType?: "bike" | "auto" | "van" | "truck"
+  vehicleNumber?: string
+  assignedAreas?: string[]
+}
+```
+
+#### Response `201`
+```ts
+{
+  driver: {
+    id: string
+    name: string
+    phone: string
+    licenseNumber?: string
+    vehicleType?: string
+    vehicleNumber?: string
+    assignedAreas?: string[]
+    status: "available"
+    tenantId: string
+  }
+  user: {
+    id: string
+    fullName: string
+    email: string
+    role: "driver"
+    tenantId: string
+  }
+}
+```
+
+#### Error `409`
+Email already registered in this tenant.
+
+---
+
+### 4. Login (old #3 — renumbered)
 **`POST /auth/login`**  
 Public — no auth required.  
 Header: `X-Tenant-ID: <tenant-slug>`
@@ -110,7 +158,7 @@ Header: `X-Tenant-ID: <tenant-slug>`
 
 ---
 
-### 4. Logout
+### 5. Logout
 **`POST /auth/logout`**  
 Requires Bearer token.
 
@@ -121,7 +169,7 @@ Requires Bearer token.
 
 ---
 
-### 5. Forgot Password
+### 6. Forgot Password
 **`POST /auth/forgot-password`**  
 Public — no auth required.  
 Header: `X-Tenant-ID: <tenant-slug>`
@@ -140,7 +188,7 @@ Header: `X-Tenant-ID: <tenant-slug>`
 
 ---
 
-### 6. Reset Password
+### 7. Reset Password
 **`POST /auth/reset-password`**  
 Public — no auth required.
 
@@ -162,7 +210,7 @@ Public — no auth required.
 
 ---
 
-### 7. Get My Profile
+### 8. Get My Profile
 **`GET /auth/me`**  
 Requires Bearer token.
 
@@ -182,7 +230,7 @@ Requires Bearer token.
 
 ---
 
-### 8. Update My Profile
+### 9. Update My Profile
 **`PATCH /auth/profile`**  
 Requires Bearer token.
 
@@ -200,7 +248,7 @@ Updated user object (same shape as `GET /auth/me`).
 
 ---
 
-### 9. Change Password
+### 10. Change Password
 **`PATCH /auth/change-password`**  
 Requires Bearer token.
 

@@ -11,6 +11,7 @@ import OrderManagement   from "./Components/OrderManagement/OrderManagement";
 import LiveTracking      from "./Components/LiveTracking/LiveTracking";
 import DemandForecasting from "./Components/DemandForeCasting/DemandForecasting";
 import AddDriver         from "./Components/AddDriver/AdDriver";
+import VehicleManagement from "./Components/VehicleManagement/VehicleManagement";
 
 // ── Auth (to get logout) ──────────────────────────────────────────────────────
 import useAuth from "../../shared/hooks/useAuth";
@@ -27,7 +28,7 @@ export default function AdminApp() {
   const handleLogout = () => {
     logout();
     // Redirect to admin login (not the public /login)
-    window.location.href = "/admin/login";
+    window.location.href = "/login";
   };
  
   return (
@@ -44,6 +45,7 @@ export default function AdminApp() {
           <Route path="tracking"   element={<LiveTracking />} />
           <Route path="forecast"   element={<DemandForecasting />} />
           <Route path="drivers"    element={<AddDriver />} />
+          <Route path="vehicles"   element={<VehicleManagement />} />
 
           {/* Catch-all inside admin panel */}
           <Route path="*" element={<Navigate to="dashboard" replace />} />

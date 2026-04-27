@@ -32,6 +32,7 @@ const LiveTracking = () => {
   const [routePath, setRoutePath] = useState([]);
   const socketRef = useRef(null);
   const subscribedOrdersRef = useRef([]);
+  const routeRequestIdRef = useRef(0);
 
   // Google Maps API Key - Replace with your actual key
   const GOOGLE_MAPS_API_KEY = import.meta.env.VITE_GOOGLE_MAPS_API_KEY || 'YOUR_GOOGLE_MAPS_API_KEY';
@@ -245,7 +246,7 @@ const LiveTracking = () => {
   }, []);
 
   // Fallback: fetch route from OSRM (free, no key required)
-  const fetchOsrmRoute = useCallback(async (origin, destination) => {
+  const fetchOsrmRoute = useCallback(async (origin, destination, requestId) => {
     try {
       const url =
         `https://router.project-osrm.org/route/v1/driving/` +
@@ -253,6 +254,7 @@ const LiveTracking = () => {
         `?overview=full&geometries=geojson`;
       const res = await fetch(url);
       const data = await res.json();
+      if (routeRequestIdRef.current !== requestId) return; // stale — discard
       if (data.code === 'Ok' && data.routes?.[0]) {
         const path = data.routes[0].geometry.coordinates.map(([lng, lat]) => ({ lat, lng }));
         setRoutePath(path);
@@ -267,6 +269,8 @@ const LiveTracking = () => {
   const handleViewRoute = useCallback((tanker, delivery) => {
     if (!delivery?.destinationCoords?.lat || !tanker?.position) return;
 
+    routeRequestIdRef.current += 1;
+    const requestId = routeRequestIdRef.current;
     setRoutePath([]); // clear previous route before fetching new one
 
     const origin = tanker.position;
@@ -282,6 +286,7 @@ const LiveTracking = () => {
           travelMode: window.google.maps.TravelMode.DRIVING,
         },
         (result, status) => {
+          if (routeRequestIdRef.current !== requestId) return; // stale — discard
           if (status === window.google.maps.DirectionsStatus.OK) {
             const path = result.routes[0].overview_path.map((p) => ({
               lat: p.lat(),
@@ -290,12 +295,12 @@ const LiveTracking = () => {
             setRoutePath(path);
           } else {
             console.warn('Google Directions failed, falling back to OSRM:', status);
-            fetchOsrmRoute(origin, destination);
+            fetchOsrmRoute(origin, destination, requestId);
           }
         }
       );
     } else {
-      fetchOsrmRoute(origin, destination);
+      fetchOsrmRoute(origin, destination, requestId);
     }
   }, [fetchOsrmRoute]);
 

@@ -22,6 +22,15 @@ const authApi = {
   registerCustomer: (userData) =>
     api.post("/auth/customer-register", userData),
 
+  // ── Admin: create driver (one-step) ────────────────────────────────────────
+  // POST /auth/driver-register
+  // Roles: admin — requires Bearer token
+  // Body: { fullName, email, phone, password, licenseNumber?,
+  //         vehicleType?, vehicleNumber?, assignedAreas? }
+  // Returns: { driver, user }
+  registerDriver: (data) =>
+    api.post("/auth/driver-register", data),
+
 
   // ── Admin login (separate endpoint) ────────────────────────────────────────
   // POST /api/auth/admin/login

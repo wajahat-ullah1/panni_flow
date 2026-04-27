@@ -8,6 +8,7 @@ import {
   LogOut,
   Droplet,
   UserPlus,
+  Truck,
 } from 'lucide-react';
 import './Sidebar.css';
 
@@ -25,6 +26,12 @@ const Sidebar = ({ onLogout }) => {
       label: 'Add Driver',
       icon: UserPlus,
       path: '/admin/drivers',
+    },
+    {
+      id: 'vehicles',
+      label: 'Vehicles',
+      icon: Truck,
+      path: '/admin/vehicles',
     },
     {
       id: 'orders',

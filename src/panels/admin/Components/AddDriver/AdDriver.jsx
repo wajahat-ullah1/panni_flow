@@ -9,7 +9,7 @@
  *   - Same font: 'DM Sans', 'Segoe UI', sans-serif
  */
 
-import React, {useState} from 'react';
+import React, {useState, useEffect} from 'react';
 import {
   Users,
   UserPlus,
@@ -23,19 +23,31 @@ import {
   AlertCircle,
   X,
 } from 'lucide-react';
+import authApi from '../../../../shared/api/authApi';
+import adminApi from '../../../../shared/api/adminApi';
 import './AdDriver.css';
 
-// ── Mock: existing drivers list (replace with API) ────────────────────────────
-const INITIAL_DRIVERS = [
-  {id: 'DRV-001', name: 'Ali Hassan',     phone: '+92 300 1111111', zone: 'Zone A', tanker: 'TK-101', status: 'Active',   joined: '2024-01-15'},
-  {id: 'DRV-002', name: 'Bilal Ahmed',    phone: '+92 301 2222222', zone: 'Zone B', tanker: 'TK-102', status: 'Active',   joined: '2024-02-20'},
-  {id: 'DRV-003', name: 'Usman Tariq',    phone: '+92 302 3333333', zone: 'Zone C', tanker: 'TK-103', status: 'Inactive', joined: '2024-03-05'},
-  {id: 'DRV-004', name: 'Kamran Malik',   phone: '+92 303 4444444', zone: 'Zone A', tanker: 'TK-104', status: 'Active',   joined: '2024-04-10'},
-  {id: 'DRV-005', name: 'Zain ul Abidin', phone: '+92 304 5555555', zone: 'Zone D', tanker: 'TK-105', status: 'On Leave', joined: '2024-05-18'},
-];
+// ── API status → UI label ─────────────────────────────────────────────────────
+const API_STATUS_TO_UI = {
+  available:       'Active',
+  'on-delivery':   'Active',
+  'temporary-off': 'On Leave',
+  inactive:        'Inactive',
+  'off-duty':      'Inactive',
+};
+
+// ── Map a Driver object from the API to a local table row ─────────────────────
+const toRow = (d) => ({
+  id:     d.licenseNumber,
+  name:   d.name,
+  phone:  d.phone,
+  zone:   d.assignedAreas?.[0] ?? '—',
+  tanker: d.vehicleNumber ?? '—',
+  status: API_STATUS_TO_UI[d.status] ?? 'Inactive',
+  joined: d.createdAt ? d.createdAt.slice(0, 10) : '—',
+});
 
 const ZONES    = ['Zone A', 'Zone B', 'Zone C', 'Zone D', 'Zone E'];
-const TANKERS  = ['TK-101', 'TK-102', 'TK-103', 'TK-104', 'TK-105', 'TK-106', 'TK-107'];
 const STATUSES = ['Active', 'Inactive', 'On Leave'];
 
 const STATUS_STYLE = {
@@ -73,12 +85,14 @@ const Field = ({label, error, children}) => (
 
 // ── Main Component ────────────────────────────────────────────────────────────
 const AddDriver = () => {
-  const [drivers, setDrivers] = useState(INITIAL_DRIVERS);
+  const [drivers, setDrivers]       = useState([]);
+  const [vehicles, setVehicles]     = useState([]);
+  const [loading, setLoading]       = useState(true);
   const [showPassword, setShowPassword] = useState(false);
-  const [toast, setToast] = useState(null); // {type: 'success'|'error', msg}
+  const [toast, setToast]           = useState(null); // {type: 'success'|'error', msg}
   const [submitting, setSubmitting] = useState(false);
   const [deleteConfirm, setDeleteConfirm] = useState(null); // driver id
-  const [search, setSearch] = useState('');
+  const [search, setSearch]         = useState('');
   const [statusFilter, setStatusFilter] = useState('All');
 
   const [form, setForm] = useState({
@@ -86,6 +100,30 @@ const AddDriver = () => {
     zone: '', tanker: '', licenseNo: '', address: '',
   });
   const [errors, setErrors] = useState({});
+
+  // ── Initial data load ────────────────────────────────────────────────────────
+  useEffect(() => {
+    let cancelled = false;
+    const load = async () => {
+      try {
+        const [driversRes, vehiclesRes] = await Promise.all([
+          adminApi.getDrivers({ all: true }),
+          adminApi.getVehicles({ all: true }),
+        ]);
+        if (cancelled) return;
+        const driverData   = driversRes.data?.data  ?? driversRes.data  ?? [];
+        const vehicleData  = vehiclesRes.data?.data ?? vehiclesRes.data ?? [];
+        setDrivers(driverData.map(toRow));
+        setVehicles(vehicleData);
+      } catch {
+        if (!cancelled) showToast('error', 'Failed to load drivers. Please refresh.');
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    };
+    load();
+    return () => { cancelled = true; };
+  }, []);
 
   // ── Helpers ─────────────────────────────────────────────────────────────────
   const set = (field) => (e) => {
@@ -115,33 +153,49 @@ const AddDriver = () => {
     return Object.keys(e).length === 0;
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     if (!validate()) return;
 
     setSubmitting(true);
-    // Simulate API call — replace with real driverApi.createDriver(form)
-    setTimeout(() => {
-      const newDriver = {
-        id:      `DRV-${String(drivers.length + 1).padStart(3, '0')}`,
-        name:    form.name,
-        phone:   form.phone,
-        zone:    form.zone,
-        tanker:  form.tanker,
-        status:  'Active',
-        joined:  new Date().toISOString().slice(0, 10),
-      };
-      setDrivers(d => [newDriver, ...d]);
+    try {
+      const res = await authApi.registerDriver({
+        fullName:      form.name,
+        email:         form.email,
+        phone:         form.phone,
+        password:      form.password,
+        licenseNumber: form.licenseNo,
+        vehicleNumber: form.tanker,
+        assignedAreas: form.zone ? [form.zone] : [],
+      });
+      const newRow = toRow({
+        ...res.data.driver,
+        // driver-register returns id (not _id) — normalise
+        _id: res.data.driver.id ?? res.data.driver._id,
+        createdAt: new Date().toISOString(),
+      });
+      setDrivers(d => [newRow, ...d]);
       setForm({name:'',email:'',phone:'',password:'',zone:'',tanker:'',licenseNo:'',address:''});
+      showToast('success', `Driver "${newRow.name}" created successfully.`);
+    } catch (err) {
+      const msg = err.response?.status === 409
+        ? 'Email already registered in this tenant.'
+        : err.response?.data?.message ?? 'Failed to create driver. Please try again.';
+      showToast('error', msg);
+    } finally {
       setSubmitting(false);
-      showToast('success', `Driver "${newDriver.name}" created successfully.`);
-    }, 1200);
+    }
   };
 
-  const handleDelete = (id) => {
-    setDrivers(d => d.filter(dr => dr.id !== id));
+  const handleDelete = async (id) => {
     setDeleteConfirm(null);
-    showToast('success', 'Driver account removed.');
+    try {
+      await adminApi.deleteDriver(id);
+      setDrivers(d => d.filter(dr => dr.id !== id));
+      showToast('success', 'Driver account removed.');
+    } catch {
+      showToast('error', 'Failed to remove driver. Please try again.');
+    }
   };
 
   // ── Derived stats ────────────────────────────────────────────────────────────
@@ -303,7 +357,11 @@ const AddDriver = () => {
                     value={form.tanker}
                     onChange={set('tanker')}>
                     <option value="">Select tanker</option>
-                    {TANKERS.map(t => <option key={t}>{t}</option>)}
+                    {vehicles.map(v => (
+                      <option key={v._id} value={v.registrationNumber}>
+                        {v.registrationNumber}
+                      </option>
+                    ))}
                   </select>
                 </Field>
 
@@ -383,7 +441,11 @@ const AddDriver = () => {
                   </tr>
                 </thead>
                 <tbody>
-                  {filtered.length === 0 ? (
+                  {loading ? (
+                    <tr>
+                      <td colSpan={6} className="ad-empty">Loading drivers…</td>
+                    </tr>
+                  ) : filtered.length === 0 ? (
                     <tr>
                       <td colSpan={6} className="ad-empty">No drivers found.</td>
                     </tr>

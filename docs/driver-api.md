@@ -4,6 +4,10 @@ Base URL: `/drivers`
 All endpoints require `Authorization: Bearer <token>`.  
 Tenant is resolved from the auth token.
 
+> **Recommended flow for creating a driver from the admin UI:**  
+> Use `POST /auth/driver-register` (documented in [auth-api.md](./auth-api.md)) — creates the User account and Driver profile in a single call.  
+> `POST /drivers` remains available to link a driver profile to a **pre-existing** User account.
+
 ---
 
 ## Shared Types
