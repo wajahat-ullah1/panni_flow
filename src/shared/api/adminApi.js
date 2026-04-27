@@ -122,19 +122,19 @@ const adminApi = {
   getOrder: (id) =>
     api.get(`/admin/orders/${id}`),
 
-  // PUT /api/admin/orders/:id/assign
-  // Body: { driverId, vehicleId }
+  // POST /api/drivers/:driverId/assign-order
+  // Body: { orderId }
   assignOrder: (id, data) =>
-    api.put(`/admin/orders/${id}/assign`, data),
+    api.post(`/drivers/${id}/assign-order`, data),
 
   // PUT /api/admin/orders/:id/status
   // Body: { status }
   updateOrderStatus: (id, status) =>
-    api.put(`/admin/orders/${id}/status`, { status }),
+    api.patch(`/orders/${id}/status`, { status }),
 
   // DELETE /api/admin/orders/:id
   cancelOrder: (id) =>
-    api.delete(`/admin/orders/${id}`),
+    api.delete(`/orders/${id}`),
 
    getOrderStats: () => api.get("/reports/dashboard/order-stats"),
 

@@ -1,0 +1,336 @@
+/* ── Overlay ─────────────────────────────────────────────────────────────── */
+.oam-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.45);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1100;
+  padding: 16px;
+}
+
+/* ── Modal card ──────────────────────────────────────────────────────────── */
+.oam-content {
+  background: #fff;
+  border-radius: 16px;
+  width: 100%;
+  max-width: 480px;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.2);
+  overflow: hidden;
+}
+
+/* ── Header ─────────────────────────────────────────────────────────────── */
+.oam-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 20px 24px;
+  border-bottom: 1px solid #f0f0f0;
+}
+
+.oam-title {
+  font-size: 18px;
+  font-weight: 700;
+  color: #1a1a1a;
+  margin: 0 0 2px;
+}
+
+.oam-subtitle {
+  font-size: 13px;
+  color: #9e9e9e;
+  margin: 0;
+}
+
+.oam-close-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border: none;
+  border-radius: 8px;
+  background: #f5f5f5;
+  color: #424242;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.oam-close-btn:hover {
+  background: #e0e0e0;
+}
+
+/* ── Body ───────────────────────────────────────────────────────────────── */
+.oam-body {
+  padding: 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+/* ── Current status row ─────────────────────────────────────────────────── */
+.oam-current-status {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: #fafafa;
+  border: 1px solid #f0f0f0;
+  border-radius: 10px;
+  padding: 12px 16px;
+}
+
+.oam-current-label {
+  font-size: 13px;
+  color: #757575;
+  font-weight: 500;
+}
+
+.status-badge {
+  display: inline-block;
+  padding: 5px 14px;
+  border-radius: 20px;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+/* ── Assigned driver info ────────────────────────────────────────────────── */
+.oam-driver-info {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 8px;
+  background: #e0f7fa;
+  border: 1px solid #b2ebf2;
+  border-radius: 10px;
+  padding: 12px 16px;
+}
+
+.oam-driver-info-title {
+  font-size: 12px;
+  font-weight: 600;
+  color: #00838f;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  flex-shrink: 0;
+}
+
+.oam-driver-info-details {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.oam-driver-info-item {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 13px;
+  font-weight: 600;
+  color: #006064;
+}
+
+.oam-driver-info-item svg {
+  flex-shrink: 0;
+  opacity: 0.75;
+}
+
+/* ── Terminal state message ─────────────────────────────────────────────── */.oam-no-transitions {
+  font-size: 14px;
+  color: #9e9e9e;
+  text-align: center;
+  padding: 16px 0;
+  margin: 0;
+}
+
+/* ── Field ──────────────────────────────────────────────────────────────── */
+.oam-field {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.oam-field-label {
+  font-size: 13px;
+  font-weight: 600;
+  color: #424242;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.oam-required {
+  color: #f44336;
+  margin-left: 2px;
+}
+
+/* ── Status option grid ─────────────────────────────────────────────────── */
+.oam-status-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.oam-status-option {
+  padding: 8px 16px;
+  border: 1.5px solid #e0e0e0;
+  border-radius: 8px;
+  background: #fff;
+  font-size: 13px;
+  font-weight: 500;
+  color: #424242;
+  cursor: pointer;
+  transition: all 0.18s ease;
+}
+
+.oam-status-option:hover {
+  border-color: #bdbdbd;
+  background: #f5f5f5;
+}
+
+.oam-status-option.selected {
+  font-weight: 700;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+/* ── Driver loading / empty ─────────────────────────────────────────────── */
+.oam-drivers-loading {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  color: #757575;
+  padding: 10px 0;
+}
+
+.oam-no-drivers {
+  font-size: 13px;
+  color: #9e9e9e;
+  margin: 0;
+}
+
+/* ── Driver select ───────────────────────────────────────────────────────── */
+.oam-driver-select {
+  width: 100%;
+  padding: 11px 14px;
+  border: 1.5px solid #e0e0e0;
+  border-radius: 10px;
+  font-size: 14px;
+  color: #1a1a1a;
+  background: #fff;
+  appearance: none;
+  -webkit-appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%23757575' stroke-width='2'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 12px center;
+  padding-right: 36px;
+  cursor: pointer;
+  transition: border-color 0.2s;
+  outline: none;
+}
+
+.oam-driver-select:focus {
+  border-color: #00a8e8;
+  box-shadow: 0 0 0 3px rgba(0, 168, 232, 0.1);
+}
+
+.oam-driver-select.input-error {
+  border-color: #f44336;
+}
+
+/* ── Error ──────────────────────────────────────────────────────────────── */
+.oam-error {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 14px;
+  background: #ffebee;
+  border: 1px solid #ffcdd2;
+  border-radius: 8px;
+  font-size: 13px;
+  color: #c62828;
+}
+
+/* ── Footer ─────────────────────────────────────────────────────────────── */
+.oam-footer {
+  display: flex;
+  gap: 12px;
+  justify-content: flex-end;
+  padding-top: 4px;
+}
+
+.oam-btn-cancel {
+  padding: 10px 20px;
+  border: 1.5px solid #e0e0e0;
+  border-radius: 10px;
+  background: #fff;
+  font-size: 14px;
+  font-weight: 600;
+  color: #424242;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.oam-btn-cancel:hover:not(:disabled) {
+  background: #f5f5f5;
+}
+
+.oam-btn-confirm {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 10px 24px;
+  border: none;
+  border-radius: 10px;
+  background: linear-gradient(135deg, #00a8e8 0%, #0086c3 100%);
+  font-size: 14px;
+  font-weight: 600;
+  color: #fff;
+  cursor: pointer;
+  transition: all 0.2s;
+  box-shadow: 0 3px 10px rgba(0, 168, 232, 0.3);
+}
+
+.oam-btn-confirm:hover:not(:disabled) {
+  box-shadow: 0 5px 14px rgba(0, 168, 232, 0.4);
+  transform: translateY(-1px);
+}
+
+.oam-btn-confirm:disabled,
+.oam-btn-cancel:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  transform: none;
+}
+
+/* ── Spinner ─────────────────────────────────────────────────────────────── */
+.spin-icon {
+  animation: oam-spin 0.9s linear infinite;
+}
+
+@keyframes oam-spin {
+  from { transform: rotate(0deg); }
+  to   { transform: rotate(360deg); }
+}
+
+/* ── Responsive ──────────────────────────────────────────────────────────── */
+@media (max-width: 520px) {
+  .oam-content {
+    max-width: 100%;
+    border-radius: 12px 12px 0 0;
+    align-self: flex-end;
+  }
+  .oam-overlay {
+    align-items: flex-end;
+    padding: 0;
+  }
+  .oam-footer {
+    flex-direction: column-reverse;
+  }
+  .oam-btn-cancel,
+  .oam-btn-confirm {
+    width: 100%;
+    justify-content: center;
+  }
+}

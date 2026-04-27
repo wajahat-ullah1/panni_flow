@@ -319,8 +319,8 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 40px;
-  height: 40px;
+  width: 36px;
+  height: 36px;
   border: none;
   border-radius: 10px;
   background-color: #e3f2fd;
@@ -333,6 +333,34 @@
   background-color: #2196f3;
   color: #fff;
   transform: scale(1.05);
+}
+
+/* Update (pencil) Button */
+.update-button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border: none;
+  border-radius: 10px;
+  background-color: #fff8e1;
+  color: #ff9800;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.update-button:hover {
+  background-color: #ff9800;
+  color: #fff;
+  transform: scale(1.05);
+}
+
+/* Actions Cell */
+.actions-cell {
+  display: flex;
+  align-items: center;
+  gap: 8px;
 }
 
 /* Empty State */

@@ -5,6 +5,7 @@ import {
   Filter,
   ChevronDown,
   Eye,
+  Pencil,
   MapPin,
   Calendar,
   Clock,
@@ -15,6 +16,7 @@ import {
   RefreshCw,
 } from 'lucide-react';
 import OrderDetailModal from './OrderDetailModal';
+import OrderActionModal from './OrderActionModal';
 import customerApi from '../../../../shared/api/customerApi';
 import './OrderManagement.css';
 import adminApi from '../../../../shared/api/adminApi';
@@ -77,6 +79,8 @@ const statusOptions = [
   { label: 'Cancelled',        value: 'cancelled' },
 ];
 
+const TERMINAL_STATUSES = ['delivered', 'cancelled'];
+
 const OrderManagement = () => {
   const [orders, setOrders]                 = useState([]);
   const [meta, setMeta]                     = useState({ total: 0, page: 1, totalPages: 1 });
@@ -87,9 +91,11 @@ const OrderManagement = () => {
   const [searchQuery, setSearchQuery]       = useState('');
   const [selectedStatus, setSelectedStatus] = useState('');
   const [showStatusDropdown, setShowStatusDropdown] = useState(false);
-  const [selectedOrder, setSelectedOrder]   = useState(null);
-  const [showOrderDetail, setShowOrderDetail] = useState(false);
-  const [currentPage, setCurrentPage]       = useState(1);
+  const [selectedOrder, setSelectedOrder]       = useState(null);
+  const [showOrderDetail, setShowOrderDetail]   = useState(false);
+  const [actionOrder, setActionOrder]           = useState(null);
+  const [showActionModal, setShowActionModal]   = useState(false);
+  const [currentPage, setCurrentPage]           = useState(1);
 
   // Debounce search so we don't fire an API call on every keystroke
   useEffect(() => {
@@ -170,6 +176,15 @@ const OrderManagement = () => {
   const handleViewOrder = (order) => {
     setSelectedOrder(order);
     setShowOrderDetail(true);
+  };
+
+  const handleOpenAction = (order) => {
+    setActionOrder(order);
+    setShowActionModal(true);
+  };
+
+  const handleActionSuccess = () => {
+    fetchOrders();
   };
 
   return (
@@ -315,9 +330,20 @@ const OrderManagement = () => {
                           </span>
                         </td>
                         <td>
-                          <button className="view-button" onClick={() => handleViewOrder(order)}>
-                            <Eye size={20} />
-                          </button>
+                          <div className="actions-cell">
+                            <button className="view-button" onClick={() => handleViewOrder(order)} title="View details">
+                              <Eye size={18} />
+                            </button>
+                            {!TERMINAL_STATUSES.includes((order._raw?.status || '').toLowerCase()) && (
+                              <button
+                                className="update-button"
+                                onClick={() => handleOpenAction(order)}
+                                title="Update status / assign driver"
+                              >
+                                <Pencil size={16} />
+                              </button>
+                            )}
+                          </div>
                         </td>
                       </tr>
                     ))
@@ -392,6 +418,15 @@ const OrderManagement = () => {
         <OrderDetailModal
           order={selectedOrder}
           onClose={() => setShowOrderDetail(false)}
+        />
+      )}
+
+      {/* Order Action Modal (status change / driver assign) */}
+      {showActionModal && actionOrder && (
+        <OrderActionModal
+          order={actionOrder}
+          onClose={() => setShowActionModal(false)}
+          onSuccess={handleActionSuccess}
         />
       )}
     </div>
