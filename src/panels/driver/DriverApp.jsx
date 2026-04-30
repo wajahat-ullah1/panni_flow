@@ -15,6 +15,7 @@ import Profile            from "./Components/Profile";
  
 // ── Auth ──────────────────────────────────────────────────────────────────────
 import useAuth from "../../shared/hooks/useAuth";
+import { useTenant } from "../../shared/context/TenantContext";
  
 // ─────────────────────────────────────────────────────────────────────────────
 // KEY CHANGE from your old DriverApp:
@@ -29,10 +30,11 @@ import useAuth from "../../shared/hooks/useAuth";
  
 export default function DriverApp() {
   const { logout } = useAuth();
+  const { tenantId } = useTenant();
  
   const handleLogout = () => {
     logout();
-    window.location.href = "/login";
+    window.location.href = `/${tenantId}/login`;
   };
  
   return (

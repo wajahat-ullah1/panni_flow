@@ -3,10 +3,12 @@ import { useNavigate } from 'react-router-dom';
 import './LoginPage.css';
 import useAuth from '../shared/hooks/useAuth';
 import authApi from '../shared/api/authApi';
+import { useTenant } from '../shared/context/TenantContext';
 
 const LoginPage = () => {
   const navigate = useNavigate();
   const { login } = useAuth();
+  const { tenantId } = useTenant();
   
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -32,9 +34,9 @@ const LoginPage = () => {
   };
 
   const getRedirectPathByRole = (role) => {
-    if (role === 'admin') return '/admin/dashboard';
-    if (role === 'driver') return '/driver/dashboard';
-    return '/customer/dashboard';
+    if (role === 'admin') return `/${tenantId}/admin/dashboard`;
+    if (role === 'driver') return `/${tenantId}/driver/dashboard`;
+    return `/${tenantId}/customer/dashboard`;
   };
 
   const handleLogin = async (e) => {
@@ -90,7 +92,7 @@ const LoginPage = () => {
   };
 
   const handleSignUp = () => {
-    navigate('/register');
+    navigate(`/${tenantId}/register`);
   };
 
   return (

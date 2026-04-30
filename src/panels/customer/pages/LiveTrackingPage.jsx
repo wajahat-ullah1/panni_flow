@@ -3,6 +3,7 @@ import { useParams, useNavigate } from "react-router-dom";
 import { GoogleMap, useJsApiLoader, Marker, Polyline, DirectionsRenderer } from "@react-google-maps/api";
 import { io } from "socket.io-client";
 import customerApi from "../../../shared/api/customerApi";
+import { useTenant } from "../../../shared/context/TenantContext";
 
 // ─── Constants ───────────────────────────────────────────────────────────────────
 const SOCKET_URL = import.meta.env.VITE_SOCKET_URL;
@@ -320,6 +321,7 @@ function OrderStatusCard({ currentStatus }) {
 export default function LiveTrackingPage() {
   const { orderId } = useParams();
   const navigate = useNavigate();
+  const { tenantId } = useTenant();
 
   const [order, setOrder]           = useState(null);
   const [driverPos, setDriverPos]   = useState(null);
@@ -395,7 +397,7 @@ export default function LiveTrackingPage() {
           <h1 style={styles.title}>Live Tracking</h1>
           <p style={styles.subtitle}>Track your deliveries in real-time</p>
         </div>
-        <NoOrderState onGoToOrders={() => navigate("/customer/my-orders")} />
+        <NoOrderState onGoToOrders={() => navigate(`/${tenantId}/customer/my-orders`)} />
       </div>
     );
   }
@@ -427,7 +429,7 @@ export default function LiveTrackingPage() {
           <div style={{ fontWeight: 700, fontSize: 16, color: "#ef4444", marginBottom: 8 }}>
             {error}
           </div>
-          <button style={styles.goToOrdersBtn} onClick={() => navigate("/customer/my-orders")}>
+          <button style={styles.goToOrdersBtn} onClick={() => navigate(`/${tenantId}/customer/my-orders`)}>
             Back to My Orders
           </button>
         </div>
@@ -441,7 +443,7 @@ export default function LiveTrackingPage() {
       {/* Header */}
       <div style={styles.header}>
         <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-          <button style={styles.backBtn} onClick={() => navigate("/customer/my-orders")}>
+          <button style={styles.backBtn} onClick={() => navigate(`/${tenantId}/customer/my-orders`)}>
             <BackIcon />
           </button>
           <div>

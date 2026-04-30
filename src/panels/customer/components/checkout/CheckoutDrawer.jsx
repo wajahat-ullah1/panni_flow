@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import customerApi from "../../../../shared/api/customerApi";
 import { useAuthContext } from "../../../../shared/context/AuthContext";
+import { useTenant } from "../../../../shared/context/TenantContext";
 
 // ─── Icons ────────────────────────────────────────────────────────────────────
 
@@ -67,6 +68,7 @@ function NoteIcon() {
 export default function CheckoutDrawer({ open, onClose, product, quantity, total }) {
   const { user } = useAuthContext();
   const navigate = useNavigate();
+  const { tenantId } = useTenant();
 
   const [addresses, setAddresses] = useState([]);
   const [addrLoading, setAddrLoading] = useState(false);
@@ -301,7 +303,7 @@ export default function CheckoutDrawer({ open, onClose, product, quantity, total
                 <div style={styles.noAddressSub}>Add an address in your profile to place an order.</div>
                 <button
                   style={styles.goToProfileBtn}
-                  onClick={() => { onClose(); navigate("/customer/profile"); }}
+                  onClick={() => { onClose(); navigate(`/${tenantId}/customer/profile`); }}
                 >
                   Go to Profile &rarr;
                 </button>

@@ -1,4 +1,5 @@
 import axios from "axios";
+import { getTenantId } from "./tenantStore";
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Base axios instance
@@ -7,7 +8,6 @@ import axios from "axios";
 
 const API_BASE_URL =
   import.meta.env.VITE_API_BASE_URL || "http://localhost:3000/api/v1";
-const TENANT_ID = import.meta.env.VITE_TENANT_ID || "";
 
 const api = axios.create({
   baseURL: API_BASE_URL,
@@ -21,8 +21,9 @@ api.interceptors.request.use(
     console.log(`[API Request] ${config.method.toUpperCase()} ${config.baseURL}${config.url}`);
     
     // Multi-tenant backend requires the tenant slug header on every request.
-    if (TENANT_ID) {
-      config.headers["X-Tenant-ID"] = TENANT_ID;
+    const tenantId = getTenantId();
+    if (tenantId) {
+      config.headers["X-Tenant-ID"] = tenantId;
     }
 
     const token = localStorage.getItem("token");
@@ -53,7 +54,10 @@ api.interceptors.response.use(
     if (status === 401) {
       localStorage.removeItem("token");
       localStorage.removeItem("user");
-      globalThis.location.href = "/login";
+      const currentTenantId = getTenantId();
+      globalThis.location.href = currentTenantId
+        ? `/${currentTenantId}/login`
+        : "/login";
     }
 
     // 403 Forbidden — wrong role trying to access a route

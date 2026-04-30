@@ -16,6 +16,7 @@ import ProfilePage    from "./pages/ProfilePage";
  
 // ── Auth ──────────────────────────────────────────────────────────────────────
 import useAuth from "../../shared/hooks/useAuth";
+import { useTenant } from "../../shared/context/TenantContext";
  
 // ── Nav label → route path map ─────────────────────────────────────────────────
 const NAV_TO_ROUTE = {
@@ -30,10 +31,11 @@ const NAV_TO_ROUTE = {
 export default function CustomerApp() {
   const [activeNav, setActiveNav] = useState("Dashboard");
   const { logout } = useAuth();
+  const { tenantId } = useTenant();
  
   const handleLogout = () => {
     logout();
-    window.location.href = "/login";
+    window.location.href = `/${tenantId}/login`;
   };
  
   return (

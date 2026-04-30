@@ -1,10 +1,12 @@
 import React from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import './Sidebar.css';
+import { useTenant } from '../../../shared/context/TenantContext';
 
 const Sidebar = () => {
   const navigate = useNavigate();
   const location = useLocation();
+  const { tenantId } = useTenant();
 
   const menuItems = [
     { 
@@ -18,7 +20,7 @@ const Sidebar = () => {
           <rect x="11" y="11" width="6" height="6" rx="1" stroke="currentColor" strokeWidth="1.5"/>
         </svg>
       ),
-      path: '/driver/dashboard'
+      path: `/${tenantId}/driver/dashboard`
     },
     { 
       id: 'assigned', 
@@ -28,7 +30,7 @@ const Sidebar = () => {
           <path d="M17 7L10 3L3 7M17 7L10 11M17 7V13L10 17M10 11L3 7M10 11V17M3 7V13L10 17" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
         </svg>
       ),
-      path: '/driver/assigned-deliveries'
+      path: `/${tenantId}/driver/assigned-deliveries`
     },
     { 
       id: 'route', 
@@ -39,7 +41,7 @@ const Sidebar = () => {
           <path d="M10 6V10L13 12" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
         </svg>
       ),
-      path: '/driver/live-route'
+      path: `/${tenantId}/driver/live-route`
     },
     { 
       id: 'history', 
@@ -50,7 +52,7 @@ const Sidebar = () => {
           <path d="M10 5V10L13.5 11.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
         </svg>
       ),
-      path: '/driver/delivery-history'
+      path: `/${tenantId}/driver/delivery-history`
     },
     { 
       id: 'earnings', 
@@ -61,7 +63,7 @@ const Sidebar = () => {
           <path d="M10 6V14M8 8H11C11.5523 8 12 8.44772 12 9C12 9.55228 11.5523 10 11 10H9C8.44772 10 8 10.4477 8 11C8 11.5523 8.44772 12 9 12H12" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
         </svg>
       ),
-      path: '/driver/earnings'
+      path: `/${tenantId}/driver/earnings`
     },
     { 
       id: 'profile', 
@@ -72,7 +74,7 @@ const Sidebar = () => {
           <path d="M4 17C4 14.2386 6.23858 12 9 12H11C13.7614 12 16 14.2386 16 17" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
         </svg>
       ),
-      path: '/driver/profile'
+      path: `/${tenantId}/driver/profile`
     }
   ];
 

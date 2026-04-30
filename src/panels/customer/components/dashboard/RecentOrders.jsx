@@ -3,9 +3,11 @@ import { useNavigate } from "react-router-dom";
 import OrderRow from "./OrderRow";
 import { ChevronRight } from "../icons/Icons";
 import customerApi from "../../../../shared/api/customerApi";
+import { useTenant } from "../../../../shared/context/TenantContext";
 
 export default function RecentOrders() {
   const navigate = useNavigate();
+  const { tenantId } = useTenant();
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -31,7 +33,7 @@ export default function RecentOrders() {
           <div style={styles.title}>Recent Orders</div>
           <div style={styles.subtitle}>Your latest water deliveries</div>
         </div>
-        <button style={styles.viewAll} onClick={() => navigate("/customer/my-orders")}>
+        <button style={styles.viewAll} onClick={() => navigate(`/${tenantId}/customer/my-orders`)}>
           View All <ChevronRight />
         </button>
       </div>

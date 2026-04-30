@@ -1,10 +1,11 @@
 import { Navigate } from "react-router-dom";
 import useAuth from "../hooks/useAuth";
+import { useTenant } from "../context/TenantContext";
  
 // ─────────────────────────────────────────────────────────────────────────────
 // ProtectedRoute
 // Wraps any panel route. If the user is not logged in OR has the wrong role,
-// they get redirected to the appropriate login page.
+// they get redirected to the appropriate login page for this tenant.
 //
 // Usage in App.jsx:
 //   <ProtectedRoute role="customer"><CustomerApp /></ProtectedRoute>
@@ -14,6 +15,7 @@ import useAuth from "../hooks/useAuth";
  
 export default function ProtectedRoute({ role, children }) {
   const { isAuthenticated, user, loading } = useAuth();
+  const { tenantId } = useTenant();
  
   // While restoring session from localStorage — show nothing (avoid flash)
   if (loading) {
@@ -26,7 +28,9 @@ export default function ProtectedRoute({ role, children }) {
  
   // Not logged in at all → go to appropriate login
   if (!isAuthenticated) {
-    const loginPath = role === "admin" ? "/admin/login" : "/login";
+    const loginPath = role === "admin"
+      ? `/${tenantId}/admin/login`
+      : `/${tenantId}/login`;
     return <Navigate to={loginPath} replace />;
   }
  
@@ -34,10 +38,10 @@ export default function ProtectedRoute({ role, children }) {
   if (user?.role !== role) {
     // Send them to their correct panel instead
     const correctPath =
-      user?.role === "customer" ? "/customer/dashboard" :
-      user?.role === "driver"   ? "/driver/dashboard"   :
-      user?.role === "admin"    ? "/admin/dashboard"    :
-      "/login";
+      user?.role === "customer" ? `/${tenantId}/customer/dashboard` :
+      user?.role === "driver"   ? `/${tenantId}/driver/dashboard`   :
+      user?.role === "admin"    ? `/${tenantId}/admin/dashboard`    :
+      `/${tenantId}/login`;
     return <Navigate to={correctPath} replace />;
   }
  

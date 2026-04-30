@@ -3,10 +3,12 @@ import { useNavigate } from 'react-router-dom';
 import './SignUpPage.css';
 import useAuth from '../shared/hooks/useAuth';
 import authApi from '../shared/api/authApi';
+import { useTenant } from '../shared/context/TenantContext';
 
 const SignUpPage = () => {
   const navigate = useNavigate();
   const { login } = useAuth();
+  const { tenantId } = useTenant();
   
   const [fullName, setFullName] = useState('');
   const [phoneNumber, setPhoneNumber] = useState('');
@@ -89,7 +91,7 @@ const SignUpPage = () => {
       alert('Account created successfully!');
 
       // Redirect to customer dashboard
-      navigate('/customer/dashboard');
+      navigate(`/${tenantId}/customer/dashboard`);
     } catch (error) {
       console.error('Sign up error:', error);
       const apiMessage = error?.response?.data?.message;
@@ -118,7 +120,7 @@ const SignUpPage = () => {
   };
 
   const handleSignIn = () => {
-    navigate('/login');
+    navigate(`/${tenantId}/login`);
   };
 
   return (

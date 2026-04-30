@@ -1,7 +1,9 @@
 import React, { useState } from 'react';
 import './SignUpPage.css';
+import { useParams } from 'react-router-dom';
 
 const SignUpPage = () => {
+  const { tenantId } = useParams();
   const [companyName, setCompanyName] = useState('');
   const [fullName, setFullName] = useState('');
   const [phoneNumber, setPhoneNumber] = useState('');
@@ -62,7 +64,7 @@ const SignUpPage = () => {
   };
 
   const handleSignIn = () => {
-    window.location.href = '/login';
+    window.location.href = `/${tenantId}/admin/login`;
   };
 
   return (

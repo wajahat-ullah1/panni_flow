@@ -11,45 +11,47 @@ import {
   Truck,
 } from 'lucide-react';
 import './Sidebar.css';
+import { useTenant } from '../../../../shared/context/TenantContext';
 
 const Sidebar = ({ onLogout }) => {
   const navigate = useNavigate();
+  const { tenantId } = useTenant();
   const menuItems = [
     {
       id: 'dashboard',
       label: 'Dashboard',
       icon: LayoutDashboard,
-      path: '/admin/dashboard',
+      path: `/${tenantId}/admin/dashboard`,
     },
     {
       id: 'addDriver',
       label: 'Add Driver',
       icon: UserPlus,
-      path: '/admin/drivers',
+      path: `/${tenantId}/admin/drivers`,
     },
     {
       id: 'vehicles',
       label: 'Vehicles',
       icon: Truck,
-      path: '/admin/vehicles',
+      path: `/${tenantId}/admin/vehicles`,
     },
     {
       id: 'orders',
       label: 'Order Management',
       icon: Package,
-      path: '/admin/orders',
+      path: `/${tenantId}/admin/orders`,
     },
     {
       id: 'tracking',
       label: 'Live Tracking',
       icon: MapPin,
-      path: '/admin/tracking',
+      path: `/${tenantId}/admin/tracking`,
     },
     {
       id: 'forecast',
       label: 'Demand Forecasting',
       icon: TrendingUp,
-      path: '/admin/forecast',
+      path: `/${tenantId}/admin/forecast`,
     },
   ];
 

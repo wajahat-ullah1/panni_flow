@@ -1,4 +1,5 @@
 import { useAuthContext } from "../context/AuthContext";
+import { useTenant } from "../context/TenantContext";
 
 // ─────────────────────────────────────────────────────────────────────────────
 // useAuth
@@ -12,18 +13,19 @@ import { useAuthContext } from "../context/AuthContext";
 export default function useAuth() {
   const { user, token, loading, isAuthenticated, login, logout, updateUser } =
     useAuthContext();
+  const { tenantId } = useTenant();
 
   // Role helpers — cleaner than checking user.role === "x" everywhere
   const isCustomer = user?.role === "customer";
   const isDriver   = user?.role === "driver";
   const isAdmin    = user?.role === "admin";
 
-  // Returns the right home path for the current user's role
+  // Returns the right home path for the current user's role (tenant-prefixed)
   const getHomePath = () => {
-    if (isCustomer) return "/customer/dashboard";
-    if (isDriver)   return "/driver/dashboard";
-    if (isAdmin)    return "/admin/dashboard";
-    return "/login";
+    if (isCustomer) return `/${tenantId}/customer/dashboard`;
+    if (isDriver)   return `/${tenantId}/driver/dashboard`;
+    if (isAdmin)    return `/${tenantId}/admin/dashboard`;
+    return `/${tenantId}/login`;
   };
 
   return {
@@ -37,6 +39,6 @@ export default function useAuth() {
     login,          // login(userData, token)
     logout,         // clears everything
     updateUser,     // updateUser({ name: "New Name" })
-    getHomePath,    // "/customer/dashboard" | "/driver/dashboard" | ...
+    getHomePath,    // "/:tenantId/customer/dashboard" | "/:tenantId/driver/dashboard" | ...
   };
 }

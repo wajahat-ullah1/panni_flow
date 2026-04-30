@@ -3,10 +3,12 @@ import { useNavigate } from 'react-router-dom';
 import './LoginPage.css';
 import useAuth from '../../../../shared/hooks/useAuth';
 import authApi from '../../../../shared/api/authApi';
+import { useTenant } from '../../../../shared/context/TenantContext';
 
 const LoginPage = () => {
   const navigate = useNavigate();
   const { login } = useAuth();
+  const { tenantId } = useTenant();
 
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -57,7 +59,7 @@ const LoginPage = () => {
       }
 
       login(userData, token);
-      navigate('/admin/dashboard');
+      navigate(`/${tenantId}/admin/dashboard`);
     } catch (error) {
       console.error('Admin login error:', error);
       const apiMessage = error?.response?.data?.message;
@@ -83,7 +85,7 @@ const LoginPage = () => {
   };
 
   const handleSignUp = () => {
-    navigate('/register');
+    navigate(`/${tenantId}/register`);
   };
 
   return (

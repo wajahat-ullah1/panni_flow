@@ -9,6 +9,7 @@ import {
   DropIcon,
   LogoutIcon,
 } from "../icons/Icons";
+import { useTenant } from "../../../../shared/context/TenantContext";
 
 const NAV_ITEMS = [
   { icon: DashboardIcon, label: "Dashboard", path: "dashboard" },
@@ -21,10 +22,11 @@ const NAV_ITEMS = [
 
 export default function Sidebar({ activeNav, setActiveNav, onLogout }) {
   const navigate = useNavigate();
+  const { tenantId } = useTenant();
 
   const handleNavigation = (label, path) => {
     setActiveNav(label);
-    navigate(`/customer/${path}`);
+    navigate(`/${tenantId}/customer/${path}`);
   };
 
   const handleLogout = () => {

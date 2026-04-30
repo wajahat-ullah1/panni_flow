@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
+import { useTenant } from "../shared/context/TenantContext";
 
 const styles = `
   @import url('https://fonts.googleapis.com/css2?family=Sora:wght@300;400;500;600;700;800&family=DM+Sans:ital,wght@0,300;0,400;0,500;0,600;1,400&display=swap');
@@ -598,6 +599,7 @@ const BAR_HEIGHTS = [40, 65, 45, 80, 55, 95, 70, 85, 60, 90];
 export default function PanniFlowLanding() {
   const [scrolled, setScrolled] = useState(false);
   const navigate = useNavigate();
+  const { tenantId } = useTenant();
 
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 10);
@@ -628,8 +630,8 @@ export default function PanniFlowLanding() {
         </ul>
 
         <div className="nav-actions">
-          <button className="btn btn-outline" onClick={() => navigate("/login")}>Login</button>
-          <button className="btn btn-primary" onClick={() => navigate("/register")}>Get Started</button>
+          <button className="btn btn-outline" onClick={() => navigate(`/${tenantId}/login`)}>Login</button>
+          <button className="btn btn-primary" onClick={() => navigate(`/${tenantId}/register`)}>Get Started</button>
         </div>
       </nav>
 
@@ -650,8 +652,8 @@ export default function PanniFlowLanding() {
               orders, track drivers, and delight customers — in real time.
             </p>
             <div className="hero-actions fade-up delay-4">
-              <button className="btn btn-primary btn-lg" onClick={() => navigate("/register")}>Get Started</button>
-              <button className="btn btn-outline btn-lg" onClick={() => navigate("/login")}>Login</button>
+              <button className="btn btn-primary btn-lg" onClick={() => navigate(`/${tenantId}/register`)}>Get Started</button>
+              <button className="btn btn-outline btn-lg" onClick={() => navigate(`/${tenantId}/login`)}>Login</button>
             </div>
             <div className="hero-perks fade-up delay-5">
               {["No credit card required", "Setup in 5 minutes", "Cancel anytime"].map((p) => (
@@ -789,7 +791,7 @@ export default function PanniFlowLanding() {
             operations and delight customers
           </p>
           <div className="cta-actions">
-            <button className="btn btn-white btn-lg" onClick={() => navigate("/register")}>Get Started</button>
+            <button className="btn btn-white btn-lg" onClick={() => navigate(`/${tenantId}/register`)}>Get Started</button>
           </div>
         </div>
       </section>

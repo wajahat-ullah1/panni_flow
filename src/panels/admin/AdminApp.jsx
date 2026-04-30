@@ -15,6 +15,7 @@ import VehicleManagement from "./Components/VehicleManagement/VehicleManagement"
 
 // ── Auth (to get logout) ──────────────────────────────────────────────────────
 import useAuth from "../../shared/hooks/useAuth";
+import { useTenant } from "../../shared/context/TenantContext";
  
 // ─────────────────────────────────────────────────────────────────────────────
 // Map sidebar screen keys → route paths
@@ -24,11 +25,12 @@ import useAuth from "../../shared/hooks/useAuth";
  
 export default function AdminApp() {
   const { logout } = useAuth();
+  const { tenantId } = useTenant();
  
   const handleLogout = () => {
     logout();
     // Redirect to admin login (not the public /login)
-    window.location.href = "/login";
+    window.location.href = `/${tenantId}/admin/login`;
   };
  
   return (
