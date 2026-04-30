@@ -96,7 +96,34 @@ Driver[]
 
 ---
 
-### 4. Get Driver by ID
+### 4. Get My Profile
+**`GET /drivers/me`**  
+Roles: `driver`  
+Returns the full driver profile for the currently authenticated driver. The profile is resolved from the JWT token.
+
+#### Response `200`
+Full `Driver` object.
+
+---
+
+### 5. Driver Dashboard
+**`GET /drivers/dashboard`**  
+Roles: `driver`  
+Returns today's delivery statistics for the authenticated driver. The driver profile is resolved from the JWT token.
+
+#### Response `200`
+```ts
+{
+  todayDeliveries: number       // orders assigned to this driver created today
+  completedToday: number        // orders delivered today
+  pendingDeliveries: number     // active orders (not delivered or cancelled)
+  todayEarnings: number         // sum of totalAmount for orders delivered today
+}
+```
+
+---
+
+### 6. Get Driver by ID
 **`GET /drivers/:id`**  
 Roles: `admin`, `driver`
 
@@ -105,7 +132,7 @@ Full `Driver` object.
 
 ---
 
-### 5. Update Driver
+### 7. Update Driver
 **`PATCH /drivers/:id`**  
 Roles: `admin`, `driver`
 
@@ -127,7 +154,7 @@ Updated `Driver` object.
 
 ---
 
-### 6. Delete Driver
+### 8. Delete Driver
 **`DELETE /drivers/:id`**  
 Roles: `admin`
 
@@ -135,7 +162,7 @@ Roles: `admin`
 
 ---
 
-### 7. Assign Order to Driver
+### 9. Assign Order to Driver
 **`POST /drivers/:id/assign-order`**  
 Roles: `admin`  
 Assigns an order to the driver and transitions the order status to `assigned`.
@@ -152,7 +179,7 @@ Updated `Order` object.
 
 ---
 
-### 8. Update Driver Status
+### 10. Update Driver Status
 **`PATCH /drivers/:id/status`**  
 Roles: `admin`, `driver`
 
@@ -168,7 +195,7 @@ Updated `Driver` object.
 
 ---
 
-### 9. Update Driver Location
+### 11. Update Driver Location
 **`PATCH /drivers/:id/location`**  
 Roles: `driver`  
 Called by the driver app to broadcast real-time GPS position.
@@ -186,7 +213,7 @@ Updated `Driver` object.
 
 ---
 
-### 10. Driver Delivery History
+### 12. Driver Delivery History
 **`GET /drivers/:id/deliveries`**  
 Roles: `admin`, `driver`
 

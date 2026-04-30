@@ -3,7 +3,7 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import './Sidebar.css';
 import { useTenant } from '../../../shared/context/TenantContext';
 
-const Sidebar = () => {
+const Sidebar = ({ onLogout }) => {
   const navigate = useNavigate();
   const location = useLocation();
   const { tenantId } = useTenant();
@@ -112,7 +112,7 @@ const Sidebar = () => {
       </nav>
 
       <div className="sidebar-footer">
-        <button className="logout-btn">
+        <button className="logout-btn" onClick={onLogout}>
           <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
             <path d="M13 13L17 10L13 7M17 10H7M7 17H4C3.44772 17 3 16.5523 3 16V4C3 3.44772 3.44772 3 4 3H7" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
           </svg>

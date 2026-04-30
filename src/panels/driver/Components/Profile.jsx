@@ -1,25 +1,40 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import './Profile.css';
+import driverApi from '../../../shared/api/driverApi';
+import useAuth from '../../../shared/hooks/useAuth';
+import { getDriverId, getDriverProfile } from '../../../shared/api/driverStore';
 
 const Profile = () => {
-  const [editMode, setEditMode] = useState(false);
-  const [langOpen, setLangOpen] = useState(false);
-  const [pwOpen, setPwOpen] = useState(false);
+  const { user, updateUser } = useAuth();
+
+  const [editMode, setEditMode]   = useState(false);
+  const [langOpen, setLangOpen]   = useState(false);
+  const [pwOpen, setPwOpen]       = useState(false);
+  const [saving, setSaving]       = useState(false);
+  const [pwSaving, setPwSaving]   = useState(false);
+  const [loading, setLoading]     = useState(true);
+  const [error, setError]         = useState(null);
+  const [saveError, setSaveError] = useState(null);
+  const [pwError, setPwError]     = useState(null);
+  const [pwSuccess, setPwSuccess] = useState(false);
+
+  // Driver-specific data from backend
+  const [driverProfile, setDriverProfile] = useState(null);
 
   const [form, setForm] = useState({
-    fullName: 'Ahmed Ali Khan',
-    phone: '+92 300 1234567',
-    email: 'ahmed.ali@panniflow.com',
-    address: 'Gulshan-e-Iqbal, Karachi',
+    fullName: '',
+    phone:    '',
+    email:    '',
+    address:  '',
   });
 
   const [toggles, setToggles] = useState({
-    onlineStatus: true,
-    autoAccept: false,
-    deliveryUpdates: true,
-    routeChanges: true,
-    paymentNotifications: true,
-    systemAlerts: false,
+    onlineStatus:          true,
+    autoAccept:            false,
+    deliveryUpdates:       true,
+    routeChanges:          true,
+    paymentNotifications:  true,
+    systemAlerts:          false,
   });
 
   const [language, setLanguage] = useState('English');
@@ -29,24 +44,154 @@ const Profile = () => {
     current: '', newPass: '', confirm: '',
   });
 
+  // â”€â”€ Fetch profile on mount â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  const fetchProfile = useCallback(async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      // GET /auth/me — response: { success, data: { _id, fullName, email, phone }, timestamp }
+      const authRes = await driverApi.getMyProfile();
+      const authData = authRes?.data ?? authRes;
+      // Driver profile already extracted in driverStore (DriverApp does res?.data ?? res)
+      let driverData = getDriverProfile();
+      const driverId = getDriverId();
+      if (driverId) {
+        try {
+          const driverRes = await driverApi.getDriverById(driverId);
+          driverData = driverRes?.data ?? driverRes;
+        } catch {}
+      }
+      setDriverProfile(driverData);
+      setForm({
+        fullName: authData.fullName || user?.fullName || '',
+        phone:    authData.phone   || user?.phone    || '',
+        email:    authData.email   || user?.email    || '',
+        address:  Array.isArray(driverData?.assignedAreas) ? driverData.assignedAreas.join(', ') : '',
+      });
+    } catch {
+      setForm({
+        fullName: user?.fullName || '',
+        phone:    user?.phone    || '',
+        email:    user?.email    || '',
+        address:  '',
+      });
+    } finally {
+      setLoading(false);
+    }
+  }, [user]);
+
+  useEffect(() => { fetchProfile(); }, [fetchProfile]);
+
+  // â”€â”€ Handlers â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   const handleToggle = (key) =>
     setToggles((prev) => ({ ...prev, [key]: !prev[key] }));
 
   const handleFormChange = (e) =>
     setForm((prev) => ({ ...prev, [e.target.name]: e.target.value }));
 
-  const handleSave = () => setEditMode(false);
+  const handleSave = async () => {
+    setSaving(true);
+    setSaveError(null);
+    try {
+      // PATCH /auth/profile — update user-level fields (fullName, phone)
+      await driverApi.updateMyProfile({ fullName: form.fullName, phone: form.phone });
+      // PATCH /drivers/:id — sync name/phone on driver profile too
+      const driverId = getDriverId();
+      if (driverId) {
+        try {
+          const updatedRes = await driverApi.updateDriver(driverId, { name: form.fullName, phone: form.phone });
+          const updatedDriver = updatedRes?.data ?? updatedRes;
+          setDriverProfile((prev) => ({ ...prev, ...updatedDriver }));
+        } catch {}
+      }
+      updateUser({ fullName: form.fullName, phone: form.phone });
+      setEditMode(false);
+    } catch (err) {
+      setSaveError(err.message || 'Failed to save changes');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleUpdateStatus = async (newStatus) => {
+    const driverId = getDriverId();
+    if (!driverId) return;
+    try {
+      // PATCH /drivers/:id/status
+      await driverApi.updateDriverStatus(driverId, newStatus);
+    } catch {
+      // silent — UI toggle already flipped
+    }
+  };
+
+  const handleOnlineToggle = () => {
+    const newOnline = !toggles.onlineStatus;
+    setToggles((prev) => ({ ...prev, onlineStatus: newOnline }));
+    handleUpdateStatus(newOnline ? 'available' : 'off-duty');
+  };
+
+  const handleChangePassword = async () => {
+    if (!passwords.current || !passwords.newPass || !passwords.confirm) {
+      setPwError('Please fill in all password fields');
+      return;
+    }
+    if (passwords.newPass !== passwords.confirm) {
+      setPwError('New passwords do not match');
+      return;
+    }
+    if (passwords.newPass.length < 6) {
+      setPwError('New password must be at least 6 characters');
+      return;
+    }
+    setPwSaving(true);
+    setPwError(null);
+    setPwSuccess(false);
+    try {
+      await driverApi.changePassword({
+        currentPassword: passwords.current,
+        newPassword:     passwords.newPass,
+      });
+      setPwSuccess(true);
+      setPasswords({ current: '', newPass: '', confirm: '' });
+      setPwOpen(false);
+    } catch (err) {
+      setPwError(err.message || 'Failed to change password');
+    } finally {
+      setPwSaving(false);
+    }
+  };
+
+  // â”€â”€ Derived display values â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  const joinedDate = driverProfile?.createdAt
+    ? new Date(driverProfile.createdAt).toLocaleDateString('en-US', { month: 'long', year: 'numeric' })
+    : null;
+
+  const vehicleType    = driverProfile?.vehicleType    || '-';
+  const vehicleNumber  = driverProfile?.vehicleNumber  || '-';
+  const licenseNumber  = driverProfile?.licenseNumber  || '-';
+  const driverStatus   = driverProfile?.status         || 'available';
+  const driverId       = driverProfile?._id            || '-';
+
+  if (loading) {
+    return (
+      <div className="prof-container">
+        <div style={{ padding: '4rem', textAlign: 'center', color: '#64748b' }}>
+          Loading profileâ€¦
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="prof-container">
 
-      {/* ── Page Header ── */}
+      {/* â”€â”€ Page Header â”€â”€ */}
       <div className="prof-page-header">
         <h1 className="prof-title">Driver Profile</h1>
         <p className="prof-subtitle">Manage your account and preferences</p>
       </div>
 
-      {/* ── Profile Hero Card ── */}
+      {/* â”€â”€ Profile Hero Card â”€â”€ */}
       <div className="prof-card prof-hero">
         <div className="prof-avatar-wrap">
           <div className="prof-avatar">
@@ -65,30 +210,34 @@ const Profile = () => {
         </div>
 
         <div className="prof-hero-info">
-          <h2 className="prof-hero-name">Ahmed Ali Khan</h2>
-          <p className="prof-hero-id">Driver ID: DRV-2024-0156</p>
+          <h2 className="prof-hero-name">{form.fullName || user?.fullName || 'Driver'}</h2>
+          <p className="prof-hero-id">Driver ID: {driverId}</p>
           <div className="prof-hero-meta">
-            <span className="prof-meta-item">
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
-                <rect x="3" y="4" width="18" height="18" rx="2" stroke="#64748b" strokeWidth="2"/>
-                <path d="M16 2v4M8 2v4M3 10h18" stroke="#64748b" strokeWidth="2" strokeLinecap="round"/>
-              </svg>
-              Joined: March 2024
-            </span>
+            {joinedDate && (
+              <span className="prof-meta-item">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
+                  <rect x="3" y="4" width="18" height="18" rx="2" stroke="#64748b" strokeWidth="2"/>
+                  <path d="M16 2v4M8 2v4M3 10h18" stroke="#64748b" strokeWidth="2" strokeLinecap="round"/>
+                </svg>
+                Joined: {joinedDate}
+              </span>
+            )}
             <span className="prof-online-dot" />
-            <span className="prof-online-label">Online</span>
+            <span className="prof-online-label">
+              {driverStatus === 'available' ? 'Online' : driverStatus === 'on-delivery' ? 'On Delivery' : 'Offline'}
+            </span>
           </div>
         </div>
 
         <button
           className="prof-edit-btn"
-          onClick={() => setEditMode(!editMode)}
+          onClick={() => { setEditMode(!editMode); setSaveError(null); }}
         >
           {editMode ? 'Cancel' : 'Edit Profile'}
         </button>
       </div>
 
-      {/* ── Personal Information ── */}
+      {/* â”€â”€ Personal Information â”€â”€ */}
       <div className="prof-card">
         <div className="prof-section-header">
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
@@ -140,13 +289,13 @@ const Profile = () => {
                 name="email"
                 value={form.email}
                 onChange={handleFormChange}
-                disabled={!editMode}
+                disabled
               />
             </div>
           </div>
 
           <div className="prof-field">
-            <label className="prof-label">Address</label>
+            <label className="prof-label">Address / Areas</label>
             <div className="prof-input-icon-wrap">
               <svg className="prof-input-icon" width="15" height="15" viewBox="0 0 24 24" fill="none">
                 <path d="M12 21C12 21 5 13.5 5 8.5a7 7 0 1114 0C19 13.5 12 21 12 21z"
@@ -166,12 +315,17 @@ const Profile = () => {
 
         {editMode && (
           <div className="prof-save-row">
-            <button className="prof-save-btn" onClick={handleSave}>Save Changes</button>
+            {saveError && (
+              <p style={{ color: '#ef4444', fontSize: '13px', marginBottom: '8px' }}>{saveError}</p>
+            )}
+            <button className="prof-save-btn" onClick={handleSave} disabled={saving}>
+              {saving ? 'Savingâ€¦' : 'Save Changes'}
+            </button>
           </div>
         )}
       </div>
 
-      {/* ── Vehicle Information ── */}
+      {/* â”€â”€ Vehicle Information â”€â”€ */}
       <div className="prof-card">
         <div className="prof-section-header">
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
@@ -186,20 +340,20 @@ const Profile = () => {
         <div className="prof-form-grid prof-form-3col">
           <div className="prof-field">
             <label className="prof-label">Vehicle Type</label>
-            <input className="prof-input" value="Water Tanker Truck" disabled />
+            <input className="prof-input" value={vehicleType} disabled/>
           </div>
           <div className="prof-field">
             <label className="prof-label">Vehicle Number</label>
-            <input className="prof-input" value="KHI-2024-1234" disabled />
+            <input className="prof-input" value={vehicleNumber} disabled/>
           </div>
           <div className="prof-field">
-            <label className="prof-label">Tank Capacity</label>
-            <input className="prof-input" value="10,000 Liters" disabled />
+            <label className="prof-label">License Number</label>
+            <input className="prof-input" value={licenseNumber} disabled/>
           </div>
         </div>
       </div>
 
-      {/* ── Availability Settings ── */}
+      {/* â”€â”€ Availability Settings â”€â”€ */}
       <div className="prof-card">
         <h3 className="prof-section-title" style={{ marginBottom: '18px' }}>
           Availability Settings
@@ -212,7 +366,7 @@ const Profile = () => {
           </div>
           <button
             className={`prof-toggle ${toggles.onlineStatus ? 'on' : ''}`}
-            onClick={() => handleToggle('onlineStatus')}
+            onClick={handleOnlineToggle}
             aria-label="Toggle Online Status"
           >
             <span className="prof-toggle-knob" />
@@ -234,7 +388,7 @@ const Profile = () => {
         </div>
       </div>
 
-      {/* ── Preferences ── */}
+      {/* â”€â”€ Preferences â”€â”€ */}
       <div className="prof-card">
         <h3 className="prof-section-title" style={{ marginBottom: '18px' }}>
           Preferences
@@ -276,7 +430,7 @@ const Profile = () => {
         </div>
       </div>
 
-      {/* ── Notification Preferences ── */}
+      {/* â”€â”€ Notification Preferences â”€â”€ */}
       <div className="prof-card">
         <div className="prof-section-header" style={{ marginBottom: '18px' }}>
           <svg width="17" height="17" viewBox="0 0 24 24" fill="none">
@@ -287,10 +441,10 @@ const Profile = () => {
         </div>
 
         {[
-          { key: 'deliveryUpdates', title: 'Delivery Updates', sub: 'Get notified about new delivery assignments' },
-          { key: 'routeChanges', title: 'Route Changes', sub: 'Alerts when route is optimized or changed' },
-          { key: 'paymentNotifications', title: 'Payment Notifications', sub: 'Updates about earnings and payments' },
-          { key: 'systemAlerts', title: 'System Alerts', sub: 'Important system messages and updates' },
+          { key: 'deliveryUpdates',      title: 'Delivery Updates',       sub: 'Get notified about new delivery assignments' },
+          { key: 'routeChanges',         title: 'Route Changes',          sub: 'Alerts when route is optimized or changed' },
+          { key: 'paymentNotifications', title: 'Payment Notifications',  sub: 'Updates about earnings and payments' },
+          { key: 'systemAlerts',         title: 'System Alerts',          sub: 'Important system messages and updates' },
         ].map(({ key, title, sub }) => (
           <div className="prof-toggle-row" key={key}>
             <div>
@@ -308,7 +462,7 @@ const Profile = () => {
         ))}
       </div>
 
-      {/* ── Security ── */}
+      {/* â”€â”€ Security â”€â”€ */}
       <div className="prof-card">
         <div className="prof-section-header" style={{ marginBottom: '18px' }}>
           <svg width="17" height="17" viewBox="0 0 24 24" fill="none">
@@ -321,7 +475,7 @@ const Profile = () => {
         <div className="prof-accordion">
           <button
             className="prof-accordion-btn"
-            onClick={() => setPwOpen(!pwOpen)}
+            onClick={() => { setPwOpen(!pwOpen); setPwError(null); setPwSuccess(false); }}
           >
             <span>Change Password</span>
             <svg
@@ -335,6 +489,12 @@ const Profile = () => {
 
           {pwOpen && (
             <div className="prof-pw-form">
+              {pwError && (
+                <p style={{ color: '#ef4444', fontSize: '13px', marginBottom: '8px' }}>{pwError}</p>
+              )}
+              {pwSuccess && (
+                <p style={{ color: '#22c55e', fontSize: '13px', marginBottom: '8px' }}>Password updated successfully!</p>
+              )}
               <div className="prof-field">
                 <label className="prof-label">Current Password</label>
                 <input
@@ -365,8 +525,13 @@ const Profile = () => {
                   onChange={(e) => setPasswords({ ...passwords, confirm: e.target.value })}
                 />
               </div>
-              <button className="prof-save-btn" style={{ marginTop: '8px' }}>
-                Update Password
+              <button
+                className="prof-save-btn"
+                style={{ marginTop: '8px' }}
+                onClick={handleChangePassword}
+                disabled={pwSaving}
+              >
+                {pwSaving ? 'Updatingâ€¦' : 'Update Password'}
               </button>
             </div>
           )}

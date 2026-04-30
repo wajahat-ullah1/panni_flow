@@ -1,124 +1,106 @@
 import api from "./axiosConfig";
 
-// ─────────────────────────────────────────────────────────────────────────────
-// driverApi — all endpoints for the Driver Panel
-// Base prefix: /api/driver
-// ─────────────────────────────────────────────────────────────────────────────
-
 const driverApi = {
 
   // ════════════════════════════════════════════════════════════════════════════
-  // PROFILE
+  // AUTH / PROFILE  (auth-api.md)
   // ════════════════════════════════════════════════════════════════════════════
 
-  // GET /api/driver/profile
-  getProfile: () =>
-    api.get("/driver/profile"),
+  // GET /auth/me — returns authenticated user's profile
+  getMyProfile: () =>
+    api.get("/auth/me"),
 
-  // PUT /api/driver/profile
-  // Body: { name, phone }
-  updateProfile: (data) =>
-    api.put("/driver/profile", data),
+  // PATCH /auth/profile — update fullName, email, phone
+  updateMyProfile: (data) =>
+    api.patch("/auth/profile", data),
 
-  // PUT /api/driver/profile/password
+  // PATCH /auth/change-password — Body: { currentPassword, newPassword }
   changePassword: (data) =>
-    api.put("/driver/profile/password", data),
+    api.patch("/auth/change-password", data),
 
 
   // ════════════════════════════════════════════════════════════════════════════
-  // AVAILABILITY
+  // DASHBOARD  (driver-api.md #5)
   // ════════════════════════════════════════════════════════════════════════════
 
-  // PUT /api/driver/availability
-  // Body: { available: true | false }
-  // Call this when driver goes online/offline
-  setAvailability: (available) =>
-    api.put("/driver/availability", { available }),
+  // GET /drivers/me — full Driver object for the authenticated driver
+  // Call this once on app mount to get the driver's _id for subsequent calls
+  getDriverProfile: () =>
+    api.get("/drivers/me"),
 
-
-  // ════════════════════════════════════════════════════════════════════════════
-  // DASHBOARD
-  // ════════════════════════════════════════════════════════════════════════════
-
-  // GET /api/driver/dashboard
+  // GET /drivers/dashboard — driver resolved from JWT
   // Returns: { todayDeliveries, completedToday, pendingDeliveries, todayEarnings }
   getDashboardStats: () =>
-    api.get("/driver/dashboard"),
+    api.get("/drivers/dashboard"),
 
 
   // ════════════════════════════════════════════════════════════════════════════
-  // DELIVERIES
+  // DRIVER (by ID)  (driver-api.md)
   // ════════════════════════════════════════════════════════════════════════════
 
-  // GET /api/driver/deliveries
-  // Query: ?status=pending|in_progress|completed&date=2026-03-30
-  getDeliveries: (params = {}) =>
-    api.get("/driver/deliveries", { params }),
+  // GET /drivers/:id — get driver profile (vehicle info, status, etc.)
+  getDriverById: (id) =>
+    api.get(`/drivers/${id}`),
 
-  // GET /api/driver/deliveries/:id
-  getDelivery: (id) =>
-    api.get(`/driver/deliveries/${id}`),
+  // PATCH /drivers/:id — update driver fields (name, phone, vehicleType, etc.)
+  updateDriver: (id, data) =>
+    api.patch(`/drivers/${id}`, data),
 
-  // PUT /api/driver/deliveries/:id/accept
-  acceptDelivery: (id) =>
-    api.put(`/driver/deliveries/${id}/accept`),
+  // PATCH /drivers/:id/status — Body: { status: "available"|"on-delivery"|"off-duty" }
+  updateDriverStatus: (driverId, status) =>
+    api.patch(`/drivers/${driverId}/status`, { status }),
 
-  // PUT /api/driver/deliveries/:id/reject
-  // Body: { reason }
-  rejectDelivery: (id, reason) =>
-    api.put(`/driver/deliveries/${id}/reject`, { reason }),
+  // PATCH /drivers/:id/location — Body: { lat, lng }
+  updateDriverLocation: (driverId, lat, lng) =>
+    api.patch(`/drivers/${driverId}/location`, { lat, lng }),
 
-  // PUT /api/driver/deliveries/:id/pickup
-  // Mark order as picked up from warehouse
-  markPickedUp: (id) =>
-    api.put(`/driver/deliveries/${id}/pickup`),
+  // GET /drivers/:id/deliveries — paginated order history for a driver
+  // Query: page, limit, sort, search, status, fromDate, toDate
+  getDriverDeliveries: (driverId, params = {}) =>
+    api.get(`/drivers/${driverId}/deliveries`, { params }),
 
-  // PUT /api/driver/deliveries/:id/complete
-  // Body: FormData with optional "photo" proof + { notes, signature }
-  completeDelivery: (id, formData) =>
-    api.put(`/driver/deliveries/${id}/complete`, formData, {
-      headers: { "Content-Type": "multipart/form-data" },
+
+  // ════════════════════════════════════════════════════════════════════════════
+  // ORDERS  (order-api.md)
+  // ════════════════════════════════════════════════════════════════════════════
+
+  // GET /orders — list orders; drivers can filter via ?driverId=
+  // Query: page, limit, sort, search, status, driverId, fromDate, toDate
+  getOrders: (params = {}) =>
+    api.get("/orders", { params }),
+
+  // GET /orders/driver/:driverId — orders assigned to a specific driver
+  getOrdersByDriver: (driverId, params = {}) =>
+    api.get(`/orders/driver/${driverId}`, { params }),
+
+  // GET /orders/:id
+  getOrderById: (orderId) =>
+    api.get(`/orders/${orderId}`),
+
+  // GET /orders/:id/tracking
+  getOrderTracking: (orderId) =>
+    api.get(`/orders/${orderId}/tracking`),
+
+  // GET /orders/:id/navigation — returns customer info + Google Maps deep link
+  getOrderNavigation: (orderId) =>
+    api.get(`/orders/${orderId}/navigation`),
+
+  // PATCH /orders/:id/status — Body: { status, note? }
+  updateOrderStatus: (orderId, status, note) =>
+    api.patch(`/orders/${orderId}/status`, {
+      status,
+      ...(note ? { note } : {}),
     }),
 
-  // PUT /api/driver/deliveries/:id/fail
-  // Body: { reason }
-  reportFailedDelivery: (id, reason) =>
-    api.put(`/driver/deliveries/${id}/fail`, { reason }),
+  // PATCH /orders/:id/accept — assigned → accepted
+  acceptOrder: (orderId) =>
+    api.patch(`/orders/${orderId}/accept`),
 
-
-  // ════════════════════════════════════════════════════════════════════════════
-  // LIVE LOCATION
-  // ════════════════════════════════════════════════════════════════════════════
-
-  // PUT /api/driver/location
-  // Body: { lat, lng, deliveryId }
-  // Call this every 5-10 seconds while on a delivery
-  updateLocation: (locationData) =>
-    api.put("/driver/location", locationData),
-
-
-  // ════════════════════════════════════════════════════════════════════════════
-  // EARNINGS
-  // ════════════════════════════════════════════════════════════════════════════
-
-  // GET /api/driver/earnings
-  // Query: ?period=today|week|month
-  getEarnings: (params = {}) =>
-    api.get("/driver/earnings", { params }),
-
-
-  // ════════════════════════════════════════════════════════════════════════════
-  // NOTIFICATIONS
-  // ════════════════════════════════════════════════════════════════════════════
-
-  // GET /api/driver/notifications
-  getNotifications: () =>
-    api.get("/driver/notifications"),
-
-  // PUT /api/driver/notifications/:id/read
-  markNotificationRead: (id) =>
-    api.put(`/driver/notifications/${id}/read`),
+  // PATCH /orders/:id/reject — Body: { reason? } — assigned → rejected
+  rejectOrder: (orderId, reason) =>
+    api.patch(`/orders/${orderId}/reject`, { reason }),
 
 };
 
 export default driverApi;
+
