@@ -38,6 +38,12 @@ const formatEarnings = (value) => {
   return `Rs${Number(value).toLocaleString()}`;
 };
 
+const DRIVER_PRIMARY_ACTION = {
+  assigned:           { label: 'Accept Order',      nextStatus: 'accepted'         },
+  accepted:           { label: 'Start Delivery',    nextStatus: 'out-for-delivery' },
+  'out-for-delivery': { label: 'Mark as Delivered', nextStatus: 'delivered'        },
+};
+
 // ─────────────────────────────────────────────────────────────────────────────
 const Dashboard = () => {
   const { user } = useAuth();
@@ -74,7 +80,9 @@ const Dashboard = () => {
       });
 
       const orders = deliveriesRes?.data?.data ?? [];
-      setDeliveries(Array.isArray(orders) ? orders : []);
+      const TERMINAL = new Set(['delivered', 'cancelled', 'rejected']);
+      const active = Array.isArray(orders) ? orders.filter((o) => !TERMINAL.has(o.status)) : [];
+      setDeliveries(active);
     } catch (err) {
       setError(err.message || 'Failed to load dashboard data');
     } finally {
@@ -84,13 +92,13 @@ const Dashboard = () => {
 
   useEffect(() => { fetchData(); }, [fetchData]);
 
-  const handleStartDelivery = async (orderId) => {
+  const handleStatusTransition = async (orderId, nextStatus) => {
     setActionLoading(orderId);
     try {
-      await driverApi.updateOrderStatus(orderId, 'out-for-delivery');
+      await driverApi.updateOrderStatus(orderId, nextStatus);
       await fetchData();
     } catch (err) {
-      alert(err.message || 'Failed to start delivery');
+      alert(err.message || 'Failed to update status');
     } finally {
       setActionLoading(null);
     }
@@ -239,13 +247,19 @@ const Dashboard = () => {
                   </div>
 
                   <div className="delivery-actions">
-                    <button
-                      className="btn-primary"
-                      onClick={() => handleStartDelivery(order._id)}
-                      disabled={actionLoading === order._id}
-                    >
-                      {actionLoading === order._id ? 'Starting…' : 'Start Delivery'}
-                    </button>
+                    {(() => {
+                      const action = DRIVER_PRIMARY_ACTION[order.status];
+                      if (!action) return null;
+                      return (
+                        <button
+                          className="btn-primary"
+                          onClick={() => handleStatusTransition(order._id, action.nextStatus)}
+                          disabled={actionLoading === order._id}
+                        >
+                          {actionLoading === order._id ? 'Updating…' : action.label}
+                        </button>
+                      );
+                    })()}
                     <button className="btn-secondary">View Details</button>
                   </div>
                 </div>

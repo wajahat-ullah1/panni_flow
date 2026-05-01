@@ -60,10 +60,10 @@ const DRIVER_PRIMARY_ACTION = {
 const DRIVER_SECONDARY_ACTIONS = {
   assigned: [
     { label: 'Reject',  nextStatus: 'rejected',  btnClass: 'btn-reject'  },
-    { label: 'Cancel',  nextStatus: 'cancelled', btnClass: 'btn-cancel'  },
+    // { label: 'Cancel',  nextStatus: 'cancelled', btnClass: 'btn-cancel'  },
   ],
   accepted: [
-    { label: 'Cancel',  nextStatus: 'cancelled', btnClass: 'btn-cancel'  },
+    // { label: 'Cancel',  nextStatus: 'cancelled', btnClass: 'btn-cancel'  },
   ],
 };
 
@@ -82,7 +82,9 @@ const AssignedDeliveries = () => {
     try {
       const res = await driverApi.getDriverDeliveries(getDriverId());
       const orders = res?.data?.data ?? [];
-      setDeliveries(Array.isArray(orders) ? orders : []);
+      const TERMINAL = new Set(['delivered', 'cancelled', 'rejected']);
+      const active = Array.isArray(orders) ? orders.filter((o) => !TERMINAL.has(o.status)) : [];
+      setDeliveries(active);
     } catch (err) {
       setError(err.message || 'Failed to load deliveries');
     } finally {

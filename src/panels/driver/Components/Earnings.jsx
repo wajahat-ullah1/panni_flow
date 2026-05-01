@@ -96,11 +96,11 @@ const LineChart = ({ data }) => {
 const DAY_LABELS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 
 const buildEarningsFromOrders = (orders, filter) => {
-  const total = orders.reduce((sum, o) => sum + (o.totalAmount || 0), 0);
+  const total = orders?.reduce((sum, o) => sum + (o.totalAmount || 0), 0) || 0;
 
   // Daily breakdown (for weekly view)
   const dailyTotals = Array(7).fill(0);
-  orders.forEach((o) => {
+  orders?.forEach((o) => {
     const day = new Date(o.deliveredAt || o.updatedAt).getDay();
     dailyTotals[day] += o.totalAmount || 0;
   });
@@ -108,7 +108,7 @@ const buildEarningsFromOrders = (orders, filter) => {
 
   // Weekly breakdown (for monthly view — by ISO week number within month)
   const weeklyMap = {};
-  orders.forEach((o) => {
+  orders?.forEach((o) => {
     const d = new Date(o.deliveredAt || o.updatedAt);
     const weekNum = Math.ceil(d.getDate() / 7);
     const key = `W${weekNum}`;
@@ -170,7 +170,7 @@ const Earnings = () => {
         const res = await driverApi.getDriverDeliveries(driverId, {
           status: 'delivered', fromDate: start.toISOString(), toDate: end.toISOString(), limit: 100,
         });
-        setEarnings(buildEarningsFromOrders(res?.data ?? res ?? [], filter));
+        setEarnings(buildEarningsFromOrders(res?.data?.data ?? [], filter));
         return;
       } else {
         // This Month
@@ -180,7 +180,7 @@ const Earnings = () => {
       const res = await driverApi.getDriverDeliveries(driverId, {
         status: 'delivered', fromDate, limit: 100,
       });
-      setEarnings(buildEarningsFromOrders(res?.data ?? res ?? [], filter));
+      setEarnings(buildEarningsFromOrders(res?.data?.data ?? [], filter));
     } catch (err) {
       setError(err.message || 'Failed to load earnings data');
     } finally {
