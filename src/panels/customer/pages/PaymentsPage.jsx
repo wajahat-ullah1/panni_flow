@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback, useMemo } from "react";
 import customerApi from "../../../shared/api/customerApi";
 
 // ─── Static Data ────────────────────────────────────────────────────────────────
@@ -30,32 +30,58 @@ const PAYMENT_TIPS = [
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 const METHOD_LABELS = { cod: "Cash on Delivery", card: "Credit Card" };
 
+// ✅ Ported from App: full STATUS_CONFIG with bg/color for each status key
+const STATUS_CONFIG = {
+  paid:      { bg: "#dcfce7", color: "#15803d", label: "Paid" },
+  delivered: { bg: "#dcfce7", color: "#15803d", label: "Delivered" },
+  success:   { bg: "#dcfce7", color: "#15803d", label: "Success" },
+  refunded:  { bg: "#fff7ed", color: "#ea580c", label: "Refunded" },
+  pending:   { bg: "#fef3c7", color: "#b45309", label: "Pending" },
+  cancelled: { bg: "#fee2e2", color: "#dc2626", label: "Cancelled" },
+  failed:    { bg: "#fee2e2", color: "#dc2626", label: "Failed" },
+};
+
 function formatDate(iso) {
+  if (!iso) return "—";
   return new Date(iso).toLocaleDateString("en-US", {
     year: "numeric", month: "short", day: "numeric",
   });
 }
 
+// ✅ Ported from App: smarter mapTransaction that reads orderId.status
 function mapTransaction(tx) {
+  const rawPaymentStatus = (tx.status || "pending").toLowerCase();
+  const orderStatus = tx.orderId?.status?.toLowerCase();
+
+  // If order is delivered, override the payment status key so UI label is correct
+  let finalStatusKey = rawPaymentStatus;
+  if (orderStatus === "delivered") {
+    finalStatusKey = "delivered";
+  } else if (rawPaymentStatus === "pending" && orderStatus) {
+    finalStatusKey = orderStatus;
+  }
+
+  const statusCfg = STATUS_CONFIG[finalStatusKey] || { label: finalStatusKey };
+  const statusLabel = statusCfg.label ||
+    finalStatusKey.charAt(0).toUpperCase() + finalStatusKey.slice(1).replace(/_/g, " ");
+
+  const orderNum =
+    typeof tx.orderId === "object"
+      ? tx.orderId?.orderNumber
+      : tx.orderNumber || tx.orderId;
+
   return {
-    id:     tx._id,
-    invoice: tx._id.slice(-8).toUpperCase(),
-    order:  tx.orderId?.orderNumber ?? "—",
-    amount: tx.amount,
-    date:   formatDate(tx.createdAt),
-    method: METHOD_LABELS[tx.method] ?? tx.method,
-    status: tx.status.charAt(0).toUpperCase() + tx.status.slice(1),
+    id:          tx._id || tx.id,
+    invoice:     (tx._id || tx.id || "").slice(-8).toUpperCase(),
+    order:       orderNum ?? "—",
+    amount:      Number(tx.amount) || 0,
+    date:        formatDate(tx.createdAt),
+    dateObj:     tx.createdAt ? new Date(tx.createdAt) : new Date(),
+    method:      METHOD_LABELS[tx.method] ?? tx.method ?? "Wallet",
+    statusKey:   finalStatusKey,
+    statusLabel,
   };
 }
-
-const SUMMARY_STATS = {
-  totalSpentMonth: 342.0,
-  orders: 12,
-  growth: "+18% from last month",
-  totalPaid: 842,
-  totalInvoices: 47,
-  pending: 0,
-};
 
 // ─── SVG Icons ───────────────────────────────────────────────────────────────────
 const DollarCircleIcon = ({ size = 80 }) => (
@@ -80,14 +106,6 @@ const CardIcon = () => (
     stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
     <rect x="2" y="5" width="20" height="14" rx="2"/>
     <path d="M2 10h20"/>
-  </svg>
-);
-
-const PlusIcon = () => (
-  <svg width="14" height="14" viewBox="0 0 24 24" fill="none"
-    stroke="white" strokeWidth="2.5" strokeLinecap="round">
-    <line x1="12" y1="5" x2="12" y2="19"/>
-    <line x1="5" y1="12" x2="19" y2="12"/>
   </svg>
 );
 
@@ -143,14 +161,9 @@ const PendingIcon = () => (
 );
 
 // ─── Status Badge ─────────────────────────────────────────────────────────────────
-const STATUS_CFG = {
-  Paid:     { bg: "#dcfce7", color: "#15803d" },
-  Refunded: { bg: "#fff7ed", color: "#ea580c" },
-  Pending:  { bg: "#fef3c7", color: "#b45309" },
-};
-
-function StatusBadge({ status }) {
-  const cfg = STATUS_CFG[status] || { bg: "#f1f5f9", color: "#64748b" };
+// ✅ Now reads from STATUS_CONFIG by statusKey instead of a hardcoded 3-key map
+function StatusBadge({ statusKey, statusLabel }) {
+  const cfg = STATUS_CONFIG[statusKey] || { bg: "#f1f5f9", color: "#64748b" };
   return (
     <span style={{
       padding: "3px 10px",
@@ -160,7 +173,7 @@ function StatusBadge({ status }) {
       background: cfg.bg,
       color: cfg.color,
     }}>
-      {status}
+      {statusLabel}
     </span>
   );
 }
@@ -186,31 +199,61 @@ function StatCard({ iconBg, icon, label, value, sub, subColor }) {
 
 // ─── Main Page ────────────────────────────────────────────────────────────────────
 export default function PaymentsPage() {
-  const [methods, setMethods] = useState(PAYMENT_METHODS);
+  const [methods] = useState(PAYMENT_METHODS);
   const [transactions, setTransactions] = useState([]);
   const [txLoading, setTxLoading] = useState(true);
-  const [txError, setTxError]   = useState(null);
+  const [txError, setTxError] = useState(null);
   const [summaryStats, setSummaryStats] = useState(null);
 
   useEffect(() => {
     customerApi.getPayments(true)
-      .then(res => setTransactions((res.data?.data ?? []).map(mapTransaction)))
+      .then(res => {
+        const list = res.data?.payments || res.data?.data || [];
+        setTransactions(Array.isArray(list) ? list.map(mapTransaction) : []);
+      })
       .catch(() => setTxError("Failed to load transactions."))
       .finally(() => setTxLoading(false));
 
     customerApi.getPaymentsDashboard()
-      .then(res => {
-        const d = res.data;
-        console.log("Dashboard stats:", d);
-        setSummaryStats(d);
-      });
+      .then(res => setSummaryStats(res.data ?? null))
+      .catch(() => {/* dashboard stats are non-critical */});
   }, []);
 
+  // ✅ Ported from App: calculate totals on the fly from transactions
+  const totals = useMemo(() => {
+    const now = new Date();
+    const currentMonth = now.getMonth();
+    const currentYear = now.getFullYear();
+
+    return transactions.reduce((acc, tx) => {
+      const isSuccessful =
+        tx.statusKey === "paid" ||
+        tx.statusKey === "delivered" ||
+        tx.statusKey === "success";
+
+      if (isSuccessful) {
+        acc.totalPaid += tx.amount;
+        if (
+          tx.dateObj.getMonth() === currentMonth &&
+          tx.dateObj.getFullYear() === currentYear
+        ) {
+          acc.monthSpent += tx.amount;
+          acc.monthOrders += 1;
+        }
+      } else if (tx.statusKey === "pending") {
+        acc.pendingCount += 1;
+        acc.pendingAmount += tx.amount;
+      }
+
+      return acc;
+    }, { totalPaid: 0, monthSpent: 0, monthOrders: 0, pendingCount: 0, pendingAmount: 0 });
+  }, [transactions]);
+
   const getMonthTrend = () => {
-    if(!summaryStats?.thisMonthPaid?.percentage) return "0%";
-    const { trend } = summaryStats.thisMonthPaid || {};
-    const sign = trend?.direction === "up" ? "+" : trend?.direction === "down" ? "−" : null;
-    return sign ? `${sign}${trend.percentage}%` : `${trend?.percentage}%}`;
+    if (!summaryStats?.thisMonthPaid?.trend) return "0% from last month";
+    const { trend } = summaryStats.thisMonthPaid;
+    const sign = trend?.direction === "up" ? "+" : trend?.direction === "down" ? "−" : "";
+    return `${sign}${trend?.percentage ?? 0}% from last month`;
   };
 
   return (
@@ -227,13 +270,14 @@ export default function PaymentsPage() {
           <div style={{ fontSize: 13.5, color: "rgba(255,255,255,0.8)", marginBottom: 8 }}>
             Total Spent This Month
           </div>
+          {/* ✅ Uses calculated totals instead of summaryStats directly */}
           <div style={{ fontSize: 38, fontWeight: 800, color: "white", marginBottom: 14 }}>
-            ${summaryStats?.thisMonthPaid?.value?.toFixed(2) || "0.00"}
+            ${totals.monthSpent.toFixed(2)}
           </div>
           <div style={{ display: "flex", gap: 8 }}>
-            <span style={styles.heroPill}>{summaryStats?.thisMonthPaid?.orders || 0} Orders</span>
+            <span style={styles.heroPill}>{totals.monthOrders} Orders</span>
             <span style={{ ...styles.heroPill, background: "rgba(255,255,255,0.25)" }}>
-              {`${getMonthTrend()} from last month`}
+              {getMonthTrend()}
             </span>
           </div>
         </div>
@@ -254,12 +298,6 @@ export default function PaymentsPage() {
                 <div style={styles.cardTitle}>Payment Methods</div>
                 <div style={styles.cardSub}>Manage your payment options</div>
               </div>
-              {/* ── Hidden until online payments are supported ──
-              <button style={styles.addBtn}>
-                <PlusIcon />
-                Add Method
-              </button>
-              */}
             </div>
 
             <div style={{ display: "flex", flexDirection: "column", gap: 12, marginTop: 18 }}>
@@ -287,7 +325,6 @@ export default function PaymentsPage() {
                     </div>
                     <div style={{ fontSize: 12.5, color: "#94a3b8" }}>{m.desc}</div>
                   </div>
-                  {/* <button style={styles.editBtn}>Edit</button> */}
                 </div>
               ))}
             </div>
@@ -361,7 +398,10 @@ export default function PaymentsPage() {
                       </td>
                       <td style={styles.td}>{tx.date}</td>
                       <td style={styles.td}>{tx.method}</td>
-                      <td style={styles.td}><StatusBadge status={tx.status} /></td>
+                      <td style={styles.td}>
+                        {/* ✅ Pass statusKey + statusLabel instead of a plain string */}
+                        <StatusBadge statusKey={tx.statusKey} statusLabel={tx.statusLabel} />
+                      </td>
                       <td style={styles.td}>
                         <button style={styles.downloadBtn}>
                           <DownloadIcon />
@@ -378,27 +418,28 @@ export default function PaymentsPage() {
 
         {/* RIGHT column — stat cards */}
         <div style={styles.rightCol}>
+          {/* ✅ Uses calculated totals */}
           <StatCard
             iconBg="linear-gradient(135deg,#10b981,#059669)"
             icon={<GreenDollarIcon />}
             label="Total Paid"
-            value={`$${summaryStats?.totalPaid?.toFixed(2) || "0.00"}`}
+            value={`$${totals.totalPaid.toFixed(2)}`}
             sub="All time"
             subColor="#10b981"
           />
           <StatCard
             iconBg="linear-gradient(135deg,#6366f1,#4f46e5)"
             icon={<InvoiceIcon />}
-            label="Total Invoices"
-            value={summaryStats?.pendingPayments || 0}
-            sub="Since Jan 2026"
+            label="Pending Invoices"
+            value={totals.pendingCount}
+            sub="Unpaid orders"
           />
           <StatCard
             iconBg="linear-gradient(135deg,#f59e0b,#d97706)"
             icon={<PendingIcon />}
-            label="Pending"
-            value={`$${summaryStats?.pendingPaymentAmount?.toFixed(2) || "0.00"}`}
-            sub="No pending payments"
+            label="Pending Amount"
+            value={`$${totals.pendingAmount.toFixed(2)}`}
+            sub={totals.pendingCount === 0 ? "No pending payments" : `${totals.pendingCount} pending`}
           />
         </div>
       </div>
@@ -420,7 +461,6 @@ const styles = {
   title: { margin: 0, fontSize: 22, fontWeight: 700, color: "#0f172a" },
   subtitle: { margin: "4px 0 0", fontSize: 13.5, color: "#94a3b8" },
 
-  // Hero
   heroBanner: {
     borderRadius: 16,
     background: "linear-gradient(135deg,#0ea5e9 0%,#10b981 100%)",
@@ -444,7 +484,6 @@ const styles = {
     flexShrink: 0,
   },
 
-  // Layout
   twoCol: {
     display: "flex",
     gap: 20,
@@ -465,7 +504,6 @@ const styles = {
     gap: 16,
   },
 
-  // Card
   card: {
     background: "white",
     borderRadius: 14,
@@ -480,7 +518,6 @@ const styles = {
   cardTitle: { fontWeight: 700, fontSize: 15, color: "#0f172a" },
   cardSub: { fontSize: 12.5, color: "#94a3b8", marginTop: 2 },
 
-  // Stat card
   statCard: {
     background: "white",
     borderRadius: 14,
@@ -488,23 +525,6 @@ const styles = {
     padding: "20px 22px",
   },
 
-  // Add Method btn
-  addBtn: {
-    display: "flex",
-    alignItems: "center",
-    gap: 7,
-    padding: "8px 16px",
-    borderRadius: 9,
-    border: "none",
-    background: "linear-gradient(135deg,#0ea5e9,#0284c7)",
-    color: "white",
-    fontSize: 13,
-    fontWeight: 600,
-    cursor: "pointer",
-    flexShrink: 0,
-  },
-
-  // Method row
   methodRow: {
     display: "flex",
     alignItems: "center",
@@ -513,19 +533,7 @@ const styles = {
     borderRadius: 12,
     border: "1px solid #e2e8f0",
   },
-  editBtn: {
-    padding: "6px 14px",
-    borderRadius: 8,
-    border: "1px solid #e2e8f0",
-    background: "white",
-    color: "#475569",
-    fontSize: 12.5,
-    fontWeight: 500,
-    cursor: "pointer",
-    flexShrink: 0,
-  },
 
-  // Tips box
   tipsBox: {
     marginTop: 18,
     background: "#f8fafc",
@@ -534,7 +542,6 @@ const styles = {
     padding: "14px 16px",
   },
 
-  // Export btn
   exportBtn: {
     display: "flex",
     alignItems: "center",
@@ -549,7 +556,6 @@ const styles = {
     cursor: "pointer",
   },
 
-  // Table
   table: {
     width: "100%",
     borderCollapse: "collapse",

@@ -1,17 +1,52 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import StatCard from "./StatCard";
 import { BoxIcon, TruckIcon, DollarIcon, DropIcon } from "../icons/Icons";
 import customerApi from "../../../../shared/api/customerApi";
 
 export default function StatsGrid() {
   const [stats, setStats] = useState(null);
+  const [orders, setOrders] = useState([]);
 
   useEffect(() => {
+    // Fetch dashboard stats
     customerApi
       .getDashboardStats()
       .then((res) => setStats(res.data ?? null))
       .catch(() => setStats(null));
+
+    // Fetch all orders to calculate accurate monthly spending
+    customerApi
+      .getOrders({ limit: 100 })
+      .then((res) => {
+        const list = res.data?.data ?? [];
+        setOrders(Array.isArray(list) ? list : []);
+      })
+      .catch(() => setOrders([]));
   }, []);
+
+  // Calculate monthly spending from actual orders (only paid/delivered ones)
+  const monthlySpending = useMemo(() => {
+    const now = new Date();
+    const currentMonth = now.getMonth();
+    const currentYear = now.getFullYear();
+
+    return orders.reduce((total, order) => {
+      const orderDate = order.createdAt ? new Date(order.createdAt) : null;
+      const orderStatus = (order.status || "").toLowerCase();
+      
+      // Only count delivered orders or paid orders
+      // Exclude pending, confirmed, assigned, accepted, out-for-delivery
+      const isPaidOrDelivered = orderStatus === "delivered";
+      
+      if (orderDate && 
+          orderDate.getMonth() === currentMonth && 
+          orderDate.getFullYear() === currentYear &&
+          isPaidOrDelivered) {
+        return total + (Number(order.totalAmount) || Number(order.total) || 0);
+      }
+      return total;
+    }, 0);
+  }, [orders]);
 
   // Helper: extract value + trend from fields that may be { value, trend } or plain numbers
   const val = (field) => (typeof field === "object" && field !== null ? field.value : field);
@@ -53,7 +88,7 @@ export default function StatsGrid() {
     },
     {
       label: "Monthly Spending",
-      value: stats ? `$${val(stats.monthlySpending).toLocaleString()}` : "—",
+      value: stats ? `$${monthlySpending.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : "—",
       trend: stats ? (spendingT.label ?? `$${stats.totalSpent?.toLocaleString()} total spent`) : "Loading...",
       icon: <DollarIcon stroke="white" />,
       iconBg: "linear-gradient(135deg, #10b981 0%, #059669 100%)",
