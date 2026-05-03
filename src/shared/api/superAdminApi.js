@@ -70,6 +70,10 @@ export const uploadTenantLogo = (id, file) => {
   });
 };
 
+// ── Dashboard ─────────────────────────────────────────────────────────────────
+export const getSuperAdminDashboard = () =>
+  api.get('/super-admin/dashboard');
+
 // ── Subscriptions ─────────────────────────────────────────────────────────────
 export const getSubscriptionPlans = () =>
   api.get('/subscriptions/plans');

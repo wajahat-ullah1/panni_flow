@@ -4,63 +4,45 @@ import {
   XAxis, YAxis, CartesianGrid, Tooltip,
   ResponsiveContainer, Legend,
 } from "recharts";
-import { getTenants } from "../../../shared/api/superAdminApi";
-
-const growthData = [
-  { month: "Jan", Companies: 18, Users: 210 },
-  { month: "Feb", Companies: 21, Users: 310 },
-  { month: "Mar", Companies: 24, Users: 450 },
-  { month: "Apr", Companies: 26, Users: 560 },
-  { month: "May", Companies: 29, Users: 740 },
-  { month: "Jun", Companies: 32, Users: 950 },
-];
-
-const revenueData = [
-  { month: "Jan", Revenue: 12000 },
-  { month: "Feb", Revenue: 16000 },
-  { month: "Mar", Revenue: 21000 },
-  { month: "Apr", Revenue: 29000 },
-  { month: "May", Revenue: 43000 },
-  { month: "Jun", Revenue: 58600 },
-];
+import { getSuperAdminDashboard } from "../../../shared/api/superAdminApi";
 
 const notifications = [
-  {
-    id: 1,
-    type: "success",
-    message: "New company registered: Aqua Fresh Ltd",
-    time: "5 min ago",
-    dotColor: "#22c55e",
-    bg: "#f0fdf4",
-    border: "#bbf7d0",
-  },
-  {
-    id: 2,
-    type: "warning",
-    message: "Subscription expiring for Panni Flow in 3 days",
-    time: "1 hour ago",
-    dotColor: "#f97316",
-    bg: "#fff7ed",
-    border: "#fed7aa",
-  },
-  {
-    id: 3,
-    type: "error",
-    message: "Payment failed for Crystal Waters",
-    time: "2 hours ago",
-    dotColor: "#ef4444",
-    bg: "#fef2f2",
-    border: "#fecaca",
-  },
-  {
-    id: 4,
-    type: "info",
-    message: "High system usage detected",
-    time: "3 hours ago",
-    dotColor: "#3b82f6",
-    bg: "#eff6ff",
-    border: "#bfdbfe",
-  },
+  // {
+  //   id: 1,
+  //   type: "success",
+  //   message: "New company registered: Aqua Fresh Ltd",
+  //   time: "5 min ago",
+  //   dotColor: "#22c55e",
+  //   bg: "#f0fdf4",
+  //   border: "#bbf7d0",
+  // },
+  // {
+  //   id: 2,
+  //   type: "warning",
+  //   message: "Subscription expiring for Panni Flow in 3 days",
+  //   time: "1 hour ago",
+  //   dotColor: "#f97316",
+  //   bg: "#fff7ed",
+  //   border: "#fed7aa",
+  // },
+  // {
+  //   id: 3,
+  //   type: "error",
+  //   message: "Payment failed for Crystal Waters",
+  //   time: "2 hours ago",
+  //   dotColor: "#ef4444",
+  //   bg: "#fef2f2",
+  //   border: "#fecaca",
+  // },
+  // {
+  //   id: 4,
+  //   type: "info",
+  //   message: "High system usage detected",
+  //   time: "3 hours ago",
+  //   dotColor: "#3b82f6",
+  //   bg: "#eff6ff",
+  //   border: "#bfdbfe",
+  // },
 ];
 
 const statCards = [
@@ -159,31 +141,87 @@ function StatCard({ card }) {
 }
 
 export default function Dashboard() {
-  const [tenantStats, setTenantStats] = useState(null);
+  const [dashData, setDashData] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
   const superAdminUser = JSON.parse(localStorage.getItem("superAdminUser") || "{}");
 
   useEffect(() => {
-    getTenants({ limit: 100 })
+    getSuperAdminDashboard()
       .then((res) => {
-        const tenants = Array.isArray(res?.data) ? res.data : [];
-        setTenantStats({
-          total:     res?.meta?.total ?? tenants.length,
-          active:    tenants.filter((t) => t.status === "active").length,
-          suspended: tenants.filter((t) => t.status === "suspended").length,
-          trial:     tenants.filter((t) => t.status === "trial").length,
-        });
+        setDashData(res?.data);
+        setLoading(false);
       })
-      .catch(() => {});
+      .catch((err) => {
+        setError(err?.response?.data?.message || "Failed to load dashboard");
+        setLoading(false);
+      });
   }, []);
 
+  const stats = dashData?.stats ?? {};
+  const growthData = (dashData?.companyGrowth ?? []).map((d) => ({
+    month: d.month,
+    Companies: d.companies,
+    Users: d.users,
+  }));
+  const revenueData = (dashData?.monthlyRevenue ?? []).map((d) => ({
+    month: d.month,
+    Revenue: d.revenue,
+  }));
+
   const liveStatCards = [
-    { ...statCards[0], value: tenantStats ? String(tenantStats.total)     : "–" },
-    { ...statCards[1], value: tenantStats ? String(tenantStats.active)    : "–" },
-    { ...statCards[2], label: "Suspended",      iconBg: statCards[2].iconBg, icon: statCards[2].icon,
-                       value: tenantStats ? String(tenantStats.suspended) : "–", change: "" },
-    { ...statCards[3], label: "Trial Companies", iconBg: statCards[3].iconBg, icon: statCards[3].icon,
-                       value: tenantStats ? String(tenantStats.trial)     : "–", change: "" },
+    {
+      label: "Total Companies",
+      value: loading ? "–" : String(stats.totalCompanies ?? 0),
+      change: loading ? "" : `${stats.totalCompaniesChange >= 0 ? "+" : ""}${stats.totalCompaniesChange ?? 0}% from last month`,
+      iconBg: "#2563eb",
+      icon: statCards[0].icon,
+    },
+    {
+      label: "Active Companies",
+      value: loading ? "–" : String(stats.activeCompanies ?? 0),
+      change: loading ? "" : `${stats.activeCompaniesChange >= 0 ? "+" : ""}${stats.activeCompaniesChange ?? 0}% from last month`,
+      iconBg: "#0d9488",
+      icon: statCards[1].icon,
+    },
+    {
+      label: "Suspended",
+      value: loading ? "–" : String(stats.suspendedCompanies ?? 0),
+      change: "",
+      iconBg: "#dc2626",
+      icon: statCards[2].icon,
+    },
+    {
+      label: "Trial Companies",
+      value: loading ? "–" : String(stats.trialCompanies ?? 0),
+      change: "",
+      iconBg: "#ea580c",
+      icon: statCards[3].icon,
+    },
   ];
+
+  if (loading) {
+    return (
+      <div style={{
+        flex: 1, display: "flex", flexDirection: "column",
+        alignItems: "center", justifyContent: "center",
+        background: "#f8fafc", fontFamily: "'DM Sans', sans-serif",
+        minHeight: "100vh", gap: 16,
+      }}>
+        <div style={{
+          width: 44, height: 44,
+          border: "4px solid #e2e8f0",
+          borderTop: "4px solid #2563eb",
+          borderRadius: "50%",
+          animation: "spin 0.8s linear infinite",
+        }} />
+        <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
+        <span style={{ fontSize: 14, color: "#64748b", fontWeight: 500 }}>
+          Loading dashboard…
+        </span>
+      </div>
+    );
+  }
 
   return (
     <div style={{ flex: 1, overflowY: "auto", background: "#f8fafc", fontFamily: "'DM Sans', sans-serif" }}>
@@ -265,6 +303,17 @@ export default function Dashboard() {
 
       {/* Main content */}
       <div style={{ padding: "28px 32px" }}>
+
+        {/* Error Banner */}
+        {error && (
+          <div style={{
+            background: "#fef2f2", border: "1px solid #fecaca",
+            borderRadius: 10, padding: "12px 18px", marginBottom: 20,
+            color: "#dc2626", fontSize: 13, fontWeight: 500,
+          }}>
+            {error}
+          </div>
+        )}
 
         {/* Stat Cards */}
         <div style={{ display: "flex", gap: 18, marginBottom: 24 }}>

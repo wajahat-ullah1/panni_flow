@@ -80,6 +80,75 @@ Returns the updated super admin profile.
 
 ---
 
+## Dashboard
+
+---
+
+### Get Dashboard Statistics
+**`GET /super-admin/dashboard`**  
+Roles: `super_admin`
+
+Returns platform-wide statistics including company counts, growth trends, and revenue data.
+
+#### Response `200`
+```ts
+{
+  stats: {
+    totalCompanies: number           // Total registered companies
+    totalCompaniesChange: number     // % change from last month
+    activeCompanies: number          // Companies with 'active' status
+    activeCompaniesChange: number    // % change from last month
+    suspendedCompanies: number       // Companies with 'suspended' status
+    trialCompanies: number           // Companies with 'trial' status
+  }
+  companyGrowth: [                   // Last 6 months cumulative data
+    {
+      month: string                  // e.g., "Jan", "Feb"
+      companies: number              // Total companies up to that month
+      users: number                  // Total users up to that month
+    }
+  ]
+  monthlyRevenue: [                  // Last 6 months revenue
+    {
+      month: string                  // e.g., "Jan", "Feb"
+      revenue: number                // Revenue from paid subscriptions
+    }
+  ]
+}
+```
+
+#### Example Response
+```json
+{
+  "stats": {
+    "totalCompanies": 150,
+    "totalCompaniesChange": 12.5,
+    "activeCompanies": 120,
+    "activeCompaniesChange": 8.3,
+    "suspendedCompanies": 15,
+    "trialCompanies": 15
+  },
+  "companyGrowth": [
+    { "month": "Jan", "companies": 50, "users": 200 },
+    { "month": "Feb", "companies": 75, "users": 320 },
+    { "month": "Mar", "companies": 95, "users": 450 },
+    { "month": "Apr", "companies": 115, "users": 580 },
+    { "month": "May", "companies": 135, "users": 720 },
+    { "month": "Jun", "companies": 150, "users": 950 }
+  ],
+  "monthlyRevenue": [
+    { "month": "Jan", "revenue": 12500 },
+    { "month": "Feb", "revenue": 15000 },
+    { "month": "Mar", "revenue": 18500 },
+    { "month": "Apr", "revenue": 25000 },
+    { "month": "May", "revenue": 38000 },
+    { "month": "Jun", "revenue": 58600 }
+  ]
+}
+```
+
+---
+
 ## Super Admin Management
 
 > Only existing super admins can create or manage other super admins.
