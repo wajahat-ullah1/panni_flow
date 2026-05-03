@@ -15,7 +15,7 @@ Base URL: `/auth`
 ### 1. Register Tenant
 **`POST /auth/register`**  
 Public — no auth required.  
-Creates a new tenant and its admin user in one call.
+Creates a new tenant, subscription, and admin user in one call.
 
 #### Request Body
 ```ts
@@ -32,6 +32,10 @@ Creates a new tenant and its admin user in one call.
     postalCode?: string
     country?: string
   }
+  logo?: string         // optional — URL or path to tenant logo
+  // Subscription fields
+  plan: "basic" | "standard" | "premium"  // required — subscription plan
+  billingCycle: "monthly" | "quarterly" | "annually"  // required — billing cycle
   // Admin user
   adminUser: {
     fullName: string    // required
@@ -44,8 +48,12 @@ Creates a new tenant and its admin user in one call.
 #### Response `201`
 ```ts
 {
-  tenant: { _id, name, slug, email, status, createdAt }
-  user: { _id, fullName, email, role: "admin" }
+  tenant: { id, name, slug }
+  subscription: {
+    _id, tenantId, plan, billingCycle, amount,
+    paymentStatus, status, billingDate, expiryDate
+  }
+  user: { id, fullName, email, role: "admin" }
   accessToken: string
 }
 ```
@@ -155,6 +163,39 @@ Header: `X-Tenant-ID: <tenant-slug>`
 
 #### Errors
 - `401` — invalid credentials
+
+---
+
+### 4a. Super Admin Login
+**`POST /auth/super-admin/login`**  
+Public — no auth required.  
+**No `X-Tenant-ID` header required.**
+
+#### Request Body
+```ts
+{
+  email: string      // required
+  password: string   // required
+}
+```
+
+#### Response `200`
+```ts
+{
+  accessToken: string
+  user: {
+    id: string
+    fullName: string
+    email: string
+    role: "super_admin"
+  }
+}
+```
+
+#### Errors
+- `401` — invalid credentials
+
+> See [super-admin-api.md](./super-admin-api.md) for complete super admin documentation.
 
 ---
 

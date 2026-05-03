@@ -12,6 +12,10 @@ import DriverApp      from "./panels/driver/DriverApp.jsx";
 import AdminApp       from "./panels/admin/AdminApp.jsx";
 import AdminLoginPage from "./panels/admin/Components/Login/LoginPage";
 
+// ── Super Admin ────────────────────────────────────────────────────────────────
+import SuperAdminApp       from "./panels/superAdmin/App.jsx";
+import SuperAdminLoginPage from "./superAdminLogin/Login.jsx";
+
 // ── Route guard ───────────────────────────────────────────────────────────────
 import ProtectedRoute from "./shared/components/ProtectedRoute";
 
@@ -63,6 +67,10 @@ const tenantLoadingStyles = {
 export default function App() {
   return (
     <Routes>
+
+      {/* ── Super Admin routes — outside tenant scope ────────────────────── */}
+      <Route path="/super-admin/login" element={<SuperAdminLoginPage />} />
+      <Route path="/super-admin/*"     element={<SuperAdminApp />} />
 
       {/* ── Tenant-scoped routes (//:tenantId/*) ─────────────────────────── */}
       {/* TenantProvider reads :tenantId from params, validates it, and       */}

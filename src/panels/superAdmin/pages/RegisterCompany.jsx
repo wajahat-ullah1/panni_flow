@@ -1,4 +1,6 @@
 import { useState, useRef } from "react";
+import { useNavigate } from "react-router-dom";
+import { registerTenant, uploadTenantLogo, createSubscription } from "../../../shared/api/superAdminApi";
 
 const inputStyle = {
   width: "100%",
@@ -142,29 +144,39 @@ function SuccessToast({ onClose }) {
   );
 }
 
-export default function RegisterCompany({ setActive }) {
+export default function RegisterCompany() {
+  const navigate = useNavigate();
   const [form, setForm] = useState({
-    companyName: "", city: "", address: "",
-    adminName: "", email: "", password: "",
-    plan: "Basic - $99/month", billing: "Monthly",
+    companyName: "", slug: "", city: "", address: "",
+    adminName: "", adminEmail: "", email: "", password: "",
+    plan: "basic", billing: "monthly",
   });
-  const [logo, setLogo] = useState(null);
+  const [logo, setLogo] = useState(null);         // File object
+  const [logoPreview, setLogoPreview] = useState(""); // object URL for <img>
   const [logoName, setLogoName] = useState("");
   const [features, setFeatures] = useState({
-    orderManagement: true,
-    liveTracking: true,
-    aiForecasting: false,
-    analytics: true,
+    orderManagement: true, liveTracking: true, aiForecasting: false, analytics: true,
   });
   const [errors, setErrors] = useState({});
   const [showToast, setShowToast] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
+  const [apiError, setApiError] = useState("");
   const fileRef = useRef();
 
-  const set = (key) => (e) => setForm(p => ({ ...p, [key]: e.target.value }));
+  const set = (key) => (e) => {
+    const value = e.target.value;
+    setForm(p => ({
+      ...p,
+      [key]: value,
+      // auto-generate slug from company name
+      ...(key === "companyName" ? { slug: value.toLowerCase().replace(/\s+/g, "-").replace(/[^a-z0-9-]/g, "") } : {}),
+    }));
+  };
 
   const validate = () => {
     const e = {};
     if (!form.companyName.trim()) e.companyName = true;
+    if (!form.slug.trim()) e.slug = true;
     if (!form.city.trim()) e.city = true;
     if (!form.adminName.trim()) e.adminName = true;
     if (!form.email.trim() || !form.email.includes("@")) e.email = true;
@@ -173,18 +185,44 @@ export default function RegisterCompany({ setActive }) {
     return Object.keys(e).length === 0;
   };
 
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
+    setApiError("");
     if (!validate()) return;
-    setShowToast(true);
-    setTimeout(() => {
-      setShowToast(false);
-      setActive("Companies");
-    }, 2000);
+    setSubmitting(true);
+    try {
+      const res = await registerTenant({
+        name:      form.companyName,
+        slug:      form.slug,
+        email:     form.email,
+        address:   { city: form.city, street: form.address || undefined },
+        adminUser: { fullName: form.adminName, email: form.email, password: form.password },
+        plan:         form.plan,
+        billingCycle: form.billing,
+      });
+      // Upload logo separately if a file was selected
+      const tenantId = res?.data?.tenant?.id;
+      if (logo && tenantId) {
+        await uploadTenantLogo(tenantId, logo);
+      }
+      setShowToast(true);
+      setTimeout(() => {
+        setShowToast(false);
+        navigate("/super-admin/companies");
+      }, 2000);
+    } catch (err) {
+      setApiError(err.response?.data?.message || "Failed to register company. Please try again.");
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   const handleLogoChange = (e) => {
     const file = e.target.files[0];
-    if (file) { setLogo(URL.createObjectURL(file)); setLogoName(file.name); }
+    if (file) {
+      setLogo(file);
+      setLogoName(file.name);
+      setLogoPreview(URL.createObjectURL(file));
+    }
   };
 
   const errStyle = (key) => errors[key] ? { borderColor: "#ef4444", background: "#fff5f5" } : {};
@@ -268,19 +306,26 @@ export default function RegisterCompany({ setActive }) {
               {errors.companyName && <div style={{ fontSize: 11, color: "#ef4444", marginTop: 4 }}>Company name is required</div>}
             </div>
             <div>
-              <Label required>City / Region</Label>
+              <Label required>Slug (unique ID)</Label>
               <FocusInput
-                placeholder="e.g., Dubai"
-                value={form.city}
-                onChange={set("city")}
+                placeholder="e.g., panni-flow"
+                value={form.slug}
+                onChange={set("slug")}
               />
-              {errors.city && <div style={{ fontSize: 11, color: "#ef4444", marginTop: 4 }}>City is required</div>}
+              {errors.slug && <div style={{ fontSize: 11, color: "#ef4444", marginTop: 4 }}>Slug is required</div>}
             </div>
           </div>
 
-          <div style={{ marginBottom: 18 }}>
-            <Label>Address</Label>
-            <FocusInput placeholder="Full address" value={form.address} onChange={set("address")} />
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 18, marginBottom: 18 }}>
+            <div>
+              <Label required>City / Region</Label>
+              <FocusInput placeholder="e.g., Dubai" value={form.city} onChange={set("city")} />
+              {errors.city && <div style={{ fontSize: 11, color: "#ef4444", marginTop: 4 }}>City is required</div>}
+            </div>
+            <div>
+              <Label>Address</Label>
+              <FocusInput placeholder="Full address" value={form.address} onChange={set("address")} />
+            </div>
           </div>
 
           <div>
@@ -307,9 +352,9 @@ export default function RegisterCompany({ setActive }) {
                 Upload Logo
               </button>
               <input ref={fileRef} type="file" accept="image/*" style={{ display: "none" }} onChange={handleLogoChange} />
-              {logo ? (
+              {logoPreview ? (
                 <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                  <img src={logo} alt="logo" style={{ width: 36, height: 36, borderRadius: 8, objectFit: "cover", border: "1px solid #e2e8f0" }} />
+                  <img src={logoPreview} alt="logo" style={{ width: 36, height: 36, borderRadius: 8, objectFit: "cover", border: "1px solid #e2e8f0" }} />
                   <span style={{ fontSize: 12, color: "#64748b" }}>{logoName}</span>
                 </div>
               ) : (
@@ -364,17 +409,17 @@ export default function RegisterCompany({ setActive }) {
             <div>
               <Label>Plan</Label>
               <select value={form.plan} onChange={set("plan")} style={selectStyle}>
-                <option>Basic - $99/month</option>
-                <option>Standard - $199/month</option>
-                <option>Premium - $349/month</option>
+                <option value="basic">Basic</option>
+                <option value="standard">Standard</option>
+                <option value="premium">Premium</option>
               </select>
             </div>
             <div>
               <Label>Billing Cycle</Label>
               <select value={form.billing} onChange={set("billing")} style={selectStyle}>
-                <option>Monthly</option>
-                <option>Quarterly</option>
-                <option>Annually</option>
+                <option value="monthly">Monthly</option>
+                <option value="quarterly">Quarterly</option>
+                <option value="annually">Annually</option>
               </select>
             </div>
           </div>
@@ -410,24 +455,27 @@ export default function RegisterCompany({ setActive }) {
 
         {/* Action Buttons */}
         <div style={{ display: "flex", gap: 14, alignItems: "center", marginTop: 8 }}>
+          {apiError && (
+            <div style={{ fontSize: 13, color: "#ef4444", flex: 1 }}>{apiError}</div>
+          )}
           <button
             onClick={handleSubmit}
+            disabled={submitting}
             style={{
               padding: "12px 32px",
               background: "linear-gradient(135deg, #1d4ed8, #0ea5e9)",
               color: "#fff", border: "none", borderRadius: 12,
-              fontSize: 14, fontWeight: 700, cursor: "pointer",
+              fontSize: 14, fontWeight: 700, cursor: submitting ? "not-allowed" : "pointer",
               fontFamily: "'DM Sans', sans-serif",
               boxShadow: "0 4px 14px rgba(37,99,235,0.35)",
+              opacity: submitting ? 0.7 : 1,
               transition: "opacity 0.15s, transform 0.15s",
             }}
-            onMouseEnter={e => { e.currentTarget.style.opacity = "0.92"; e.currentTarget.style.transform = "translateY(-1px)"; }}
-            onMouseLeave={e => { e.currentTarget.style.opacity = "1"; e.currentTarget.style.transform = "translateY(0)"; }}
           >
-            Create Company
+            {submitting ? "Creating…" : "Create Company"}
           </button>
           <button
-            onClick={() => setActive("Companies")}
+            onClick={() => navigate("/super-admin/companies")}
             style={{
               padding: "12px 28px",
               background: "#fff", color: "#475569",

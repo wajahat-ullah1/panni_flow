@@ -1,8 +1,10 @@
 import { useState } from "react";
+import { useNavigate, useLocation } from "react-router-dom";
 
 const navItems = [
   {
     label: "Dashboard",
+    path: "/super-admin/dashboard",
     icon: (
       <svg width="18" height="18" fill="none" viewBox="0 0 24 24">
         <rect x="3" y="3" width="7" height="7" rx="1.5" fill="currentColor" opacity=".9"/>
@@ -14,6 +16,7 @@ const navItems = [
   },
   {
     label: "Companies",
+    path: "/super-admin/companies",
     icon: (
       <svg width="18" height="18" fill="none" viewBox="0 0 24 24">
         <path d="M3 21V7a2 2 0 012-2h14a2 2 0 012 2v14" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round"/>
@@ -24,6 +27,7 @@ const navItems = [
   },
   {
     label: "Register Company",
+    path: "/super-admin/register-company",
     icon: (
       <svg width="18" height="18" fill="none" viewBox="0 0 24 24">
         <circle cx="10" cy="8" r="4" stroke="currentColor" strokeWidth="1.8"/>
@@ -34,6 +38,7 @@ const navItems = [
   },
   {
     label: "Subscriptions",
+    path: "/super-admin/subscriptions",
     icon: (
       <svg width="18" height="18" fill="none" viewBox="0 0 24 24">
         <rect x="2" y="5" width="20" height="14" rx="2" stroke="currentColor" strokeWidth="1.8"/>
@@ -44,7 +49,10 @@ const navItems = [
   },
 ];
 
-export default function Sidebar({ active, setActive }) {
+export default function Sidebar({ onLogout }) {
+  const navigate = useNavigate();
+  const location = useLocation();
+
   return (
     <aside style={{
       width: 260,
@@ -83,11 +91,11 @@ export default function Sidebar({ active, setActive }) {
       {/* Nav */}
       <nav style={{ flex: 1, padding: "0 12px" }}>
         {navItems.map((item) => {
-          const isActive = active === item.label;
+          const isActive = location.pathname === item.path || location.pathname.startsWith(item.path + "/");
           return (
             <button
               key={item.label}
-              onClick={() => setActive(item.label)}
+              onClick={() => navigate(item.path)}
               style={{
                 width: "100%",
                 display: "flex",
@@ -135,6 +143,7 @@ export default function Sidebar({ active, setActive }) {
           }}
           onMouseEnter={e => e.currentTarget.style.background = "#fef2f2"}
           onMouseLeave={e => e.currentTarget.style.background = "transparent"}
+          onClick={onLogout}
         >
           <svg width="18" height="18" fill="none" viewBox="0 0 24 24">
             <path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round"/>

@@ -28,9 +28,7 @@ export default function ProtectedRoute({ role, children }) {
  
   // Not logged in at all → go to appropriate login
   if (!isAuthenticated) {
-    const loginPath = role === "admin"
-      ? `/${tenantId}/admin/login`
-      : `/${tenantId}/login`;
+    const loginPath = `/${tenantId}/login`;
     return <Navigate to={loginPath} replace />;
   }
  

@@ -1,6 +1,9 @@
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
+import { loginSuperAdmin } from "../shared/api/superAdminApi";
 
-export default function Login({ onLogin }) {
+export default function Login() {
+  const navigate = useNavigate();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
@@ -9,7 +12,7 @@ export default function Login({ onLogin }) {
   const [error, setError] = useState("");
   const [success, setSuccess] = useState(false);
 
-  const handleLogin = () => {
+  const handleLogin = async () => {
     setError("");
 
     if (!email.trim() || !password) {
@@ -18,19 +21,23 @@ export default function Login({ onLogin }) {
     }
 
     setLoading(true);
+    try {
+      const res = await loginSuperAdmin(email.trim(), password);
+      const token = res?.accessToken ?? res?.data?.accessToken;
+      const user  = res?.user  ?? res?.data?.user;
 
-    setTimeout(() => {
-      if (email === "admin@system.com" && password === "admin123") {
-        setSuccess(true);
-        setLoading(false);
-        setTimeout(() => {
-          if (onLogin) onLogin();
-        }, 800);
-      } else {
-        setLoading(false);
-        setError("Invalid email or password. Please try again.");
-      }
-    }, 1600);
+      if (!token) throw new Error("Invalid response from server.");
+
+      localStorage.setItem("superAdminToken", token);
+      localStorage.setItem("superAdminUser",  JSON.stringify(user ?? {}));
+
+      setSuccess(true);
+      setTimeout(() => navigate("/super-admin/dashboard", { replace: true }), 600);
+    } catch (err) {
+      setError(err.response?.data?.message || "Invalid email or password. Please try again.");
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleKeyDown = (e) => {

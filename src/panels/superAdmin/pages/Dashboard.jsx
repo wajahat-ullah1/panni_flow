@@ -1,9 +1,10 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
   LineChart, Line, BarChart, Bar,
   XAxis, YAxis, CartesianGrid, Tooltip,
   ResponsiveContainer, Legend,
 } from "recharts";
+import { getTenants } from "../../../shared/api/superAdminApi";
 
 const growthData = [
   { month: "Jan", Companies: 18, Users: 210 },
@@ -158,6 +159,32 @@ function StatCard({ card }) {
 }
 
 export default function Dashboard() {
+  const [tenantStats, setTenantStats] = useState(null);
+  const superAdminUser = JSON.parse(localStorage.getItem("superAdminUser") || "{}");
+
+  useEffect(() => {
+    getTenants({ limit: 100 })
+      .then((res) => {
+        const tenants = Array.isArray(res?.data) ? res.data : [];
+        setTenantStats({
+          total:     res?.meta?.total ?? tenants.length,
+          active:    tenants.filter((t) => t.status === "active").length,
+          suspended: tenants.filter((t) => t.status === "suspended").length,
+          trial:     tenants.filter((t) => t.status === "trial").length,
+        });
+      })
+      .catch(() => {});
+  }, []);
+
+  const liveStatCards = [
+    { ...statCards[0], value: tenantStats ? String(tenantStats.total)     : "–" },
+    { ...statCards[1], value: tenantStats ? String(tenantStats.active)    : "–" },
+    { ...statCards[2], label: "Suspended",      iconBg: statCards[2].iconBg, icon: statCards[2].icon,
+                       value: tenantStats ? String(tenantStats.suspended) : "–", change: "" },
+    { ...statCards[3], label: "Trial Companies", iconBg: statCards[3].iconBg, icon: statCards[3].icon,
+                       value: tenantStats ? String(tenantStats.trial)     : "–", change: "" },
+  ];
+
   return (
     <div style={{ flex: 1, overflowY: "auto", background: "#f8fafc", fontFamily: "'DM Sans', sans-serif" }}>
       {/* Header */}
@@ -226,8 +253,12 @@ export default function Dashboard() {
             </svg>
           </div>
           <div>
-            <div style={{ fontSize: 13, fontWeight: 600, color: "#0f172a", lineHeight: 1.2 }}>Super Admin</div>
-            <div style={{ fontSize: 11, color: "#94a3b8" }}>admin@system.com</div>
+            <div style={{ fontSize: 13, fontWeight: 600, color: "#0f172a", lineHeight: 1.2 }}>
+              {superAdminUser?.fullName || "Super Admin"}
+            </div>
+            <div style={{ fontSize: 11, color: "#94a3b8" }}>
+              {superAdminUser?.email || "admin@system.com"}
+            </div>
           </div>
         </div>
       </div>
@@ -237,7 +268,7 @@ export default function Dashboard() {
 
         {/* Stat Cards */}
         <div style={{ display: "flex", gap: 18, marginBottom: 24 }}>
-          {statCards.map((card) => <StatCard key={card.label} card={card} />)}
+          {liveStatCards.map((card) => <StatCard key={card.label} card={card} />)}
         </div>
 
         {/* Charts Row */}

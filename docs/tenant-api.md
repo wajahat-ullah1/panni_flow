@@ -26,6 +26,8 @@ All admin-facing endpoints require `Authorization: Bearer <token>`.
     country?: string
   }
   status: "active" | "suspended" | "trial"
+  plan: "basic" | "pro" | "enterprise"
+  logo?: string             // URL or path to tenant logo
   settings?: {
     currency?: string       // e.g. "INR", "USD"
     timezone?: string       // e.g. "Asia/Kolkata"
@@ -63,6 +65,9 @@ Public — no auth required.
     postalCode?: string
     country?: string
   }
+  logo?: string       // URL or path to tenant logo
+  plan: "basic" | "standard" | "premium"  // required — subscription plan
+  billingCycle: "monthly" | "quarterly" | "annually"  // required — billing cycle
   adminUser: {
     fullName: string  // required
     email: string     // required
@@ -73,7 +78,7 @@ Public — no auth required.
 
 #### Response `201`
 ```ts
-{ tenant: Tenant; user: User; accessToken: string }
+{ tenant: Tenant; subscription: Subscription; user: User; accessToken: string }
 ```
 
 ---
@@ -132,6 +137,7 @@ Roles: `admin`
     timezone?: string
     orderPrefix?: string
   }
+  logo?: string       // URL or path to tenant logo
 }
 ```
 
@@ -159,9 +165,49 @@ Updated `Tenant` object.
 ### 6. Delete Tenant
 **`DELETE /tenants/:id`**  
 Roles: `admin` (super-admin)  
-Soft deletes the tenant.
+Hard deletes the tenant and all associated users.
 
 #### Response `204` — No Content
+
+---
+
+### 7. Upload Tenant Logo
+**`POST /tenants/:id/logo`**  
+Roles: `admin` (super-admin)
+
+Uploads a logo image for the tenant.
+
+#### Request
+- Content-Type: `multipart/form-data`
+- Field: `file` (image file)
+- Max size: 2MB
+- Allowed formats: jpg, jpeg, png, gif, webp
+
+#### Response `200`
+Updated `Tenant` object with `logo` path.
+
+---
+
+### 8. Get Public Tenant Profile
+**`GET /tenants/:slug/profile`**  
+Public — no auth required.
+
+Returns public-facing tenant information.
+
+#### Response `200`
+```ts
+{
+  name: string
+  slug: string
+  logo?: string
+  status: "active" | "suspended" | "trial"
+  settings: {
+    currency?: string
+    timezone?: string
+    orderPrefix?: string
+  }
+}
+```
 
 ---
 

@@ -51,7 +51,14 @@ api.interceptors.response.use(
     console.error(`[API Error] Status: ${status}, Message: ${message}`, error.response?.data);
 
     // 401 Unauthorized — token expired or invalid → force logout
-    if (status === 401) {
+    // Skip redirect for auth endpoints (login, register) — 401 there means
+    // wrong credentials, not an expired session.
+    const requestUrl = error.config?.url || "";
+    const isAuthEndpoint = requestUrl.includes("/auth/login") ||
+                           requestUrl.includes("/auth/register") ||
+                           requestUrl.includes("/auth/customer-register") ||
+                           requestUrl.includes("/auth/super-admin/login");
+    if (status === 401 && !isAuthEndpoint) {
       localStorage.removeItem("token");
       localStorage.removeItem("user");
       const currentTenantId = getTenantId();

@@ -8,13 +8,18 @@ import { useTenant } from '../shared/context/TenantContext';
 const LoginPage = () => {
   const navigate = useNavigate();
   const { login } = useAuth();
-  const { tenantId } = useTenant();
-  
+  const { tenantId, tenantData } = useTenant();
+
+  const API_ORIGIN = (import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000/api/v1')
+    .replace(/\/api\/v\d+\/?$/, '');
+  const logoUrl = tenantData?.logo ? `${API_ORIGIN}${tenantData.logo}` : null;
+
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [rememberMe, setRememberMe] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [loginError, setLoginError] = useState('');
 
   const validateEmail = (email) => {
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -41,23 +46,24 @@ const LoginPage = () => {
 
   const handleLogin = async (e) => {
     e.preventDefault();
+    setLoginError('');
     setLoading(true);
 
     // Validation
     if (!email || !password) {
-      alert('Please enter email and password');
+      setLoginError('Please enter your email and password.');
       setLoading(false);
       return;
     }
 
     if (!validateEmail(email)) {
-      alert('Please enter a valid email address');
+      setLoginError('Please enter a valid email address.');
       setLoading(false);
       return;
     }
 
     if (password.length < 8) {
-      alert('Password must be at least 8 characters');
+      setLoginError('Password must be at least 8 characters.');
       setLoading(false);
       return;
     }
@@ -70,7 +76,7 @@ const LoginPage = () => {
     } catch (error) {
       console.error('Login error:', error);
       const apiMessage = error?.response?.data?.message;
-      alert(apiMessage || 'Failed to login. Please try again.');
+      setLoginError(apiMessage || 'Invalid email or password. Please try again.');
     } finally {
       setLoading(false);
     }
@@ -101,18 +107,27 @@ const LoginPage = () => {
         {/* Logo and Title */}
         <div className="header-container">
           <div className="logo-container">
-            <svg
-              className="logo-icon"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2"
-            >
-              <path d="M3 6h18M3 12h18M3 18h18" />
-              <rect x="5" y="4" width="14" height="16" rx="2" />
-            </svg>
+            {logoUrl ? (
+              <img
+                src={logoUrl}
+                alt={tenantData.name}
+                className="logo-icon"
+                style={{ objectFit: "contain", borderRadius: 8 }}
+              />
+            ) : (
+              <svg
+                className="logo-icon"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+              >
+                <path d="M3 6h18M3 12h18M3 18h18" />
+                <rect x="5" y="4" width="14" height="16" rx="2" />
+              </svg>
+            )}
           </div>
-          <h1 className="title">Pani Flow</h1>
+          <h1 className="title">{tenantData?.name ?? 'Pani Flow'}</h1>
           <p className="subtitle">Order water online with ease</p>
         </div>
 
@@ -235,6 +250,17 @@ const LoginPage = () => {
               </button>
             </div>
 
+            {/* Error message */}
+            {loginError && (
+              <div className="login-error">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="15" height="15" style={{ flexShrink: 0 }}>
+                  <circle cx="12" cy="12" r="9"/>
+                  <path d="M12 8v4M12 16h.01" strokeLinecap="round"/>
+                </svg>
+                {loginError}
+              </div>
+            )}
+
             {/* Sign In Button */}
             <button type="submit" className="signin-button" disabled={loading}>
               {loading ? 'Signing In...' : 'Sign In'}
@@ -249,7 +275,7 @@ const LoginPage = () => {
           </div>
 
           {/* Social Login Buttons */}
-          <div className="social-buttons-container">
+          {/* <div className="social-buttons-container">
             <button className="social-button" onClick={handleGoogleLogin}>
               <svg className="social-icon" viewBox="0 0 24 24">
                 <path
@@ -281,7 +307,7 @@ const LoginPage = () => {
               </svg>
               <span className="social-button-text">Microsoft</span>
             </button>
-          </div>
+          </div> */}
 
           {/* Sign Up Link */}
           <div className="signup-container">
@@ -293,7 +319,7 @@ const LoginPage = () => {
         </div>
 
         {/* Footer */}
-        <p className="footer">© 2024 Pani Flow. All rights reserved.</p>
+        <p className="footer">© 2026 Pani Flow. All rights reserved.</p>
       </div>
     </div>
   );
