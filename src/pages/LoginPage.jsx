@@ -310,7 +310,7 @@ const LoginPage = () => {
           </div> */}
 
           {/* Sign Up Link */}
-          <div className="signup-container">
+          <div className="login-signup-section">
             <span className="signup-text">Don't have an account? </span>
             <button className="signup-link" onClick={handleSignUp}>
               Sign up for free

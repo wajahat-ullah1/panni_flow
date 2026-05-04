@@ -12,7 +12,7 @@ const fmtDate = (iso) =>
   iso ? new Date(iso).toLocaleDateString("en-US", { year: "numeric", month: "short", day: "numeric" }) : "—";
 
 const fmtAmount = (n) =>
-  typeof n === "number" ? `\u20b9${n.toLocaleString("en-IN")}` : "—";
+  typeof n === "number" ? `PKR ${n.toLocaleString()}` : "—";
 
 const PLAN_LABEL = { basic: "Basic", standard: "Standard", premium: "Premium" };
 const PLAN_UP    = { basic: "standard", standard: "premium" };

@@ -161,7 +161,19 @@ export default function RegisterCompany() {
   const [showToast, setShowToast] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [apiError, setApiError] = useState("");
+  const [copied, setCopied] = useState(false);
   const fileRef = useRef();
+
+  const appBaseUrl = import.meta.env.VITE_APP_URL || window.location.origin;
+  const appLink = form.slug ? `${appBaseUrl}/${form.slug}` : "";
+
+  const handleCopyLink = () => {
+    if (!appLink) return;
+    navigator.clipboard.writeText(appLink).then(() => {
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    });
+  };
 
   const set = (key) => (e) => {
     const value = e.target.value;
@@ -325,6 +337,66 @@ export default function RegisterCompany() {
             <div>
               <Label>Address</Label>
               <FocusInput placeholder="Full address" value={form.address} onChange={set("address")} />
+            </div>
+          </div>
+
+          {/* App Link */}
+          <div style={{ marginBottom: 18 }}>
+            <Label>App Link</Label>
+            <div style={{ display: "flex", alignItems: "center", gap: 0 }}>
+              <input
+                readOnly
+                value={appLink}
+                placeholder="Enter a slug above to generate the link"
+                style={{
+                  ...inputStyle,
+                  flex: 1,
+                  borderRadius: "10px 0 0 10px",
+                  color: appLink ? "#2563eb" : "#94a3b8",
+                  background: "#f1f5f9",
+                  cursor: "default",
+                  borderRight: "none",
+                }}
+              />
+              <button
+                type="button"
+                onClick={handleCopyLink}
+                disabled={!appLink}
+                title="Copy link"
+                style={{
+                  padding: "0 16px",
+                  height: 44,
+                  border: "1.5px solid #e2e8f0",
+                  borderLeft: "none",
+                  borderRadius: "0 10px 10px 0",
+                  background: copied ? "#f0fdf4" : "#fff",
+                  cursor: appLink ? "pointer" : "not-allowed",
+                  display: "flex", alignItems: "center", gap: 6,
+                  color: copied ? "#16a34a" : "#64748b",
+                  fontSize: 12.5, fontWeight: 600,
+                  fontFamily: "'DM Sans', sans-serif",
+                  transition: "background 0.15s, color 0.15s",
+                  flexShrink: 0,
+                  opacity: appLink ? 1 : 0.45,
+                }}
+              >
+                {copied ? (
+                  <>
+                    <svg width="15" height="15" fill="none" viewBox="0 0 24 24">
+                      <path d="M20 6L9 17l-5-5" stroke="#16a34a" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"/>
+                    </svg>
+                    Copied!
+                  </>
+                ) : (
+                  <>
+                    <svg width="15" height="15" fill="none" viewBox="0 0 24 24">
+                      <rect x="9" y="9" width="13" height="13" rx="2" stroke="currentColor" strokeWidth="1.8"/>
+                      <path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round"/>
+                    </svg>
+                    Copy
+                  </>
+                )}
+              </button>
             </div>
           </div>
 

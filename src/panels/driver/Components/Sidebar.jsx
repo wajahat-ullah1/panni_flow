@@ -6,7 +6,7 @@ import { useTenant } from '../../../shared/context/TenantContext';
 const Sidebar = ({ onLogout }) => {
   const navigate = useNavigate();
   const location = useLocation();
-  const { tenantId } = useTenant();
+  const { tenantId, tenantData, logoUrl } = useTenant();
 
   const menuItems = [
     { 
@@ -85,14 +85,22 @@ const Sidebar = ({ onLogout }) => {
       <div className="sidebar-header">
         <div className="logo-container">
           <div className="logo-icon">
-            <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
-              <path d="M12 2L2 7L12 12L22 7L12 2Z" fill="white"/>
-              <path d="M2 17L12 22L22 17" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-              <path d="M2 12L12 17L22 12" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-            </svg>
+            {logoUrl ? (
+              <img
+                src={logoUrl}
+                alt={tenantData.name}
+                style={{ width: 24, height: 24, objectFit: 'contain', borderRadius: 4 }}
+              />
+            ) : (
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+                <path d="M12 2L2 7L12 12L22 7L12 2Z" fill="white"/>
+                <path d="M2 17L12 22L22 17" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                <path d="M2 12L12 17L22 12" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+              </svg>
+            )}
           </div>
           <div className="logo-text">
-            <h1>Panni Flow</h1>
+            <h1>{tenantData?.name ?? 'Panni Flow'}</h1>
             <p>Driver Panel</p>
           </div>
         </div>

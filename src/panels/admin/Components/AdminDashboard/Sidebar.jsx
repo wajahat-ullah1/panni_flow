@@ -15,7 +15,7 @@ import { useTenant } from '../../../../shared/context/TenantContext';
 
 const Sidebar = ({ onLogout }) => {
   const navigate = useNavigate();
-  const { tenantId } = useTenant();
+  const { tenantId, tenantData, logoUrl } = useTenant();
   const menuItems = [
     {
       id: 'dashboard',
@@ -60,10 +60,18 @@ const Sidebar = ({ onLogout }) => {
       {/* Logo Section */}
       <div className="logo-section">
         <div className="logo-container">
-          <Droplet size={32} color="#fff" />
+          {logoUrl ? (
+            <img
+              src={logoUrl}
+              alt={tenantData.name}
+              style={{ width: 32, height: 32, objectFit: 'contain', borderRadius: 6 }}
+            />
+          ) : (
+            <Droplet size={32} color="#fff" />
+          )}
         </div>
         <div className="logo-text">
-          <h2 className="logo-title">PANNI FLOW</h2>
+          <h2 className="logo-title">{tenantData?.name?.toUpperCase() ?? 'PANNI FLOW'}</h2>
           <p className="logo-subtitle">Water Management</p>
         </div>
       </div>

@@ -272,7 +272,7 @@ export default function PaymentsPage() {
           </div>
           {/* ✅ Uses calculated totals instead of summaryStats directly */}
           <div style={{ fontSize: 38, fontWeight: 800, color: "white", marginBottom: 14 }}>
-            ${totals.monthSpent.toFixed(2)}
+            PKR {totals.monthSpent.toFixed(2)}
           </div>
           <div style={{ display: "flex", gap: 8 }}>
             <span style={styles.heroPill}>{totals.monthOrders} Orders</span>
@@ -394,7 +394,7 @@ export default function PaymentsPage() {
                       <td style={styles.td}>{tx.invoice}</td>
                       <td style={styles.td}>{tx.order}</td>
                       <td style={{ ...styles.td, fontWeight: 600, color: "#0f172a" }}>
-                        ${tx.amount.toFixed(2)}
+                        PKR {tx.amount.toFixed(2)}
                       </td>
                       <td style={styles.td}>{tx.date}</td>
                       <td style={styles.td}>{tx.method}</td>

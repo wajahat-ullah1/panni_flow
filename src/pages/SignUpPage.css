@@ -15,12 +15,17 @@ body {
 }
 
 .signup-container {
-  /* min-height: 100vh;
+  min-height: 100vh;
   background: linear-gradient(135deg, #00bcd4 0%, #2196f3 100%);
   display: flex;
   justify-content: center;
   align-items: center;
-  padding: 40px 20px; */
+  padding: 40px 20px;
+}
+.login-signup-section{
+  display: flex;
+  justify-content: center;
+  /* align-items: center; */
 }
 
 .signup-content {

@@ -22,7 +22,7 @@ const NAV_ITEMS = [
 
 export default function Sidebar({ activeNav, setActiveNav, onLogout }) {
   const navigate = useNavigate();
-  const { tenantId } = useTenant();
+  const { tenantId, tenantData, logoUrl } = useTenant();
 
   const handleNavigation = (label, path) => {
     setActiveNav(label);
@@ -39,10 +39,18 @@ export default function Sidebar({ activeNav, setActiveNav, onLogout }) {
       {/* Brand */}
       <div style={styles.brand}>
         <div style={styles.brandIcon}>
-          <DropIcon stroke="white" />
+          {logoUrl ? (
+            <img
+              src={logoUrl}
+              alt={tenantData.name}
+              style={{ width: 28, height: 28, objectFit: 'contain', borderRadius: 4 }}
+            />
+          ) : (
+            <DropIcon stroke="white" />
+          )}
         </div>
         <div>
-          <div style={styles.brandName}>Panni Flow</div>
+          <div style={styles.brandName}>{tenantData?.name ?? 'Panni Flow'}</div>
           <div style={styles.brandSub}>Customer Panel</div>
         </div>
       </div>

@@ -30,7 +30,7 @@ export default function AdminApp() {
   const handleLogout = () => {
     logout();
     // Redirect to admin login (not the public /login)
-    window.location.href = `/${tenantId}/admin/login`;
+    window.location.href = `/${tenantId}/login`;
   };
  
   return (

@@ -25,6 +25,7 @@ import {
 } from 'lucide-react';
 import authApi from '../../../../shared/api/authApi';
 import adminApi from '../../../../shared/api/adminApi';
+import { useTenant } from '../../../../shared/context/TenantContext';
 import './AdDriver.css';
 
 // ── API status → UI label ─────────────────────────────────────────────────────
@@ -85,6 +86,7 @@ const Field = ({label, error, children}) => (
 
 // ── Main Component ────────────────────────────────────────────────────────────
 const AddDriver = () => {
+  const { tenantData } = useTenant();
   const [drivers, setDrivers]       = useState([]);
   const [vehicles, setVehicles]     = useState([]);
   const [loading, setLoading]       = useState(true);
@@ -255,7 +257,7 @@ const AddDriver = () => {
       <div className="ad-page-header">
         <div>
           <h1 className="ad-page-title">Driver Management</h1>
-          <p className="ad-page-sub">Create and manage driver accounts for the Panni Flow fleet.</p>
+          <p className="ad-page-sub">Create and manage driver accounts for the {tenantData?.name ?? 'Panni Flow'} fleet.</p>
         </div>
         <div className="ad-header-badge">
           <span className="ad-live-dot" />

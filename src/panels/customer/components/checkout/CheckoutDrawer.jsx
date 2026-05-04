@@ -191,7 +191,7 @@ export default function CheckoutDrawer({ open, onClose, product, quantity, total
               </div>
               <div style={styles.successLine}>
                 <span style={styles.successLineLabel}>Total</span>
-                <span style={{ ...styles.successLineValue, color: "#0ea5e9", fontWeight: 800 }}>${total}</span>
+                <span style={{ ...styles.successLineValue, color: "#0ea5e9", fontWeight: 800 }}>PKR {total}</span>
               </div>
               <div style={styles.successLine}>
                 <span style={styles.successLineLabel}>Payment</span>
@@ -243,10 +243,10 @@ export default function CheckoutDrawer({ open, onClose, product, quantity, total
                 <div style={styles.summaryProductInfo}>
                   <div style={styles.summaryProductName}>{product?.name ?? "19L Water Bottle"}</div>
                   <div style={styles.summaryProductMeta}>
-                    ${product?.unitPrice ?? 0} × {quantity} bottles
+                    PKR {product?.unitPrice ?? 0} × {quantity} bottles
                   </div>
                 </div>
-                <div style={styles.summaryProductTotal}>${total}</div>
+                <div style={styles.summaryProductTotal}>PKR {total}</div>
               </div>
 
               <div style={styles.summaryDivider} />
@@ -254,7 +254,7 @@ export default function CheckoutDrawer({ open, onClose, product, quantity, total
               <div style={styles.summaryLines}>
                 <div style={styles.summaryLine}>
                   <span style={styles.summaryLineLabel}>Subtotal</span>
-                  <span style={styles.summaryLineValue}>${total}</span>
+                  <span style={styles.summaryLineValue}>PKR {total}</span>
                 </div>
                 <div style={styles.summaryLine}>
                   <span style={styles.summaryLineLabel}>Discount</span>
@@ -272,7 +272,7 @@ export default function CheckoutDrawer({ open, onClose, product, quantity, total
 
               <div style={styles.summaryTotalRow}>
                 <span style={styles.summaryTotalLabel}>Total</span>
-                <span style={styles.summaryTotalValue}>${total}</span>
+                <span style={styles.summaryTotalValue}>PKR {total}</span>
               </div>
             </div>
           </div>
@@ -394,7 +394,7 @@ export default function CheckoutDrawer({ open, onClose, product, quantity, total
         <div style={styles.footer}>
           <div style={styles.footerTotal}>
             <span style={styles.footerTotalLabel}>Total to pay</span>
-            <span style={styles.footerTotalValue}>${total}</span>
+            <span style={styles.footerTotalValue}>PKR {total}</span>
           </div>
           <button
             style={{

@@ -19,6 +19,9 @@ import tenantApi from "../api/tenantApi";
 
 const SLUG_REGEX = /^[a-zA-Z0-9]([a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?$/;
 
+const API_ORIGIN = (import.meta.env.VITE_API_BASE_URL || "http://localhost:3000/api/v1")
+  .replace(/\/api\/v\d+\/?$/, "");
+
 const TenantContext = createContext(null);
 
 export function TenantProvider({ children }) {
@@ -64,13 +67,16 @@ export function TenantProvider({ children }) {
     return () => setTenantId("");
   }, [tenantId]);
 
+  const logoUrl = tenantData?.logo ? `${API_ORIGIN}${tenantData.logo}` : null;
+
   return (
     <TenantContext.Provider
       value={{
         tenantId: tenantError ? "" : (tenantId ?? ""),
         loading,
         tenantData,
-        tenantError,  // null when valid, otherwise one of the reason strings above
+        tenantError,
+        logoUrl,
       }}
     >
       {children}

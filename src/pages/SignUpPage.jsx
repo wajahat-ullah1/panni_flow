@@ -8,7 +8,7 @@ import { useTenant } from '../shared/context/TenantContext';
 const SignUpPage = () => {
   const navigate = useNavigate();
   const { login } = useAuth();
-  const { tenantId } = useTenant();
+  const { tenantId, tenantData, logoUrl } = useTenant();
   
   const [fullName, setFullName] = useState('');
   const [phoneNumber, setPhoneNumber] = useState('');
@@ -129,18 +129,27 @@ const SignUpPage = () => {
         {/* Logo and Title */}
         <div className="header-container">
           <div className="logo-container">
-            <svg
-              className="logo-icon"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2"
-            >
-              <path d="M3 6h18M3 12h18M3 18h18" />
-              <rect x="5" y="4" width="14" height="16" rx="2" />
-            </svg>
+            {logoUrl ? (
+              <img
+                src={logoUrl}
+                alt={tenantData.name}
+                className="logo-icon"
+                style={{ objectFit: "contain", borderRadius: 8 }}
+              />
+            ) : (
+              <svg
+                className="logo-icon"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+              >
+                <path d="M3 6h18M3 12h18M3 18h18" />
+                <rect x="5" y="4" width="14" height="16" rx="2" />
+              </svg>
+            )}
           </div>
-          <h1 className="title">Join Pani Flow</h1>
+          <h1 className="title">Join {tenantData?.name ?? 'Pani Flow'}</h1>
           <p className="subtitle">Order water online, anytime, anywhere</p>
         </div>
 
@@ -383,7 +392,7 @@ const SignUpPage = () => {
           </div>
 
           {/* Social Sign Up Buttons */}
-          <div className="social-buttons-container">
+          {/* <div className="social-buttons-container">
             <button className="social-button" onClick={handleGoogleSignUp}>
               <svg className="social-icon" viewBox="0 0 24 24">
                 <path
@@ -415,7 +424,7 @@ const SignUpPage = () => {
               </svg>
               <span className="social-button-text">Microsoft</span>
             </button>
-          </div>
+          </div> */}
 
           {/* Sign In Link */}
           <div className="signin-container">

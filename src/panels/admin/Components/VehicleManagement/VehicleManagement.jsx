@@ -17,6 +17,7 @@ import {
   Pencil,
 } from 'lucide-react';
 import adminApi from '../../../../shared/api/adminApi';
+import { useTenant } from '../../../../shared/context/TenantContext';
 import './VehicleManagement.css';
 
 // ── Status styles ─────────────────────────────────────────────────────────────
@@ -89,6 +90,7 @@ const capitalize = (s) => s.charAt(0).toUpperCase() + s.slice(1);
 
 // ── Main Component ────────────────────────────────────────────────────────────
 const VehicleManagement = () => {
+  const { tenantData } = useTenant();
   const [vehicles, setVehicles]         = useState([]);
   const [loading, setLoading]           = useState(true);
   const [toast, setToast]               = useState(null);
@@ -387,7 +389,7 @@ const VehicleManagement = () => {
       <div className="vm-page-header">
         <div>
           <h1 className="vm-page-title">Vehicle Management</h1>
-          <p className="vm-page-sub">Register and manage the Panni Flow tanker fleet.</p>
+          <p className="vm-page-sub">Register and manage the {tenantData?.name ?? 'Panni Flow'} tanker fleet.</p>
         </div>
         <div className="vm-header-badge">
           <span className="vm-live-dot" />

@@ -5,6 +5,8 @@ import { getTenants, updateTenant, updateTenantStatus, deleteTenant, uploadTenan
 const API_ORIGIN = (import.meta.env.VITE_API_BASE_URL || "http://localhost:3000/api/v1")
   .replace(/\/api\/v\d+\/?$/, "");
 
+const APP_BASE_URL = import.meta.env.VITE_APP_URL || window.location.origin;
+
 // ── helpers ────────────────────────────────────────────────────────────────────
 const PALETTE = ["#3b82f6","#06b6d4","#0ea5e9","#6366f1","#8b5cf6","#ec4899","#14b8a6","#f97316"];
 const colorFor = (str) => PALETTE[(str || "").split("").reduce((a, c) => a + c.charCodeAt(0), 0) % PALETTE.length];
@@ -160,7 +162,7 @@ function EditModal({ tenant, onClose, onSaved }) {
 
         <div style={{ fontSize: 12, fontWeight: 700, color: "#94a3b8", letterSpacing: "0.06em", margin: "18px 0 12px" }}>SETTINGS</div>
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 12 }}>
-          <div>{field("Currency", "currency", "AED")}</div>
+          <div>{field("Currency", "currency", "PKR")}</div>
           <div>{field("Timezone", "timezone", "Asia/Dubai")}</div>
           <div>{field("Order Prefix", "orderPrefix", "ORD")}</div>
         </div>
@@ -220,6 +222,15 @@ export default function Companies() {
   const [actionLoading, setActionLoading] = useState(null);
   const [confirmDelete, setConfirmDelete] = useState(null); // tenant id to confirm
   const [editTarget, setEditTarget]       = useState(null); // tenant object to edit
+  const [copiedSlug, setCopiedSlug]         = useState(null); // slug whose link was just copied
+
+  const copyAppLink = (slug) => {
+    const link = `${APP_BASE_URL}/${slug}`;
+    navigator.clipboard.writeText(link).then(() => {
+      setCopiedSlug(slug);
+      setTimeout(() => setCopiedSlug(null), 2000);
+    });
+  };
 
   const fetchCompanies = useCallback(async () => {
     setLoading(true);
@@ -368,7 +379,7 @@ export default function Companies() {
             <table style={{ width: "100%", borderCollapse: "collapse" }}>
               <thead>
                 <tr style={{ background: "#f8fafc" }}>
-                  {["Company", "Slug", "Email", "Status", "Created", "Actions"].map(h => (
+                  {["Company", "Slug / App Link", "Email", "Status", "Created", "Actions"].map(h => (
                     <th key={h} style={{ padding: "12px 24px", textAlign: "left", fontSize: 12, fontWeight: 600, color: "#64748b", borderBottom: "1px solid #f1f5f9", letterSpacing: "0.02em" }}>
                       {h}
                     </th>
@@ -401,8 +412,46 @@ export default function Companies() {
                             <span style={{ fontSize: 13.5, fontWeight: 600, color: "#0f172a" }}>{c.name}</span>
                           </div>
                         </td>
-                        {/* Slug */}
-                        <td style={{ padding: "16px 24px", fontSize: 12, color: "#94a3b8", fontFamily: "monospace" }}>{c.slug}</td>
+                        {/* Slug + copy link */}
+                        <td style={{ padding: "16px 24px" }}>
+                          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                            <span style={{ fontSize: 12, color: "#94a3b8", fontFamily: "monospace" }}>{c.slug}</span>
+                            <button
+                              title={`Copy app link: ${APP_BASE_URL}/${c.slug}`}
+                              onClick={() => copyAppLink(c.slug)}
+                              style={{
+                                border: `1px solid ${copiedSlug === c.slug ? "#bbf7d0" : "#e2e8f0"}`,
+                                borderRadius: 6,
+                                background: copiedSlug === c.slug ? "#f0fdf4" : "#fff",
+                                cursor: "pointer",
+                                padding: "3px 7px",
+                                display: "flex", alignItems: "center", gap: 4,
+                                color: copiedSlug === c.slug ? "#16a34a" : "#94a3b8",
+                                fontSize: 11, fontWeight: 600,
+                                fontFamily: "'DM Sans', sans-serif",
+                                transition: "all 0.15s",
+                                flexShrink: 0,
+                              }}
+                            >
+                              {copiedSlug === c.slug ? (
+                                <>
+                                  <svg width="11" height="11" fill="none" viewBox="0 0 24 24">
+                                    <path d="M20 6L9 17l-5-5" stroke="#16a34a" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"/>
+                                  </svg>
+                                  Copied!
+                                </>
+                              ) : (
+                                <>
+                                  <svg width="11" height="11" fill="none" viewBox="0 0 24 24">
+                                    <rect x="9" y="9" width="13" height="13" rx="2" stroke="currentColor" strokeWidth="1.8"/>
+                                    <path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round"/>
+                                  </svg>
+                                  Copy Link
+                                </>
+                              )}
+                            </button>
+                          </div>
+                        </td>
                         {/* Email */}
                         <td style={{ padding: "16px 24px", fontSize: 13, color: "#6b7280" }}>{c.email}</td>
                         {/* Status */}

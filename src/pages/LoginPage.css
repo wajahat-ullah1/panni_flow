@@ -344,6 +344,7 @@ body {
 .signup-text {
   font-size: 14px;
   color: #666;
+  margin: 0 !important;
 }
 
 .signup-link {

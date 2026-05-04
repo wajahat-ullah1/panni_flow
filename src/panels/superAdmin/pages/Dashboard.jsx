@@ -89,7 +89,7 @@ const statCards = [
   },
   {
     label: "Platform Revenue",
-    value: "$58.6K",
+    value: "PKR 58.6K",
     change: "+24.5% from last month",
     iconBg: "#ea580c",
     icon: (
@@ -359,7 +359,7 @@ export default function Dashboard() {
             boxShadow: "0 1px 3px rgba(0,0,0,0.04)",
           }}>
             <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 20 }}>
-              <span style={{ color: "#16a34a", fontSize: 16 }}>$</span>
+              <span style={{ color: "#16a34a", fontSize: 13, fontWeight: 700 }}>PKR</span>
               <span style={{ fontSize: 15, fontWeight: 600, color: "#0f172a" }}>Monthly Platform Revenue</span>
             </div>
             <ResponsiveContainer width="100%" height={220}>
@@ -369,7 +369,7 @@ export default function Dashboard() {
                 <YAxis tick={{ fontSize: 12, fill: "#94a3b8" }} axisLine={false} tickLine={false} />
                 <Tooltip
                   contentStyle={{ borderRadius: 8, border: "1px solid #e2e8f0", fontSize: 12 }}
-                  formatter={(v) => [`$${v.toLocaleString()}`, "Revenue"]}
+                  formatter={(v) => [`PKR ${v.toLocaleString()}`, "Revenue"]}
                 />
                 <Bar dataKey="Revenue" fill="#34d399" radius={[6, 6, 0, 0]} />
               </BarChart>

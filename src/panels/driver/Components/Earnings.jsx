@@ -33,7 +33,7 @@ const BarChart = ({ data }) => {
                   <div
                     className="earn-bar"
                     style={{ height: `${pct}%` }}
-                    title={`Rs${d.amount.toLocaleString()}`}
+                    title={`PKR ${d.amount.toLocaleString()}`}
                   />
                 </div>
                 <span className="earn-bar-label">{d.day || d.label}</span>
@@ -255,7 +255,7 @@ const Earnings = () => {
             <div className="earn-stat-card">
               <div className="earn-stat-info">
                 <span className="earn-stat-label">Total Earnings</span>
-                <span className="earn-stat-value">Rs{totalEarnings.toLocaleString()}</span>
+                <span className="earn-stat-value">PKR {totalEarnings.toLocaleString()}</span>
               </div>
               <div className="earn-stat-icon earn-icon-green">
                 <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
@@ -280,7 +280,7 @@ const Earnings = () => {
             <div className="earn-stat-card">
               <div className="earn-stat-info">
                 <span className="earn-stat-label">Average per Trip</span>
-                <span className="earn-stat-value">Rs{averagePerTrip.toLocaleString()}</span>
+                <span className="earn-stat-value">PKR {averagePerTrip.toLocaleString()}</span>
                 <span className="earn-stat-note">Per delivery</span>
               </div>
               <div className="earn-stat-icon earn-icon-orange">
@@ -327,7 +327,7 @@ const Earnings = () => {
                 <div>
                   <span className="earn-payment-label">Last Payment</span>
                   <span className="earn-payment-amount">
-                    Rs{Number(lastPayment.amount).toLocaleString()}
+                    PKR {Number(lastPayment.amount).toLocaleString()}
                   </span>
                 </div>
                 <span className="earn-badge earn-badge-paid">
@@ -352,7 +352,7 @@ const Earnings = () => {
                 <div>
                   <span className="earn-payment-label">Pending Payment</span>
                   <span className="earn-payment-amount">
-                    Rs{Number(pendingPayment.amount).toLocaleString()}
+                    PKR {Number(pendingPayment.amount).toLocaleString()}
                   </span>
                 </div>
                 <span className="earn-badge earn-badge-processing">Processing</span>

@@ -167,7 +167,7 @@ export default function OrderWaterPage() {
                 <span style={styles.ratingText}>4.9 (2.4k reviews)</span>
               </div>
               <div style={styles.priceRow}>
-                <span style={styles.price}>${pricePerBottle}</span>
+                <span style={styles.price}>PKR {pricePerBottle}</span>
                 <span style={styles.perBottle}>per bottle</span>
               </div>
 
@@ -249,7 +249,7 @@ export default function OrderWaterPage() {
             </div>
             <div style={styles.summaryRow}>
               <span style={styles.summaryLabel}>Unit Price</span>
-              <span style={styles.summaryValue}>${pricePerBottle}</span>
+              <span style={styles.summaryValue}>PKR {pricePerBottle}</span>
             </div>
             {/* <div style={styles.summaryRow}>
               <span style={styles.summaryLabel}>Type</span>
@@ -276,7 +276,7 @@ export default function OrderWaterPage() {
           <div style={styles.divider} />
           <div style={styles.totalRow}>
             <span style={styles.totalLabel}>Total</span>
-            <span style={styles.totalValue}>${total}</span>
+            <span style={styles.totalValue}>PKR {total}</span>
           </div>
 
           <button style={styles.checkoutBtn} onClick={() => setCheckoutOpen(true)}>

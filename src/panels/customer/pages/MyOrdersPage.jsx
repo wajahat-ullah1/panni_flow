@@ -189,7 +189,7 @@ function OrderCard({ order, onTrack }) {
       <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: 8, flexShrink: 0 }}>
         <div style={{ textAlign: "right" }}>
           <div style={{ fontSize: 11, color: "#94a3b8", marginBottom: 1 }}>Total Amount</div>
-          <div style={{ fontWeight: 700, fontSize: 16, color: "#0f172a" }}>${order.total.toFixed(2)}</div>
+          <div style={{ fontWeight: 700, fontSize: 16, color: "#0f172a" }}>PKR {order.total.toFixed(2)}</div>
         </div>
 
         <div style={{ display: "flex", gap: 8 }}>
@@ -393,7 +393,7 @@ export default function MyOrdersPage() {
         <SummaryCard
           icon={<DollarIcon />}
           label="Total Spent"
-          value={stats ? `$${(stats.totalSpent ?? 0).toLocaleString()}` : "—"}
+          value={stats ? `PKR ${(stats.totalSpent ?? 0).toLocaleString()}` : "—"}
           bg="linear-gradient(135deg,#10b981,#059669)"
         />
         <SummaryCard
