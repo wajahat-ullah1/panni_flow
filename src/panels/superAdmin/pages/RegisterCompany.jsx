@@ -1,6 +1,6 @@
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { registerTenant, uploadTenantLogo, createSubscription } from "../../../shared/api/superAdminApi";
+import { registerTenant, uploadTenantLogo, createSubscription, getSubscriptionPlans } from "../../../shared/api/superAdminApi";
 
 const inputStyle = {
   width: "100%",
@@ -161,6 +161,13 @@ export default function RegisterCompany() {
   const [showToast, setShowToast] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [apiError, setApiError] = useState("");
+  const [plans, setPlans] = useState({});
+
+  useEffect(() => {
+    getSubscriptionPlans()
+      .then((res) => setPlans(res?.data || res || {}))
+      .catch(() => {});
+  }, []);
   const [copied, setCopied] = useState(false);
   const fileRef = useRef();
 
@@ -477,13 +484,11 @@ export default function RegisterCompany() {
           }
           title="Subscription Setup"
         >
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 18 }}>
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 18 }}>
             <div>
               <Label>Plan</Label>
-              <select value={form.plan} onChange={set("plan")} style={selectStyle}>
+              <select value="basic" onChange={() => {}} disabled style={{ ...selectStyle, opacity: 1, cursor: "default", background: "#f1f5f9" }}>
                 <option value="basic">Basic</option>
-                <option value="standard">Standard</option>
-                <option value="premium">Premium</option>
               </select>
             </div>
             <div>
@@ -493,6 +498,14 @@ export default function RegisterCompany() {
                 <option value="quarterly">Quarterly</option>
                 <option value="annually">Annually</option>
               </select>
+            </div>
+            <div>
+              <Label>Price</Label>
+              <input
+                readOnly
+                value={plans?.basic?.[form.billing] != null ? `${plans.basic[form.billing]} PKR` : "—"}
+                style={{ ...inputStyle, background: "#f1f5f9", cursor: "default" }}
+              />
             </div>
           </div>
         </SectionCard>

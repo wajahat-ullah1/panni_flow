@@ -354,12 +354,12 @@ export default function Subscriptions() {
                     </td>
                     <td style={{ padding: "15px 16px" }}>
                       <div style={{ display: "flex", gap: 6, alignItems: "center" }}>
-                        <ActionBtn color="#16a34a" title="Upgrade Plan" onClick={() => handleUpgrade(s)} disabled={isActing || !PLAN_UP[s.plan]}>
+                        {/* <ActionBtn color="#16a34a" title="Upgrade Plan" onClick={() => handleUpgrade(s)} disabled={isActing || !PLAN_UP[s.plan]}>
                           <svg width="13" height="13" fill="none" viewBox="0 0 24 24"><path d="M12 19V5M5 12l7-7 7 7" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"/></svg>
                         </ActionBtn>
                         <ActionBtn color="#ea580c" title="Downgrade Plan" onClick={() => handleDowngrade(s)} disabled={isActing || !PLAN_DOWN[s.plan]}>
                           <svg width="13" height="13" fill="none" viewBox="0 0 24 24"><path d="M12 5v14M5 12l7 7 7-7" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"/></svg>
-                        </ActionBtn>
+                        </ActionBtn> */}
                         <ActionBtn color="#2563eb" title="Update Payment Status" onClick={() => setPayModal(s)} disabled={isActing}>
                           <svg width="13" height="13" fill="none" viewBox="0 0 24 24"><rect x="2" y="5" width="20" height="14" rx="2" stroke="currentColor" strokeWidth="1.8"/><path d="M2 10h20M6 15h4" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round"/></svg>
                         </ActionBtn>
