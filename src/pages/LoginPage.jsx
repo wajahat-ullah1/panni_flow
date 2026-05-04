@@ -319,7 +319,7 @@ const LoginPage = () => {
         </div>
 
         {/* Footer */}
-        <p className="footer">© 2026 Pani Flow. All rights reserved.</p>
+        <p className="footer">© 2026 {tenantData?.name}. All rights reserved.</p>
       </div>
     </div>
   );

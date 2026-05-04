@@ -387,7 +387,7 @@ const SignUpPage = () => {
           {/* Divider */}
           <div className="divider-container">
             <div className="divider-line"></div>
-            <span className="divider-text">OR SIGN UP WITH</span>
+            <span className="divider-text">OR</span>
             <div className="divider-line"></div>
           </div>
 
@@ -436,7 +436,7 @@ const SignUpPage = () => {
         </div>
 
         {/* Footer */}
-        <p className="footer">© 2024 Pani Flow. All rights reserved.</p>
+        <p className="footer">© 2026 {tenantData?.name}. All rights reserved.</p>
       </div>
     </div>
   );
