@@ -12,6 +12,7 @@ import LiveTracking      from "./Components/LiveTracking/LiveTracking";
 import DemandForecasting from "./Components/DemandForeCasting/DemandForecasting";
 import AddDriver         from "./Components/AddDriver/AdDriver";
 import VehicleManagement from "./Components/VehicleManagement/VehicleManagement";
+import ProfilePage         from "./Components/Profile/ProfilePage";
 
 // ── Auth (to get logout) ──────────────────────────────────────────────────────
 import useAuth from "../../shared/hooks/useAuth";
@@ -48,7 +49,7 @@ export default function AdminApp() {
           <Route path="forecast"   element={<DemandForecasting />} />
           <Route path="drivers"    element={<AddDriver />} />
           <Route path="vehicles"   element={<VehicleManagement />} />
-
+          <Route path="profile"    element={<ProfilePage />} />
           {/* Catch-all inside admin panel */}
           <Route path="*" element={<Navigate to="dashboard" replace />} />
         </Routes>

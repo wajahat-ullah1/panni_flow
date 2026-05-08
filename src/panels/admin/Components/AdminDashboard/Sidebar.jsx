@@ -53,6 +53,12 @@ const Sidebar = ({ onLogout }) => {
       icon: TrendingUp,
       path: `/${tenantId}/admin/forecast`,
     },
+    {
+      id: 'profile',
+      label: 'Profile',
+      icon: UserPlus,
+      path: `/${tenantId}/admin/profile`,
+    },
   ];
 
   return (

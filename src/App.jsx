@@ -15,6 +15,7 @@ import AdminLoginPage from "./panels/admin/Components/Login/LoginPage";
 // ── Super Admin ────────────────────────────────────────────────────────────────
 import SuperAdminApp       from "./panels/superAdmin/App.jsx";
 import SuperAdminLoginPage from "./superAdminLogin/Login.jsx";
+import MineralWaterLandingPage from "./panels/superAdmin/pages/MineralWaterLandingPage.jsx";
 
 // ── Route guard ───────────────────────────────────────────────────────────────
 import ProtectedRoute from "./shared/components/ProtectedRoute";
@@ -69,6 +70,7 @@ export default function App() {
     <Routes>
 
       {/* ── Super Admin routes — outside tenant scope ────────────────────── */}
+      <Route path="/super-admin/landing" element={<MineralWaterLandingPage />} />
       <Route path="/super-admin/login" element={<SuperAdminLoginPage />} />
       <Route path="/super-admin/*"     element={<SuperAdminApp />} />
 
