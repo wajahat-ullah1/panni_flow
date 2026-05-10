@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import customerApi from "../../../../shared/api/customerApi";
+import authApi from "../../../../shared/api/authApi";
 import useAuth from "../../../../shared/hooks/useAuth";
 
 // ─── Icons ───────────────────────────────────────────────────────────────────
@@ -83,12 +83,26 @@ function PlusIcon() {
     </svg>
   );
 }
-function KeyIcon() {
+function KeyIcon({ stroke = "#475569" }) {
   return (
     <svg width="15" height="15" viewBox="0 0 24 24" fill="none">
-      <circle cx="7.5" cy="15.5" r="5.5" stroke="#475569" strokeWidth="2" />
-      <path d="M21 2l-9.6 9.6" stroke="#475569" strokeWidth="2" strokeLinecap="round" />
-      <path d="M15.5 7.5l2 2" stroke="#475569" strokeWidth="2" strokeLinecap="round" />
+      <circle cx="7.5" cy="15.5" r="5.5" stroke={stroke} strokeWidth="2" />
+      <path d="M21 2l-9.6 9.6" stroke={stroke} strokeWidth="2" strokeLinecap="round" />
+      <path d="M15.5 7.5l2 2" stroke={stroke} strokeWidth="2" strokeLinecap="round" />
+    </svg>
+  );
+}
+function EyeIcon({ visible }) {
+  return visible ? (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+      <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" stroke="#94a3b8" strokeWidth="2" strokeLinecap="round" />
+      <circle cx="12" cy="12" r="3" stroke="#94a3b8" strokeWidth="2" />
+    </svg>
+  ) : (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+      <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94" stroke="#94a3b8" strokeWidth="2" strokeLinecap="round" />
+      <path d="M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19" stroke="#94a3b8" strokeWidth="2" strokeLinecap="round" />
+      <path d="M1 1l22 22" stroke="#94a3b8" strokeWidth="2" strokeLinecap="round" />
     </svg>
   );
 }
@@ -135,7 +149,170 @@ function Toggle({ on, onChange }) {
 
 
 
-// ─── Main Page ────────────────────────────────────────────────────────────────
+// ─── Change Password Modal ────────────────────────────────────────────────────
+function ChangePasswordModal({ onClose }) {
+  const [fields, setFields] = useState({ currentPassword: "", newPassword: "", confirmPassword: "" });
+  const [show, setShow] = useState({ currentPassword: false, newPassword: false, confirmPassword: false });
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState("");
+  const [success, setSuccess] = useState(false);
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setError("");
+
+    if (fields.newPassword.length < 8) {
+      setError("New password must be at least 8 characters.");
+      return;
+    }
+    if (fields.newPassword !== fields.confirmPassword) {
+      setError("New passwords do not match.");
+      return;
+    }
+
+    setSaving(true);
+    try {
+      await authApi.changePassword({
+        currentPassword: fields.currentPassword,
+        newPassword: fields.newPassword,
+      });
+      setSuccess(true);
+      setTimeout(onClose, 1500);
+    } catch (err) {
+      setError(err?.response?.data?.message || "Failed to change password.");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const pwInputStyle = {
+    width: "100%",
+    padding: "11px 40px 11px 14px",
+    border: "1px solid #cbd5e1",
+    borderRadius: 10,
+    fontSize: 13.5,
+    color: "#0f172a",
+    background: "white",
+    outline: "none",
+    boxSizing: "border-box",
+  };
+
+  return (
+    <div style={modalStyles.overlay} onClick={onClose}>
+      <div style={modalStyles.box} onClick={(e) => e.stopPropagation()}>
+        <div style={modalStyles.header}>
+          <div style={modalStyles.headerIcon}>
+            <KeyIcon stroke="white" />
+          </div>
+          <div>
+            <div style={modalStyles.title}>Change Password</div>
+            <div style={modalStyles.subtitle}>Update your account password</div>
+          </div>
+          <button style={modalStyles.closeBtn} onClick={onClose}>✕</button>
+        </div>
+
+        {success ? (
+          <div style={modalStyles.successMsg}>✓ Password changed successfully!</div>
+        ) : (
+          <form onSubmit={handleSubmit} style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+            {error && <div style={modalStyles.errorMsg}>{error}</div>}
+
+            {[
+              { key: "currentPassword", label: "Current Password" },
+              { key: "newPassword",     label: "New Password" },
+              { key: "confirmPassword", label: "Confirm New Password" },
+            ].map(({ key, label }) => (
+              <div key={key}>
+                <label style={modalStyles.label}>{label}</label>
+                <div style={{ position: "relative" }}>
+                  <input
+                    type={show[key] ? "text" : "password"}
+                    required
+                    style={pwInputStyle}
+                    value={fields[key]}
+                    onChange={(e) => setFields({ ...fields, [key]: e.target.value })}
+                    placeholder="••••••••"
+                  />
+                  <button
+                    type="button"
+                    style={modalStyles.eyeBtn}
+                    onClick={() => setShow({ ...show, [key]: !show[key] })}
+                  >
+                    <EyeIcon visible={show[key]} />
+                  </button>
+                </div>
+              </div>
+            ))}
+
+            <div style={{ display: "flex", gap: 10, marginTop: 4 }}>
+              <button type="button" style={modalStyles.cancelBtn} onClick={onClose}>Cancel</button>
+              <button type="submit" style={modalStyles.saveBtn} disabled={saving}>
+                {saving ? "Saving..." : "Change Password"}
+              </button>
+            </div>
+          </form>
+        )}
+      </div>
+    </div>
+  );
+}
+
+const modalStyles = {
+  overlay: {
+    position: "fixed", inset: 0,
+    background: "rgba(0,0,0,0.35)",
+    display: "flex", alignItems: "center", justifyContent: "center",
+    zIndex: 1000,
+  },
+  box: {
+    background: "white",
+    borderRadius: 16,
+    padding: "28px",
+    width: 400,
+    maxWidth: "90vw",
+    boxShadow: "0 20px 60px rgba(0,0,0,0.15)",
+  },
+  header: {
+    display: "flex", alignItems: "center", gap: 12, marginBottom: 24,
+  },
+  headerIcon: {
+    width: 40, height: 40, borderRadius: 10,
+    background: "linear-gradient(135deg,#0ea5e9,#0284c7)",
+    display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0,
+  },
+  title: { fontSize: 16, fontWeight: 700, color: "#0f172a" },
+  subtitle: { fontSize: 12, color: "#94a3b8", marginTop: 2 },
+  closeBtn: {
+    marginLeft: "auto", background: "none", border: "none",
+    fontSize: 16, color: "#94a3b8", cursor: "pointer", padding: 4,
+  },
+  label: { fontSize: 13, fontWeight: 600, color: "#374151", display: "block", marginBottom: 7 },
+  eyeBtn: {
+    position: "absolute", right: 12, top: "50%", transform: "translateY(-50%)",
+    background: "none", border: "none", cursor: "pointer", display: "flex", alignItems: "center",
+    padding: 0,
+  },
+  saveBtn: {
+    flex: 1, padding: "10px 0", border: "none", borderRadius: 10,
+    background: "linear-gradient(135deg,#0ea5e9,#0284c7)",
+    color: "white", fontSize: 13, fontWeight: 600, cursor: "pointer",
+  },
+  cancelBtn: {
+    flex: 1, padding: "10px 0", border: "1px solid #e2e8f0", borderRadius: 10,
+    background: "white", color: "#64748b", fontSize: 13, fontWeight: 600, cursor: "pointer",
+  },
+  errorMsg: {
+    background: "#fff5f5", border: "1px solid #fee2e2",
+    color: "#ef4444", borderRadius: 8, padding: "10px 14px", fontSize: 13,
+  },
+  successMsg: {
+    background: "#f0fdf4", border: "1px solid #bbf7d0",
+    color: "#16a34a", borderRadius: 8, padding: "14px",
+    fontSize: 14, fontWeight: 600, textAlign: "center",
+  },
+};
+
+
 const INITIAL_PREFS = {
   emailNotifications: true,
   smsNotifications: true,
@@ -150,8 +327,7 @@ function normalizeProfile(payload) {
     id: source.id || source._id || "",
     fullName: source.fullName || source.name || "",
     email: source.email || "",
-    companyName: source.companyName || source.company || "",
-    address: source.address || "",
+    phone: source.phone || "",
   };
 }
 
@@ -159,8 +335,7 @@ function buildProfileForm(profile, fallbackUser) {
   return {
     name: profile.fullName || fallbackUser?.fullName || fallbackUser?.name || "",
     email: profile.email || fallbackUser?.email || "",
-    companyName: profile.companyName || fallbackUser?.companyName || fallbackUser?.company || "",
-    address: profile.address || fallbackUser?.address || "",
+    phone: profile.phone || fallbackUser?.phone || "",
   };
 }
 
@@ -174,6 +349,7 @@ export default function ProfilePage() {
   const [savingProfile, setSavingProfile] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
   const [profile, setProfile] = useState(null);
+  const [showPasswordModal, setShowPasswordModal] = useState(false);
 
   useEffect(() => {
     let isMounted = true;
@@ -183,7 +359,7 @@ export default function ProfilePage() {
       setErrorMessage("");
 
       try {
-        const response = await customerApi.getProfile();
+        const response = await authApi.getProfile();
         const profile = normalizeProfile(response);
         const nextForm = buildProfileForm(profile, user);
 
@@ -192,13 +368,12 @@ export default function ProfilePage() {
         setForm(nextForm);
         setDraft(nextForm);
         setProfile(response?.data|| {});
-        if (profile.fullName || profile.email || profile.companyName || profile.address) {
+        if (profile.fullName || profile.email || profile.phone) {
           updateUser({
             fullName: profile.fullName || nextForm.name,
             name: profile.fullName || nextForm.name,
             email: profile.email || nextForm.email,
-            companyName: profile.companyName || nextForm.companyName,
-            address: profile.address || nextForm.address,
+            phone: profile.phone || nextForm.phone,
           });
         }
       } catch (error) {
@@ -223,11 +398,10 @@ export default function ProfilePage() {
     setErrorMessage("");
 
     try {
-      await customerApi.updateProfile({
+      await authApi.updateProfile({
         fullName: draft.name,
         email: draft.email,
-        companyName: draft.companyName,
-        address: draft.address,
+        phone: draft.phone,
       });
 
       setForm({ ...draft });
@@ -235,8 +409,7 @@ export default function ProfilePage() {
         fullName: draft.name,
         name: draft.name,
         email: draft.email,
-        companyName: draft.companyName,
-        address: draft.address,
+        phone: draft.phone,
       });
       setEditing(false);
     } catch (error) {
@@ -265,6 +438,7 @@ export default function ProfilePage() {
 
   return (
     <div style={styles.page}>
+      {showPasswordModal && <ChangePasswordModal onClose={() => setShowPasswordModal(false)} />}
       <div style={styles.pageTitle}>Profile</div>
       <div style={styles.pageSubtitle}>Manage your account information and preferences</div>
 
@@ -325,30 +499,16 @@ export default function ProfilePage() {
               </div>
             </div>
 
-            {/* Company Name */}
+            {/* Phone */}
             <div style={styles.fieldGroup}>
-              <label style={styles.label}>Company Name</label>
+              <label style={styles.label}>Phone</label>
               <div style={styles.inputWrap}>
-                <span style={styles.inputIcon}><PersonIcon /></span>
+                <span style={styles.inputIcon}><PhoneIcon /></span>
                 <input
                   style={inputStyle(!editing)}
                   disabled={!editing}
-                  value={editing ? draft.companyName : form.companyName}
-                  onChange={(e) => setDraft({ ...draft, companyName: e.target.value })}
-                />
-              </div>
-            </div>
-
-            {/* Address */}
-            <div style={styles.fieldGroup}>
-              <label style={styles.label}>Address</label>
-              <div style={styles.inputWrap}>
-                <span style={styles.inputIcon}><LocationIcon stroke="#94a3b8" /></span>
-                <input
-                  style={inputStyle(!editing)}
-                  disabled={!editing}
-                  value={editing ? draft.address : form.address}
-                  onChange={(e) => setDraft({ ...draft, address: e.target.value })}
+                  value={editing ? draft.phone : form.phone}
+                  onChange={(e) => setDraft({ ...draft, phone: e.target.value })}
                 />
               </div>
             </div>
@@ -364,7 +524,7 @@ export default function ProfilePage() {
               <UserIcon size={52} stroke="white" />
             </div>
             <div style={styles.profileName}>{form.name}</div>
-            <div style={styles.profileRole}>Premium Customer</div>
+            <div style={styles.profileRole}>Admin</div>
             <div style={styles.memberBadge}>Member since {new Date(profile?.createdAt).toLocaleString("en-US", { month: "short", year: "numeric" })}</div>
             <button style={styles.changePhotoBtn}>
               <CameraIcon /> Change Photo
@@ -396,7 +556,7 @@ export default function ProfilePage() {
           <div style={styles.card}>
             <div style={styles.cardTitle}>Account Actions</div>
             <div style={styles.actionsList}>
-              <button style={styles.actionBtn}>
+              <button style={styles.actionBtn} onClick={() => setShowPasswordModal(true)}>
                 <KeyIcon /> Change Password
               </button>
               <button style={styles.actionBtn}>

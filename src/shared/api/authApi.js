@@ -71,6 +71,25 @@ const authApi = {
   logout: () =>
     api.post("/auth/logout"),
 
+
+  // ── Get my profile ──────────────────────────────────────────────────────────
+  // GET /auth/me  — requires Bearer token
+  // Returns: { _id, fullName, email, phone, role, tenantId, isActive, createdAt }
+  getProfile: () =>
+    api.get("/auth/me"),
+
+  // ── Update my profile ───────────────────────────────────────────────────────
+  // PATCH /auth/profile  — requires Bearer token
+  // Body: { fullName?, email?, phone? }
+  updateProfile: (data) =>
+    api.patch("/auth/profile", data),
+
+  // ── Change password ─────────────────────────────────────────────────────────
+  // PATCH /auth/change-password  — requires Bearer token
+  // Body: { currentPassword, newPassword }
+  changePassword: (data) =>
+    api.patch("/auth/change-password", data),
+
 };
 
 export default authApi;

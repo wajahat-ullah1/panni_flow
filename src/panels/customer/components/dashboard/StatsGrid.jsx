@@ -88,8 +88,8 @@ export default function StatsGrid() {
     },
     {
       label: "Monthly Spending",
-      value: stats ? `$${monthlySpending.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : "—",
-      trend: stats ? (spendingT.label ?? `$${stats.totalSpent?.toLocaleString()} total spent`) : "Loading...",
+      value: stats ? `PKR ${monthlySpending.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : "—",
+      trend: stats ? (spendingT.label ?? `PKR ${stats.totalSpent?.toLocaleString()} total spent`) : "Loading...",
       icon: <DollarIcon stroke="white" />,
       iconBg: "linear-gradient(135deg, #10b981 0%, #059669 100%)",
       trendColor: spendingT.color,
