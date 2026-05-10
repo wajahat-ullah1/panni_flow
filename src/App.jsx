@@ -69,6 +69,9 @@ export default function App() {
   return (
     <Routes>
 
+      {/* ── Root landing page ────────────────────────────────────────────── */}
+      <Route index element={<MineralWaterLandingPage />} />
+
       {/* ── Super Admin routes — outside tenant scope ────────────────────── */}
       <Route path="/super-admin/landing" element={<MineralWaterLandingPage />} />
       <Route path="/super-admin/login" element={<SuperAdminLoginPage />} />
@@ -123,8 +126,8 @@ export default function App() {
         />
       </Route>
 
-      {/* ── 404 ─────────────────────────────────────────────────────────── */}
-      <Route path="*" element={<Navigate to="/404" replace />} />
+      {/* ── 404 — redirect unknown paths back to root ────────────────────── */}
+      <Route path="*" element={<Navigate to="/" replace />} />
 
     </Routes>
   );
