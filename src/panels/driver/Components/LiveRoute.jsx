@@ -34,7 +34,7 @@ const formatScheduledTime = (order) => {
 
 // â”€â”€ Map sub-component â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 const RouteMap = ({ driverPos, customerPos }) => {
-  const { isLoaded } = useJsApiLoader({ id: 'driver-map', googleMapsApiKey: MAPS_KEY });
+  const { isLoaded } = useJsApiLoader({ id: 'google-map-script', googleMapsApiKey: MAPS_KEY, libraries: ['places'] });
   const [directions, setDirections] = useState(null);
 
   useEffect(() => {

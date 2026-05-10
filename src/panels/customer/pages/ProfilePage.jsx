@@ -1,6 +1,13 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
+import { GoogleMap, useJsApiLoader, Marker } from "@react-google-maps/api";
 import customerApi from "../../../shared/api/customerApi";
 import useAuth from "../../../shared/hooks/useAuth";
+
+// Defined at module level — prevents @react-google-maps/api from reloading the script on every render
+const LIBRARIES = ["places"];
+const DEFAULT_CENTER = { lat: 34.0151, lng: 71.5249 }; // Peshawar
+const MAP_CONTAINER_STYLE = { width: "100%", height: "300px", borderRadius: "10px" };
+const MAP_OPTIONS = { zoomControl: true, streetViewControl: false, mapTypeControl: false, fullscreenControl: false };
 
 // ─── Icons ───────────────────────────────────────────────────────────────────
 function UserIcon({ size = 40, stroke = "white" }) {
@@ -310,6 +317,146 @@ const modalStyles = {
   },
 };
 
+// ─── Map Pin Picker ───────────────────────────────────────────────────────────
+function MapPinPicker({ value, onChange }) {
+  const { isLoaded } = useJsApiLoader({
+    id: "google-map-script",
+    googleMapsApiKey: import.meta.env.VITE_GOOGLE_MAPS_API_KEY || "",
+    libraries: LIBRARIES,
+  });
+
+  const [marker, setMarker] = useState(
+    value?.lat && value?.lng ? { lat: value.lat, lng: value.lng } : null
+  );
+  const [mapCenter, setMapCenter] = useState(
+    value?.lat && value?.lng ? { lat: value.lat, lng: value.lng } : DEFAULT_CENTER
+  );
+  const [zoom, setZoom] = useState(value?.lat ? 16 : 13);
+  const [locating, setLocating] = useState(false);
+  const [locError, setLocError] = useState("");
+
+  const placePin = useCallback((pos) => {
+    setMarker(pos);
+    setMapCenter(pos);
+    setZoom(17);
+    onChange(pos);
+  }, [onChange]);
+
+  const handleMapClick = useCallback((e) => {
+    placePin({ lat: e.latLng.lat(), lng: e.latLng.lng() });
+  }, [placePin]);
+
+  const handleMarkerDragEnd = useCallback((e) => {
+    placePin({ lat: e.latLng.lat(), lng: e.latLng.lng() });
+  }, [placePin]);
+
+  const handleUseMyLocation = () => {
+    if (!navigator.geolocation) {
+      setLocError("Geolocation is not supported by your browser.");
+      return;
+    }
+    setLocating(true);
+    setLocError("");
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        placePin({ lat: pos.coords.latitude, lng: pos.coords.longitude });
+        setLocating(false);
+      },
+      () => {
+        setLocError("Unable to get your location. Please allow location access.");
+        setLocating(false);
+      },
+      { enableHighAccuracy: true, timeout: 10000 }
+    );
+  };
+
+  if (!isLoaded) {
+    return <div style={pinPickerStyles.loading}>Loading map…</div>;
+  }
+
+  return (
+    <div>
+      {/* Current location button */}
+      <button
+        type="button"
+        style={pinPickerStyles.locBtn}
+        onClick={handleUseMyLocation}
+        disabled={locating}
+      >
+        <span style={{ fontSize: 14 }}>📡</span>
+        {locating ? "Getting location…" : "Use My Current Location"}
+      </button>
+      {locError && <div style={pinPickerStyles.locError}>{locError}</div>}
+
+      {/* Hint */}
+      <div style={pinPickerStyles.hint}>
+        📍 Click on the map or drag the pin to your exact delivery location
+        {marker && (
+          <span style={pinPickerStyles.coordsLabel}>
+            &nbsp;· {marker.lat.toFixed(5)}, {marker.lng.toFixed(5)}
+          </span>
+        )}
+      </div>
+
+      {/* Map */}
+      <GoogleMap
+        mapContainerStyle={MAP_CONTAINER_STYLE}
+        center={mapCenter}
+        zoom={zoom}
+        options={MAP_OPTIONS}
+        onClick={handleMapClick}
+      >
+        {marker && (
+          <Marker
+            position={marker}
+            draggable
+            onDragEnd={handleMarkerDragEnd}
+          />
+        )}
+      </GoogleMap>
+
+      {marker && (
+        <button
+          type="button"
+          style={pinPickerStyles.clearBtn}
+          onClick={() => { setMarker(null); onChange(null); }}
+        >
+          ✕ Remove pin
+        </button>
+      )}
+    </div>
+  );
+}
+
+const pinPickerStyles = {
+  loading: {
+    height: 300, borderRadius: 10, background: "#f1f5f9",
+    display: "flex", alignItems: "center", justifyContent: "center",
+    fontSize: 13, color: "#94a3b8", border: "1px solid #e2e8f0",
+  },
+  locBtn: {
+    display: "flex", alignItems: "center", gap: 6,
+    marginBottom: 8, padding: "8px 14px",
+    border: "1px solid #bae6fd", borderRadius: 9,
+    background: "#f0f9ff", color: "#0369a1",
+    fontSize: 13, fontWeight: 600, cursor: "pointer",
+  },
+  locError: {
+    fontSize: 12, color: "#ef4444", marginBottom: 8,
+  },
+  hint: {
+    fontSize: 12, color: "#64748b", marginBottom: 8,
+    display: "flex", alignItems: "center", flexWrap: "wrap",
+  },
+  coordsLabel: {
+    fontFamily: "monospace", fontSize: 11, color: "#0ea5e9",
+  },
+  clearBtn: {
+    marginTop: 8, background: "none", border: "none",
+    fontSize: 12, color: "#94a3b8", cursor: "pointer", padding: 0,
+  },
+};
+
 // ─── Address Card ─────────────────────────────────────────────────────────────
 function AddressCard({ label, isDefault, address, city, phone, onEdit, onDelete, onSetDefault }) {
   return (
@@ -427,6 +574,8 @@ const EMPTY_ADDRESS_FORM = {
   address: "",
   city: "",
   phone: "",
+  lat: null,
+  lng: null,
 };
 
 function normalizeProfile(payload) {
@@ -449,6 +598,8 @@ function normalizeAddress(address, index = 0) {
     address: address?.address || address?.street || address?.line1 || "",
     city: address?.city || address?.area || address?.cityState || "",
     phone: address?.phone || address?.phoneNumber || "",
+    lat: address?.coordinates?.lat ?? address?.lat ?? null,
+    lng: address?.coordinates?.lng ?? address?.lng ?? null,
   };
 }
 
@@ -477,45 +628,39 @@ export default function ProfilePage() {
   const [summaryStats, setSummaryStats] = useState(null);
   const [profile, setProfile] = useState(null);
   const [showPasswordModal, setShowPasswordModal] = useState(false);
+  const [addressError, setAddressError] = useState("");
+
+  const loadProfile = useCallback(async () => {
+    setProfileLoading(true);
+    setErrorMessage("");
+
+    try {
+      const response = await customerApi.getProfile();
+      const profile = normalizeProfile(response);
+      const nextForm = buildProfileForm(profile, user);
+      const nextAddresses = profile.addresses.map(normalizeAddress);
+
+      setForm(nextForm);
+      setDraft(nextForm);
+      setAddresses(nextAddresses);
+      setProfile(response?.data || {});
+      if (profile.fullName || profile.email || profile.phone) {
+        updateUser({
+          fullName: profile.fullName || nextForm.name,
+          name: profile.fullName || nextForm.name,
+          email: profile.email || nextForm.email,
+          phone: profile.phone || nextForm.phone,
+          addresses: profile.addresses,
+        });
+      }
+    } catch (error) {
+      setErrorMessage(error?.response?.data?.message || "Failed to load profile.");
+    } finally {
+      setProfileLoading(false);
+    }
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
-    let isMounted = true;
-
-    const loadProfile = async () => {
-      setProfileLoading(true);
-      setErrorMessage("");
-
-      try {
-        const response = await customerApi.getProfile();
-        const profile = normalizeProfile(response);
-        const nextForm = buildProfileForm(profile, user);
-        const nextAddresses = profile.addresses.map(normalizeAddress);
-
-        if (!isMounted) return;
-
-        setForm(nextForm);
-        setDraft(nextForm);
-        setAddresses(nextAddresses);
-        setProfile(response?.data|| {});
-        if (profile.fullName || profile.email || profile.phone) {
-          updateUser({
-            fullName: profile.fullName || nextForm.name,
-            name: profile.fullName || nextForm.name,
-            email: profile.email || nextForm.email,
-            phone: profile.phone || nextForm.phone,
-            addresses: profile.addresses,
-          });
-        }
-      } catch (error) {
-        if (!isMounted) return;
-        setErrorMessage(error?.response?.data?.message || "Failed to load profile.");
-      } finally {
-        if (isMounted) {
-          setProfileLoading(false);
-        }
-      }
-    };
-
     loadProfile();
 
     customerApi.getDashboardStats()
@@ -524,16 +669,13 @@ export default function ProfilePage() {
         console.log("Dashboard stats:", d);
         setSummaryStats(d);
       });
-
-    return () => {
-      isMounted = false;
-    };
   }, []);
 
   const resetAddressEditor = () => {
     setShowAddressForm(false);
     setEditingAddressId(null);
     setAddressDraft(EMPTY_ADDRESS_FORM);
+    setAddressError("");
   };
 
   const handleSave = async () => {
@@ -580,6 +722,8 @@ export default function ProfilePage() {
       address: address.address,
       city: address.city,
       phone: address.phone,
+      lat: address.lat ?? null,
+      lng: address.lng ?? null,
     });
     setShowAddressForm(true);
   };
@@ -590,9 +734,10 @@ export default function ProfilePage() {
 
   const handleAddressSubmit = async () => {
     if (!addressDraft.label || !addressDraft.address || !addressDraft.city || !addressDraft.phone) {
-      setErrorMessage("Please complete all address fields.");
+      setAddressError("Please complete all required address fields.");
       return;
     }
+    setAddressError("");
 
     setAddressSaving(true);
     setErrorMessage("");
@@ -603,27 +748,21 @@ export default function ProfilePage() {
         address: addressDraft.address,
         city: addressDraft.city,
         phone: addressDraft.phone,
+        ...(addressDraft.lat != null && addressDraft.lng != null
+          ? { coordinates: { lat: addressDraft.lat, lng: addressDraft.lng } }
+          : {}),
       };
 
       if (editingAddressId) {
         await customerApi.updateAddress(editingAddressId, payload);
-        setAddresses((prev) =>
-          prev.map((address) =>
-            address.id === editingAddressId ? { ...address, ...payload } : address
-          )
-        );
       } else {
-        const response = await customerApi.addAddress(payload);
-        const createdAddress = normalizeAddress(
-          response?.data?.address || response?.address || response?.data || payload,
-          addresses.length
-        );
-        setAddresses((prev) => [...prev, createdAddress]);
+        await customerApi.addAddress(payload);
       }
 
       resetAddressEditor();
+      await loadProfile();
     } catch (error) {
-      setErrorMessage(error?.response?.data?.message || "Failed to save address.");
+      setAddressError(error?.response?.data?.message || "Failed to save address.");
     } finally {
       setAddressSaving(false);
     }
@@ -809,9 +948,25 @@ export default function ProfilePage() {
                   </div>
                 </div>
 
+                {/* Map Pin Picker */}
+                <div style={{ ...styles.fieldGroup, marginBottom: 20 }}>
+                  <label style={styles.label}>Delivery Location Pin </label>
+                  <MapPinPicker
+                    value={addressDraft.lat != null ? { lat: addressDraft.lat, lng: addressDraft.lng } : null}
+                    onChange={(pos) => setAddressDraft((prev) => ({
+                      ...prev,
+                      lat: pos?.lat ?? null,
+                      lng: pos?.lng ?? null,
+                    }))}
+                  />
+                </div>
+
+                {addressError && (
+                  <div style={{ fontSize: 12, color: "#ef4444", marginBottom: 8 }}>{addressError}</div>
+                )}
                 <div style={styles.addressEditorActions}>
-                  <button style={styles.cancelBtn} onClick={resetAddressEditor}>Cancel</button>
-                  <button style={styles.saveBtn} onClick={handleAddressSubmit} disabled={addressSaving}>
+                  <button type="button" style={styles.cancelBtn} onClick={resetAddressEditor}>Cancel</button>
+                  <button type="button" style={styles.saveBtn} onClick={handleAddressSubmit} disabled={addressSaving}>
                     {addressSaving ? "Saving..." : editingAddressId ? "Update Address" : "Add Address"}
                   </button>
                 </div>

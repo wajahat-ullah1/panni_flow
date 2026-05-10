@@ -445,6 +445,7 @@ const LiveTracking = () => {
             <>
           <LoadScript 
             googleMapsApiKey={GOOGLE_MAPS_API_KEY}
+            libraries={["places"]}
             onLoad={handleMapLoad}
             onError={handleMapError}
           >

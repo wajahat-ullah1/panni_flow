@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { GoogleMap, useJsApiLoader, Marker, Polyline, DirectionsRenderer } from "@react-google-maps/api";
+import { GoogleMap, useJsApiLoader, Marker, Polyline } from "@react-google-maps/api";
 import { io } from "socket.io-client";
 import customerApi from "../../../shared/api/customerApi";
 import { useTenant } from "../../../shared/context/TenantContext";
@@ -87,13 +87,34 @@ function MapView({ driverPos, customerPos, driverName, orderId, eta }) {
   const { isLoaded } = useJsApiLoader({
     id: "google-map-script",
     googleMapsApiKey: import.meta.env.VITE_GOOGLE_MAPS_API_KEY || "",
+    libraries: ["places"],
   });
 
-  const [directions, setDirections] = useState(null);
+  const [routePath, setRoutePath] = useState([]);
+
+  // Fetch OSRM road-following route as a fallback
+  const fetchOsrmRoute = async (origin, destination) => {
+    try {
+      const url =
+        `https://router.project-osrm.org/route/v1/driving/` +
+        `${origin.lng},${origin.lat};${destination.lng},${destination.lat}` +
+        `?overview=full&geometries=geojson`;
+      const res = await fetch(url);
+      const data = await res.json();
+      if (data.code === "Ok" && data.routes?.[0]) {
+        return data.routes[0].geometry.coordinates.map(([lng, lat]) => ({ lat, lng }));
+      }
+    } catch (err) {
+      console.warn("OSRM route fetch failed:", err);
+    }
+    return [];
+  };
 
   // Fetch road-following route whenever driver or customer position changes
   useEffect(() => {
     if (!isLoaded || !driverPos || !customerPos) return;
+
+    let cancelled = false;
 
     const service = new window.google.maps.DirectionsService();
     service.route(
@@ -102,14 +123,23 @@ function MapView({ driverPos, customerPos, driverName, orderId, eta }) {
         destination: customerPos,
         travelMode: window.google.maps.TravelMode.DRIVING,
       },
-      (result, status) => {
+      async (result, status) => {
+        if (cancelled) return;
         if (status === window.google.maps.DirectionsStatus.OK) {
-          setDirections(result);
+          const path = result.routes[0].overview_path.map((p) => ({
+            lat: p.lat(),
+            lng: p.lng(),
+          }));
+          setRoutePath(path);
         } else {
-          setDirections(null);
+          console.warn("Google Directions failed, falling back to OSRM:", status);
+          const path = await fetchOsrmRoute(driverPos, customerPos);
+          if (!cancelled) setRoutePath(path);
         }
       }
     );
+
+    return () => { cancelled = true; };
   }, [isLoaded, driverPos?.lat, driverPos?.lng, customerPos?.lat, customerPos?.lng]);
 
   const mapCenter = driverPos && customerPos
@@ -150,41 +180,17 @@ function MapView({ driverPos, customerPos, driverName, orderId, eta }) {
         zoom={14}
         options={MAP_OPTIONS}
       >
-        {/* Road-following route via DirectionsRenderer; straight dashed line as fallback */}
-        {directions ? (
-          <DirectionsRenderer
-            directions={directions}
+        {/* Road-following route: Google Directions path → OSRM fallback */}
+        {routePath.length > 0 && (
+          <Polyline
+            path={routePath}
             options={{
-              suppressMarkers: true,
-              polylineOptions: {
-                strokeColor: "#3b82f6",
-                strokeWeight: 4,
-                strokeOpacity: 0.85,
-              },
+              strokeColor: "#3b82f6",
+              strokeOpacity: 0.85,
+              strokeWeight: 4,
+              geodesic: true,
             }}
           />
-        ) : (
-          driverPos && customerPos && (
-            <Polyline
-              path={[driverPos, customerPos]}
-              options={{
-                strokeColor: "#3b82f6",
-                strokeOpacity: 0,
-                strokeWeight: 0,
-                icons: [{
-                  icon: {
-                    path: "M 0,-1 0,1",
-                    strokeOpacity: 0.85,
-                    strokeWeight: 3,
-                    strokeColor: "#3b82f6",
-                    scale: 4,
-                  },
-                  offset: "0",
-                  repeat: "20px",
-                }],
-              }}
-            />
-          )
         )}
         {driverPos && (
           <Marker
