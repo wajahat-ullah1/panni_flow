@@ -6,7 +6,6 @@ import {
   Navigation,
   Clock,
   CheckCircle,
-  TrendingUp,
 } from 'lucide-react';
 import { GoogleMap, LoadScript, Marker, Polyline } from '@react-google-maps/api';
 import { io } from 'socket.io-client';
@@ -22,13 +21,10 @@ const LiveTracking = () => {
     lat: 33.9992,
     lng: 71.4656,
   });
-  const [tankers, setTankers] = useState([]);
   const [activeDeliveries, setActiveDeliveries] = useState([]);
   const [stats, setStats] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [mapLoaded, setMapLoaded] = useState(false);
-  const [useRealMaps, setUseRealMaps] = useState(false);
-  const [directionsResult, setDirectionsResult] = useState(null);
   const [routePath, setRoutePath] = useState([]);
   const socketRef = useRef(null);
   const subscribedOrdersRef = useRef([]);
@@ -68,15 +64,15 @@ const LiveTracking = () => {
     };
   }, []);
 
-  // Update selected tanker when tankers data changes
+  // Update selected delivery when activeDeliveries data changes
   useEffect(() => {
-    if (selectedDelivery && tankers.length > 0) {
-      const updatedTanker = tankers.find(t => t.driverId === selectedDelivery.driverId);
-      if (updatedTanker) {
-        setSelectedDelivery(prev => ({ ...prev, tanker: updatedTanker }));
+    if (selectedDelivery && activeDeliveries.length > 0) {
+      const updated = activeDeliveries.find(d => d.orderId === selectedDelivery.orderId);
+      if (updated) {
+        setSelectedDelivery(updated);
       }
     }
-  }, [tankers]);
+  }, [activeDeliveries]);
 
   // Set up WebSocket after initial data is loaded
   const setupWebSocket = useCallback((orderIds) => {
@@ -95,11 +91,12 @@ const LiveTracking = () => {
 
     // Real-time driver location updates
     socket.on('location-update', ({ orderId, driverId, lat, lng }) => {
-      setTankers((prev) =>
-        prev.map((tanker) =>
-          tanker.driverId === driverId
-            ? { ...tanker, position: { lat, lng } }
-            : tanker
+      console.log(`Location update for order ${orderId}: (${lat}, ${lng})`);
+      setActiveDeliveries((prev) =>
+        prev.map((delivery) =>
+          delivery.orderId === orderId
+            ? { ...delivery, driverPosition: { lat, lng } }
+            : delivery
         )
       );
     });
@@ -122,42 +119,18 @@ const LiveTracking = () => {
 
   // Map API response to component data model
   const mapApiResponse = (data) => {
-    const { activeDeliveries: deliveries, summary, driverSummary } = data;
-    // Build tankers from driver locations within each delivery
-    const tankerMap = new Map();
-    deliveries.forEach((delivery) => {
-      const { driver, orderId, orderNumber, customerName, deliveryAddress, status } = delivery;
-      if (!driver || !driver.currentLocation) return;
+    const { activeDeliveries: deliveries, summary } = data;
 
-      const tankerId = driver.vehicleNumber;
-      if (!tankerMap.has(tankerId)) {
-        tankerMap.set(tankerId, {
-          id: tankerId,
-          position: {
-            lat: driver.currentLocation.lat,
-            lng: driver.currentLocation.lng,
-          },
-          driver: driver.name,
-          driverPhone: driver.phone,
-          driverId: driver.id,
-          orderId: orderNumber,
-          customer: customerName,
-          destination: `${deliveryAddress.street}, ${deliveryAddress.city}`,
-          destinationCoords: deliveryAddress.coordinates,
-          eta: delivery.eta || '—',
-          status: status,
-        });
-      }
-    });
-
-    const mappedTankers = Array.from(tankerMap.values());
-
-    // Build active deliveries list
     const mappedDeliveries = deliveries.map((delivery) => ({
       id: delivery.orderNumber,
       orderId: delivery.orderId,
       customer: delivery.customerName,
-      tankerId: delivery.driver?.vehicleNumber || '—',
+      driverName: delivery.driver?.name || '—',
+      driverPhone: delivery.driver?.phone || '—',
+      driverId: delivery.driver?.id || null,
+      driverPosition: delivery.driver?.currentLocation
+        ? { lat: delivery.driver.currentLocation.lat, lng: delivery.driver.currentLocation.lng }
+        : null,
       eta: delivery.eta || '—',
       status: delivery.status,
       arrived: delivery.status === 'out-for-delivery',
@@ -165,15 +138,15 @@ const LiveTracking = () => {
       destinationCoords: delivery.deliveryAddress.coordinates ?? null,
     }));
 
-    return { mappedTankers, mappedDeliveries, activeTankers: String(summary.totalActive) };
+    return { mappedDeliveries, totalActive: String(summary.totalActive) };
   };
 
   // Build stats array from monitoring + order-stats data
-  const buildStats = (activeTankers, orderStats) => [
+  const buildStats = (totalActive, orderStats) => [
     {
       icon: Truck,
-      value: activeTankers,
-      label: 'Active Tankers',
+      value: totalActive,
+      label: 'Active Drivers',
       color: '#2196F3',
       bgColor: '#E3F2FD',
     },
@@ -210,17 +183,17 @@ const LiveTracking = () => {
         adminApi.getOrderStats().catch(() => null), // non-blocking if it fails
       ]);
 
-      const monitoringData = monitoringRes.data?.data ?? monitoringRes.data;
+      const monitoringData = monitoringRes.data;
       const orderStats = orderStatsRes?.data ?? null;
 
-      const { mappedTankers, mappedDeliveries, activeTankers } = mapApiResponse(monitoringData);
+      const { mappedDeliveries, totalActive } = mapApiResponse(monitoringData);
 
-      setTankers(mappedTankers);
       setActiveDeliveries(mappedDeliveries);
-      setStats(buildStats(activeTankers, orderStats));
+      setStats(buildStats(totalActive, orderStats));
 
-      if (mappedTankers.length > 0) {
-        setMapCenter(mappedTankers[0].position);
+      const firstWithDriver = mappedDeliveries.find(d => d.driverPosition);
+      if (firstWithDriver) {
+        setMapCenter(firstWithDriver.driverPosition);
       }
 
       // Start WebSocket for real-time updates
@@ -234,15 +207,16 @@ const LiveTracking = () => {
     }
   };
 
-  const handleDeliverySelect = useCallback((delivery, tanker) => {
-    if (!tanker) return;
-    setSelectedDelivery({ ...delivery, tanker });
-    setMapCenter(tanker.position);
+  const handleDeliverySelect = useCallback((delivery) => {
+    setSelectedDelivery(delivery);
+    if (delivery.driverPosition) {
+      setMapCenter(delivery.driverPosition);
+    }
     setRoutePath([]); // clear previous route when switching delivery
   }, []);
 
-  const handleContactDriver = useCallback((tanker) => {
-    alert(`Calling ${tanker.driver}...`);
+  const handleContactDriver = useCallback((delivery) => {
+    alert(`Calling ${delivery.driverName}...`);
   }, []);
 
   // Fallback: fetch route from OSRM (free, no key required)
@@ -266,14 +240,21 @@ const LiveTracking = () => {
     }
   }, []);
 
-  const handleViewRoute = useCallback((tanker, delivery) => {
-    if (!delivery?.destinationCoords?.lat || !tanker?.position) return;
+  const handleViewRoute = useCallback((delivery) => {
+    if (!delivery?.destinationCoords?.lat) {
+      alert('Delivery address coordinates are not available for this order.');
+      return;
+    }
+    if (!delivery?.driverPosition) {
+      alert('Driver location is not available for this order.');
+      return;
+    }
 
     routeRequestIdRef.current += 1;
     const requestId = routeRequestIdRef.current;
     setRoutePath([]); // clear previous route before fetching new one
 
-    const origin = tanker.position;
+    const origin = delivery.driverPosition;
     const destination = delivery.destinationCoords;
 
     // Try Google Directions first; fall back to OSRM if unavailable or failed
@@ -455,27 +436,26 @@ const LiveTracking = () => {
               zoom={13}
               options={mapOptions}
             >
-              {/* Tanker Markers */}
-              {tankers.map((tanker) => (
+              {/* Driver Markers */}
+              {activeDeliveries
+                .filter((d) => d.status === 'out-for-delivery' && d.driverPosition)
+                .map((d) => (
                 <Marker
-                  key={tanker.id}
-                  position={tanker.position}
+                  key={`driver-${d.orderId}`}
+                  position={d.driverPosition}
+                  title={`Driver: ${d.driverName}\nOrder: ${d.id}\nCustomer: ${d.customer}`}
                   icon={{
                     path: window.google?.maps?.SymbolPath?.CIRCLE,
                     scale: 12,
-                    fillColor: selectedDelivery?.tanker?.id === tanker.id ? '#FF5722' : '#2196F3',
+                    fillColor: selectedDelivery?.orderId === d.orderId ? '#FF5722' : '#2196F3',
                     fillOpacity: 1,
                     strokeColor: '#fff',
                     strokeWeight: 3,
                   }}
-                  onClick={() => {
-                    // Find the first delivery for this tanker and select it
-                    const delivery = activeDeliveries.find(d => d.tankerId === tanker.id);
-                    if (delivery) handleDeliverySelect(delivery, tanker);
-                  }}
+                  onClick={() => handleDeliverySelect(d)}
                   label={{
-                    text: tanker.id,
-                    color: '#424242',
+                    text: d.driverName.charAt(0),
+                    color: '#fff',
                     fontSize: '11px',
                     fontWeight: '600',
                   }}
@@ -484,12 +464,12 @@ const LiveTracking = () => {
 
               {/* Destination Markers — real delivery addresses from API */}
               {activeDeliveries
-                .filter((d) => d.destinationCoords?.lat && d.destinationCoords?.lng)
+                .filter((d) => d.status === 'out-for-delivery' && d.destinationCoords?.lat && d.destinationCoords?.lng)
                 .map((d, index) => (
                   <Marker
                     key={`dest-${index}`}
                     position={d.destinationCoords}
-                    title={d.destination}
+                    title={`Order: ${d.id}\nCustomer: ${d.customer}\nDestination: ${d.destination}`}
                     icon={{
                       url: 'data:image/svg+xml;charset=UTF-8,' + encodeURIComponent(
                         '<svg xmlns="http://www.w3.org/2000/svg" width="30" height="40" viewBox="0 0 24 24" fill="#4CAF50"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/></svg>'
@@ -523,7 +503,7 @@ const LiveTracking = () => {
               <div className="legend-icon tanker-icon">
                 <Truck size={16} />
               </div>
-              <span className="legend-text">Active Tanker</span>
+              <span className="legend-text">Driver</span>
             </div>
             <div className="legend-item">
               <div className="legend-icon destination-icon">
@@ -541,14 +521,13 @@ const LiveTracking = () => {
             <div className="sidebar-section">
               <h2 className="sidebar-title">Active Deliveries</h2>
 
-              {activeDeliveries.map((delivery, index) => {
-                const tanker = tankers.find((t) => t.id === delivery.tankerId);
-                const isSelected = selectedDelivery?.id === delivery.id;
+              {activeDeliveries.filter((d) => d.status === 'out-for-delivery').map((delivery, index) => {
+                const isSelected = selectedDelivery?.orderId === delivery.orderId;
                 return (
                   <React.Fragment key={index}>
                     <div
                       className={`delivery-card${isSelected ? ' selected' : ''}`}
-                      onClick={() => handleDeliverySelect(delivery, tanker)}
+                      onClick={() => handleDeliverySelect(delivery)}
                     >
                       <div className="delivery-header">
                         <div>
@@ -564,34 +543,30 @@ const LiveTracking = () => {
                       </div>
 
                       <div className="delivery-footer">
-                        <div className="tanker-badge">
-                          <Truck size={14} />
-                          <span>{delivery.tankerId}</span>
-                        </div>
                         <div className={`status-badge ${delivery.arrived ? 'arrived' : ''}`}>
                           {delivery.status}
                         </div>
                       </div>
                     </div>
 
-                    {/* Inline Tanker Details — shown below the selected card */}
-                    {isSelected && tanker && (
+                    {/* Inline Order Details — shown below the selected card */}
+                    {isSelected && (
                       <div className="tanker-details inline-tanker-details">
-                        <h2 className="sidebar-title">Tanker Details</h2>
-
-                        <div className="detail-row">
-                          <span className="detail-label">Tanker ID</span>
-                          <span className="detail-value tanker-id">{tanker.id}</span>
-                        </div>
-
-                        <div className="detail-row">
-                          <span className="detail-label">Driver</span>
-                          <span className="detail-value">{tanker.driver}</span>
-                        </div>
+                        <h2 className="sidebar-title">Order Details</h2>
 
                         <div className="detail-row">
                           <span className="detail-label">Order ID</span>
                           <span className="detail-value order-id">{delivery.id}</span>
+                        </div>
+
+                        <div className="detail-row">
+                          <span className="detail-label">Driver</span>
+                          <span className="detail-value">{delivery.driverName}</span>
+                        </div>
+
+                        <div className="detail-row">
+                          <span className="detail-label">Phone</span>
+                          <span className="detail-value">{delivery.driverPhone}</span>
                         </div>
 
                         <div className="destination-detail">
@@ -612,7 +587,7 @@ const LiveTracking = () => {
 
                         <button
                           className="contact-button"
-                          onClick={() => handleContactDriver(tanker)}
+                          onClick={() => handleContactDriver(delivery)}
                         >
                           <Phone size={18} />
                           <span>Contact Driver</span>
@@ -620,7 +595,7 @@ const LiveTracking = () => {
 
                         <button
                           className="route-button"
-                          onClick={() => handleViewRoute(tanker, delivery)}
+                          onClick={() => handleViewRoute(delivery)}
                         >
                           <Navigation size={18} />
                           <span>View Route</span>

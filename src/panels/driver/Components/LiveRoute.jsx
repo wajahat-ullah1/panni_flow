@@ -1,17 +1,17 @@
-import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { GoogleMap, useJsApiLoader, Marker, DirectionsRenderer, Polyline } from '@react-google-maps/api';
+﻿import React, { useState, useEffect, useRef, useCallback } from 'react';
+import { GoogleMap, useJsApiLoader, Marker, Polyline } from '@react-google-maps/api';
 import { io } from 'socket.io-client';
 import './LiveRoute.css';
 import driverApi from '../../../shared/api/driverApi';
 import { getDriverId } from '../../../shared/api/driverStore';
 
-// â”€â”€ Constants â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+//  Constants 
 const SOCKET_URL  = import.meta.env.VITE_SOCKET_URL  || 'http://localhost:3000';
 const MAPS_KEY    = import.meta.env.VITE_GOOGLE_MAPS_API_KEY || '';
 const MAP_STYLE   = { width: '100%', height: '100%' };
 const MAP_OPTIONS = { zoomControl: true, streetViewControl: false, mapTypeControl: false, fullscreenControl: true };
 
-// â”€â”€ Helpers â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+//  Helpers 
 const formatAddress = (addr) => {
   if (!addr) return '-';
   return [addr.street, addr.landmark, addr.city].filter(Boolean).join(', ') || '-';
@@ -32,19 +32,50 @@ const formatScheduledTime = (order) => {
   return '-';
 };
 
-// â”€â”€ Map sub-component â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+//  Map sub-component 
 const RouteMap = ({ driverPos, customerPos }) => {
   const { isLoaded } = useJsApiLoader({ id: 'google-map-script', googleMapsApiKey: MAPS_KEY, libraries: ['places'] });
-  const [directions, setDirections] = useState(null);
+  const [routePath, setRoutePath] = useState([]);
+
+  const fetchOsrmRoute = useCallback(async (origin, destination) => {
+    try {
+      const url =
+        `https://router.project-osrm.org/route/v1/driving/` +
+        `${origin.lng},${origin.lat};${destination.lng},${destination.lat}` +
+        `?overview=full&geometries=geojson`;
+      const res  = await fetch(url);
+      const data = await res.json();
+      if (data.code === 'Ok' && data.routes?.[0]) {
+        return data.routes[0].geometry.coordinates.map(([lng, lat]) => ({ lat, lng }));
+      }
+    } catch (err) {
+      console.warn('OSRM route fetch failed:', err);
+    }
+    return [];
+  }, []);
 
   useEffect(() => {
     if (!isLoaded || !driverPos || !customerPos) return;
+    let cancelled = false;
+
     const svc = new window.google.maps.DirectionsService();
     svc.route(
       { origin: driverPos, destination: customerPos, travelMode: window.google.maps.TravelMode.DRIVING },
-      (result, status) => setDirections(status === 'OK' ? result : null),
+      async (result, status) => {
+        if (cancelled) return;
+        if (status === 'OK') {
+          const path = result.routes[0].overview_path.map((p) => ({ lat: p.lat(), lng: p.lng() }));
+          setRoutePath(path);
+        } else {
+          console.warn('Google Directions failed, falling back to OSRM:', status);
+          const path = await fetchOsrmRoute(driverPos, customerPos);
+          if (!cancelled) setRoutePath(path);
+        }
+      }
     );
-  }, [isLoaded, driverPos?.lat, driverPos?.lng, customerPos?.lat, customerPos?.lng]);
+
+    return () => { cancelled = true; };
+  }, [isLoaded, driverPos?.lat, driverPos?.lng, customerPos?.lat, customerPos?.lng, fetchOsrmRoute]);
 
   if (!isLoaded) {
     return (
@@ -76,24 +107,16 @@ const RouteMap = ({ driverPos, customerPos }) => {
 
   return (
     <GoogleMap mapContainerStyle={MAP_STYLE} center={center} zoom={14} options={MAP_OPTIONS}>
-      {directions ? (
-        <DirectionsRenderer
-          directions={directions}
+      {routePath.length > 0 && (
+        <Polyline
+          path={routePath}
           options={{
-            suppressMarkers: true,
-            polylineOptions: { strokeColor: '#3b82f6', strokeWeight: 4, strokeOpacity: 0.85 },
+            strokeColor: '#3b82f6',
+            strokeOpacity: 0.85,
+            strokeWeight: 4,
+            geodesic: true,
           }}
         />
-      ) : (
-        driverPos && customerPos && (
-          <Polyline
-            path={[driverPos, customerPos]}
-            options={{
-              strokeOpacity: 0, strokeWeight: 0,
-              icons: [{ icon: { path: 'M 0,-1 0,1', strokeOpacity: 0.85, strokeWeight: 3, strokeColor: '#3b82f6', scale: 4 }, offset: '0', repeat: '20px' }],
-            }}
-          />
-        )
       )}
       {driverPos  && <Marker position={driverPos}  icon={driverIcon} label={{ text: 'ðŸšš', fontSize: '18px' }} title="You" />}
       {customerPos && <Marker position={customerPos} icon={destIcon}   label={{ text: 'ðŸ“', fontSize: '18px' }} title="Destination" />}
@@ -101,7 +124,6 @@ const RouteMap = ({ driverPos, customerPos }) => {
   );
 };
 
-// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 const LiveRoute = () => {
   const [currentDelivery, setCurrentDelivery] = useState(null);
   const [todaysRoute, setTodaysRoute]         = useState([]);
@@ -114,7 +136,6 @@ const LiveRoute = () => {
   const socketRef  = useRef(null);
   const watchRef   = useRef(null);     // geolocation watchId
 
-  // â”€â”€ Fetch orders â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   const fetchRouteData = useCallback(async () => {
     setLoading(true);
     setError(null);
@@ -143,7 +164,7 @@ const LiveRoute = () => {
 
   useEffect(() => { fetchRouteData(); }, [fetchRouteData]);
 
-  // â”€â”€ WebSocket â€” driver-connect + order subscriptions â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // WebSocket  driver-connect + order subscriptions 
   useEffect(() => {
     const driverId = getDriverId();
     if (!driverId) return;
@@ -155,7 +176,7 @@ const LiveRoute = () => {
     socket.emit('driver-connect', { driverId });
 
     socket.on('order-assigned', () => {
-      // New order assigned â€” refresh the list
+      // New order assigned  refresh the list
       fetchRouteData();
     });
 
@@ -171,7 +192,7 @@ const LiveRoute = () => {
     };
   }, [fetchRouteData]);
 
-  // â”€â”€ Subscribe to the active order room + broadcast GPS via WebSocket â”€â”€â”€â”€â”€â”€â”€â”€
+  //  Subscribe to the active order room + broadcast GPS via WebSocket 
   useEffect(() => {
     const driverId = getDriverId();
     if (!currentDelivery || !driverId || !socketRef.current) return;
@@ -181,7 +202,7 @@ const LiveRoute = () => {
 
     socket.emit('subscribe-order', { orderId });
 
-    // Start GPS watch â€” broadcast via WebSocket every position update
+    // Start GPS watch  broadcast via WebSocket every position update
     if (navigator.geolocation) {
       watchRef.current = navigator.geolocation.watchPosition(
         ({ coords }) => {
@@ -203,7 +224,7 @@ const LiveRoute = () => {
     };
   }, [currentDelivery]);
 
-  // â”€â”€ Actions â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  //  Actions 
   const handleNavigate = () => {
     if (navInfo?.navigationUrl) {
       window.open(navInfo.navigationUrl, '_blank', 'noopener,noreferrer');
@@ -233,14 +254,14 @@ const LiveRoute = () => {
     }
   };
 
-  // â”€â”€ Customer destination coords from navInfo or order â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  //  Customer destination coords from navInfo or order 
   const customerPos = navInfo?.destination?.coordinates
     ? { lat: navInfo.destination.coordinates.lat, lng: navInfo.destination.coordinates.lng }
     : currentDelivery?.deliveryAddress?.coordinates
       ? { lat: currentDelivery.deliveryAddress.coordinates.lat, lng: currentDelivery.deliveryAddress.coordinates.lng }
       : null;
 
-  // â”€â”€ Render â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  //  Render 
   if (loading) {
     return (
       <div className="main-content">
@@ -356,12 +377,12 @@ const LiveRoute = () => {
           </div>
         )}
 
-        {/* â”€â”€ Google Map â”€â”€ */}
+        {/*  Google Map  */}
         <div className="map-container" style={{ height: 360, borderRadius: 14, overflow: 'hidden', border: '1px solid #e2e8f0' }}>
           <RouteMap driverPos={driverPos} customerPos={customerPos} />
         </div>
 
-        {/* â”€â”€ Today's Route â”€â”€ */}
+        {/*  Today's Route  */}
         <div className="todays-route-section">
           <h3 className="section-title">Today's Route</h3>
 
