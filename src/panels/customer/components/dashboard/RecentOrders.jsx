@@ -17,7 +17,6 @@ export default function RecentOrders() {
     customerApi
       .getOrders({ page: 1, limit: 5, sort: "createdAt" })
       .then((res) => {
-        // Shape: { success, data: { data: [...], meta: { total, page, limit, totalPages } } }
         console.log("API response for recent orders:", res);
         const list = res.data?.data ?? [];
         setOrders(list);
@@ -28,24 +27,50 @@ export default function RecentOrders() {
 
   return (
     <div style={styles.card}>
+      <style>{`
+        @import url('https://fonts.googleapis.com/css2?family=Syne:wght@700;800&family=DM+Sans:wght@400;500;600&display=swap');
+        @keyframes fadeIn { from { opacity:0; transform:translateY(8px); } to { opacity:1; transform:translateY(0); } }
+        .orders-card { animation: fadeIn 0.4s ease both; }
+        .view-all-btn { transition: all 0.18s ease; }
+        .view-all-btn:hover { gap: 8px !important; color: #0284c7 !important; }
+        @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.4} }
+        .skeleton-row { animation: pulse 1.4s ease infinite; background: linear-gradient(90deg,#f1f5f9,#e9f0f8,#f1f5f9); background-size:400% 100%; border-radius:12px; height:64px; }
+      `}</style>
+
       <div style={styles.header}>
         <div>
           <div style={styles.title}>Recent Orders</div>
           <div style={styles.subtitle}>Your latest water deliveries</div>
         </div>
-        <button style={styles.viewAll} onClick={() => navigate(`/${tenantId}/customer/my-orders`)}>
+        <button style={styles.viewAll} className="view-all-btn" onClick={() => navigate(`/${tenantId}/customer/my-orders`)}>
           View All <ChevronRight />
         </button>
       </div>
+
       <div style={styles.list}>
-        {loading && <div style={styles.state}>Loading...</div>}
-        {error && <div style={{ ...styles.state, color: "#ef4444" }}>{error}</div>}
-        {!loading && !error && orders.length === 0 && (
-          <div style={styles.state}>No orders found.</div>
+        {loading && (
+          <>
+            {[1,2,3].map(i => <div key={i} className="skeleton-row" style={{ animationDelay: `${i*120}ms` }} />)}
+          </>
         )}
-        {!loading &&
-          !error &&
-          orders.map((order) => <OrderRow key={order._id || order.id} order={order} />)}
+        {error && (
+          <div style={styles.errorState}>
+            <span style={{ fontSize: 22 }}>⚠️</span>
+            <span>{error}</span>
+          </div>
+        )}
+        {!loading && !error && orders.length === 0 && (
+          <div style={styles.emptyState}>
+            <span style={{ fontSize: 32 }}>📦</span>
+            <span style={{ fontWeight: 600, color: "#0f172a", fontSize: 14 }}>No orders yet</span>
+            <span style={{ fontSize: 12 }}>Your order history will appear here</span>
+          </div>
+        )}
+        {!loading && !error && orders.map((order, i) => (
+          <div key={order._id || order.id} style={{ animation: `fadeIn 0.35s ${i * 60}ms ease both` }}>
+            <OrderRow order={order} />
+          </div>
+        ))}
       </div>
     </div>
   );
@@ -54,19 +79,27 @@ export default function RecentOrders() {
 const styles = {
   card: {
     background: "white",
-    borderRadius: 14,
-    padding: "20px",
-    boxShadow: "0 1px 3px rgba(0,0,0,0.06)",
-    border: "1px solid #f1f5f9",
+    borderRadius: 20,
+    padding: "24px",
+    boxShadow: "0 2px 16px rgba(15,23,42,0.07), 0 0 0 1px rgba(226,232,240,0.8)",
+    fontFamily: "'DM Sans', sans-serif",
   },
   header: {
     display: "flex",
     justifyContent: "space-between",
     alignItems: "flex-start",
-    marginBottom: 16,
+    marginBottom: 18,
+    paddingBottom: 16,
+    borderBottom: "1px solid #f1f5f9",
   },
-  title: { fontSize: 15, fontWeight: 700, color: "#0f172a" },
-  subtitle: { fontSize: 12, color: "#94a3b8", marginTop: 2 },
+  title: {
+    fontSize: 16,
+    fontWeight: 700,
+    color: "#0f172a",
+    fontFamily: "'Syne', sans-serif",
+    letterSpacing: -0.3,
+  },
+  subtitle: { fontSize: 12, color: "#94a3b8", marginTop: 3 },
   viewAll: {
     display: "flex",
     alignItems: "center",
@@ -77,6 +110,27 @@ const styles = {
     fontWeight: 600,
     fontSize: 13,
     cursor: "pointer",
+    fontFamily: "'DM Sans', sans-serif",
+    padding: 0,
   },
-  list: { display: "flex", flexDirection: "column", gap: 6 },
+  list: { display: "flex", flexDirection: "column", gap: 8 },
+  emptyState: {
+    display: "flex",
+    flexDirection: "column",
+    alignItems: "center",
+    gap: 6,
+    padding: "32px 0",
+    color: "#94a3b8",
+    fontSize: 13,
+  },
+  errorState: {
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 8,
+    padding: "24px 0",
+    color: "#ef4444",
+    fontSize: 13,
+    fontWeight: 500,
+  },
 };

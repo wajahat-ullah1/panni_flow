@@ -2,7 +2,7 @@ import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { loginSuperAdmin } from "../shared/api/superAdminApi";
 
-export default function Login() {
+export default function SuperAdminLogin() {
   const navigate = useNavigate();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");

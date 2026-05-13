@@ -1,6 +1,5 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import './SignUpPage.css';
 import useAuth from '../shared/hooks/useAuth';
 import authApi from '../shared/api/authApi';
 import { useTenant } from '../shared/context/TenantContext';
@@ -9,7 +8,7 @@ const SignUpPage = () => {
   const navigate = useNavigate();
   const { login } = useAuth();
   const { tenantId, tenantData, logoUrl } = useTenant();
-  
+
   const [fullName, setFullName] = useState('');
   const [phoneNumber, setPhoneNumber] = useState('');
   const [email, setEmail] = useState('');
@@ -45,7 +44,6 @@ const SignUpPage = () => {
     e.preventDefault();
     setLoading(true);
 
-    // Validation
     if (!fullName || !phoneNumber || !email || !password || !confirmPassword) {
       alert('Please fill in all fields');
       setLoading(false);
@@ -87,10 +85,7 @@ const SignUpPage = () => {
       const { user, token } = parseRegisterResponse(response);
       login(user, token);
 
-      // Show success message
       alert('Account created successfully!');
-
-      // Redirect to customer dashboard
       navigate(`/${tenantId}/customer/dashboard`);
     } catch (error) {
       console.error('Sign up error:', error);
@@ -124,321 +119,536 @@ const SignUpPage = () => {
   };
 
   return (
-    <div className="signup-container">
-      <div className="signup-content">
-        {/* Logo and Title */}
-        <div className="header-container">
-          <div className="logo-container">
-            {logoUrl ? (
-              <img
-                src={logoUrl}
-                alt={tenantData.name}
-                className="logo-icon"
-                style={{ objectFit: "contain", borderRadius: 8 }}
-              />
-            ) : (
-              <svg
-                className="logo-icon"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2"
-              >
-                <path d="M3 6h18M3 12h18M3 18h18" />
-                <rect x="5" y="4" width="14" height="16" rx="2" />
-              </svg>
-            )}
+    <>
+      <style>{`
+        @import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700;800&display=swap');
+        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+        .pf-su-root {
+          font-family: 'DM Sans', sans-serif;
+          min-height: 100vh;
+          display: flex;
+          background: #f8fafc;
+          overflow: hidden;
+        }
+
+        /* ── Left Panel ── */
+        .pf-su-lp {
+          width: 42%;
+          background: linear-gradient(145deg, #0369a1 0%, #0ea5e9 50%, #06b6d4 100%);
+          display: flex;
+          flex-direction: column;
+          justify-content: center;
+          align-items: center;
+          padding: 60px 44px;
+          position: relative;
+          overflow: hidden;
+        }
+
+        .pf-su-blob {
+          position: absolute;
+          border-radius: 50%;
+          opacity: 0.12;
+          animation: suFloat 8s ease-in-out infinite;
+        }
+        .pf-su-blob-1 { width: 360px; height: 360px; background: #bae6fd; top: -110px; right: -90px; animation-delay: 0s; }
+        .pf-su-blob-2 { width: 240px; height: 240px; background: #7dd3fc; bottom: -50px; left: -50px; animation-delay: 2.5s; }
+        .pf-su-blob-3 { width: 160px; height: 160px; background: #e0f2fe; top: 55%; left: 18%; animation-delay: 5s; }
+
+        @keyframes suFloat {
+          0%, 100% { transform: translateY(0px) scale(1); }
+          50% { transform: translateY(-18px) scale(1.04); }
+        }
+
+        .pf-su-grid {
+          position: absolute; inset: 0;
+          background-image:
+            linear-gradient(rgba(255,255,255,0.04) 1px, transparent 1px),
+            linear-gradient(90deg, rgba(255,255,255,0.04) 1px, transparent 1px);
+          background-size: 48px 48px;
+        }
+
+        .pf-su-lp-content {
+          position: relative; z-index: 2; text-align: center;
+          animation: suFadeIn 0.7s ease 0.1s both;
+        }
+        @keyframes suFadeIn { from { opacity: 0; } to { opacity: 1; } }
+
+        .pf-su-logo-wrap {
+          width: 76px; height: 76px;
+          background: rgba(255,255,255,0.15);
+          border: 1.5px solid rgba(255,255,255,0.25);
+          border-radius: 20px;
+          display: flex; align-items: center; justify-content: center;
+          margin: 0 auto 24px;
+          backdrop-filter: blur(8px);
+          box-shadow: 0 8px 32px rgba(0,0,0,0.2);
+          overflow: hidden;
+        }
+
+        .pf-su-lp-title {
+          font-size: 30px; font-weight: 800;
+          color: #ffffff; letter-spacing: -0.8px;
+          line-height: 1.2; margin-bottom: 12px;
+        }
+
+        .pf-su-lp-subtitle {
+          font-size: 14px; color: rgba(255,255,255,0.65);
+          line-height: 1.7; max-width: 300px;
+          margin: 0 auto 36px;
+        }
+
+        .pf-su-steps {
+          display: flex; flex-direction: column; gap: 12px;
+          width: 100%; max-width: 320px;
+        }
+
+        .pf-su-step {
+          display: flex; align-items: center; gap: 14px;
+          background: rgba(255,255,255,0.08);
+          border: 1px solid rgba(255,255,255,0.12);
+          border-radius: 12px; padding: 14px 18px;
+          backdrop-filter: blur(4px);
+          transition: background 0.2s;
+          cursor: default;
+          text-align: left;
+        }
+        .pf-su-step:hover { background: rgba(255,255,255,0.13); }
+
+        .pf-su-step-num {
+          width: 32px; height: 32px; border-radius: 50%;
+          background: rgba(255,255,255,0.2);
+          border: 1.5px solid rgba(255,255,255,0.35);
+          display: flex; align-items: center; justify-content: center;
+          font-size: 13px; font-weight: 800; color: #fff;
+          flex-shrink: 0;
+        }
+
+        .pf-su-step-text { font-size: 13px; color: rgba(255,255,255,0.9); font-weight: 600; }
+        .pf-su-step-sub { font-size: 11px; color: rgba(255,255,255,0.45); margin-top: 2px; }
+
+        .pf-su-lp-footer {
+          margin-top: 36px;
+          font-size: 11.5px; color: rgba(255,255,255,0.35);
+        }
+
+        /* ── Right Panel ── */
+        .pf-su-rp {
+          flex: 1;
+          display: flex; align-items: flex-start; justify-content: center;
+          padding: 40px 56px;
+          background: #f8fafc;
+          overflow-y: auto;
+        }
+
+        .pf-su-card {
+          width: 100%; max-width: 460px;
+          padding-top: 8px;
+          animation: suCardUp 0.5s cubic-bezier(0.16,1,0.3,1) both;
+        }
+        @keyframes suCardUp {
+          from { opacity: 0; transform: translateY(24px); }
+          to { opacity: 1; transform: translateY(0); }
+        }
+
+        .pf-su-badge {
+          display: inline-flex; align-items: center; gap: 6px;
+          background: #e0f2fe; color: #0369a1;
+          border-radius: 8px; padding: 5px 12px;
+          font-size: 12px; font-weight: 600;
+          margin-bottom: 20px;
+          border: 1px solid #bae6fd;
+        }
+
+        .pf-su-title {
+          font-size: 26px; font-weight: 800;
+          color: #0f172a; letter-spacing: -0.5px; margin-bottom: 6px;
+        }
+        .pf-su-sub { font-size: 14px; color: #64748b; margin-bottom: 28px; }
+
+        /* Two-column row */
+        .pf-su-row {
+          display: grid;
+          grid-template-columns: 1fr 1fr;
+          gap: 16px;
+          margin-bottom: 0;
+        }
+
+        /* Fields */
+        .pf-su-fg { margin-bottom: 18px; }
+        .pf-su-fg label {
+          display: block; font-size: 13px; font-weight: 600;
+          color: #374151; margin-bottom: 6px;
+        }
+        .pf-su-iw { position: relative; display: flex; align-items: center; }
+        .pf-su-i-icon {
+          position: absolute; left: 13px;
+          display: flex; align-items: center; pointer-events: none;
+        }
+
+        .pf-su-iw input {
+          width: 100%;
+          padding: 11px 14px 11px 40px;
+          background: #ffffff;
+          border: 1.5px solid #e2e8f0;
+          border-radius: 11px;
+          font-size: 14px; color: #1e293b;
+          font-family: 'DM Sans', sans-serif;
+          outline: none;
+          transition: border-color 0.2s, box-shadow 0.2s;
+        }
+        .pf-su-iw input:focus {
+          border-color: #0ea5e9;
+          box-shadow: 0 0 0 3px rgba(14,165,233,0.12);
+        }
+        .pf-su-iw input::placeholder { color: #94a3b8; }
+
+        .pf-su-eye {
+          position: absolute; right: 13px;
+          background: none; border: none; cursor: pointer;
+          display: flex; align-items: center; padding: 2px;
+          color: #94a3b8; transition: color 0.15s;
+        }
+        .pf-su-eye:hover { color: #475569; }
+
+        .pf-su-hint {
+          font-size: 11.5px; color: #94a3b8;
+          margin-top: 5px; margin-left: 2px;
+        }
+
+        /* Terms */
+        .pf-su-terms {
+          display: flex; align-items: flex-start; gap: 10px;
+          margin-bottom: 22px; cursor: pointer;
+        }
+        .pf-su-terms input[type="checkbox"] {
+          width: 16px; height: 16px; margin-top: 2px;
+          accent-color: #0ea5e9; cursor: pointer; flex-shrink: 0;
+        }
+        .pf-su-terms-text {
+          font-size: 13px; color: #475569; line-height: 1.55; font-weight: 500;
+        }
+        .pf-su-terms-link {
+          color: #0ea5e9; font-weight: 700; text-decoration: none;
+          transition: color 0.2s;
+        }
+        .pf-su-terms-link:hover { color: #0369a1; text-decoration: underline; }
+
+        /* Submit Button */
+        .pf-su-btn {
+          width: 100%; padding: 13px;
+          background: linear-gradient(135deg, #0369a1, #0ea5e9);
+          color: #fff; border: none; border-radius: 11px;
+          font-size: 15px; font-weight: 700;
+          font-family: 'DM Sans', sans-serif;
+          cursor: pointer;
+          box-shadow: 0 4px 14px rgba(14,165,233,0.35);
+          transition: all 0.2s;
+          display: flex; align-items: center; justify-content: center; gap: 8px;
+          margin-bottom: 22px;
+        }
+        .pf-su-btn:hover:not(:disabled) {
+          transform: translateY(-1px);
+          box-shadow: 0 6px 20px rgba(14,165,233,0.4);
+        }
+        .pf-su-btn:active:not(:disabled) { transform: translateY(0); }
+        .pf-su-btn:disabled { opacity: 0.8; cursor: not-allowed; transform: none; }
+
+        .pf-su-spinner {
+          width: 18px; height: 18px;
+          border: 2px solid rgba(255,255,255,0.4);
+          border-top-color: #fff;
+          border-radius: 50%;
+          animation: suSpin 0.6s linear infinite;
+        }
+        @keyframes suSpin { to { transform: rotate(360deg); } }
+
+        /* Divider */
+        .pf-su-divider {
+          display: flex; align-items: center; gap: 12px; margin-bottom: 18px;
+        }
+        .pf-su-div-line { flex: 1; height: 1px; background: #e2e8f0; }
+        .pf-su-div-text { font-size: 12px; color: #94a3b8; font-weight: 500; }
+
+        /* Sign in row */
+        .pf-su-signin-row { text-align: center; }
+        .pf-su-signin-text { font-size: 14px; color: #64748b; }
+        .pf-su-signin-link {
+          background: none; border: none;
+          font-size: 14px; color: #0ea5e9; font-weight: 700;
+          cursor: pointer; font-family: 'DM Sans', sans-serif;
+          transition: color 0.2s;
+        }
+        .pf-su-signin-link:hover { color: #0369a1; text-decoration: underline; }
+
+        /* Responsive */
+        @media (max-width: 960px) {
+          .pf-su-lp { display: none; }
+          .pf-su-rp { padding: 40px 24px; }
+        }
+        @media (max-width: 540px) {
+          .pf-su-row { grid-template-columns: 1fr; }
+          .pf-su-rp { padding: 32px 16px; }
+          .pf-su-title { font-size: 22px; }
+        }
+      `}</style>
+
+      <div className="pf-su-root">
+
+        {/* ── Left Panel ── */}
+        <div className="pf-su-lp">
+          <div className="pf-su-blob pf-su-blob-1" />
+          <div className="pf-su-blob pf-su-blob-2" />
+          <div className="pf-su-blob pf-su-blob-3" />
+          <div className="pf-su-grid" />
+
+          <div className="pf-su-lp-content">
+            <div className="pf-su-logo-wrap">
+              {logoUrl ? (
+                <img
+                  src={logoUrl}
+                  alt={tenantData?.name}
+                  style={{ width: 50, height: 50, objectFit: 'contain', borderRadius: 8 }}
+                />
+              ) : (
+                <svg width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2">
+                  <path d="M12 2C8.5 2 6 6 6 9c0 5 6 13 6 13s6-8 6-13c0-3-2.5-7-6-7z" strokeLinecap="round" strokeLinejoin="round"/>
+                  <circle cx="12" cy="9" r="2.5"/>
+                </svg>
+              )}
+            </div>
+
+            <h1 className="pf-su-lp-title">Join {tenantData?.name ?? 'Pani Flow'}</h1>
+            <p className="pf-su-lp-subtitle">Create your account in minutes and start ordering fresh water delivered to your door.</p>
+
+            <div className="pf-su-steps">
+              <div className="pf-su-step">
+                <div className="pf-su-step-num">1</div>
+                <div>
+                  <div className="pf-su-step-text">Create Your Account</div>
+                  <div className="pf-su-step-sub">Fill in your details below</div>
+                </div>
+              </div>
+              <div className="pf-su-step">
+                <div className="pf-su-step-num">2</div>
+                <div>
+                  <div className="pf-su-step-text">Place Your First Order</div>
+                  <div className="pf-su-step-sub">Browse products and checkout</div>
+                </div>
+              </div>
+              <div className="pf-su-step">
+                <div className="pf-su-step-num">3</div>
+                <div>
+                  <div className="pf-su-step-text">Get Fast Delivery</div>
+                  <div className="pf-su-step-sub">Track your order in real time</div>
+                </div>
+              </div>
+            </div>
+
+            <p className="pf-su-lp-footer">© 2026 {tenantData?.name ?? 'Pani Flow'}. All rights reserved.</p>
           </div>
-          <h1 className="title">Join {tenantData?.name ?? 'Pani Flow'}</h1>
-          <p className="subtitle">Order water online, anytime, anywhere</p>
         </div>
 
-        {/* Sign Up Form Card */}
-        <div className="form-card">
-          <h2 className="welcome-text">Create Your Account</h2>
-          <p className="signup-text">Sign up to order fresh water delivery to your home</p>
+        {/* ── Right Panel ── */}
+        <div className="pf-su-rp">
+          <div className="pf-su-card">
 
-          <form onSubmit={handleSignUp}>
-            {/* Full Name and Phone Number Row */}
-            <div className="row-container">
-              <div className="input-container half-width">
-                <label className="label">Full Name</label>
-                <div className="input-wrapper">
-                  <svg
-                    className="input-icon"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="2"
-                  >
-                    <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
-                    <circle cx="12" cy="7" r="4" />
-                  </svg>
+            <div className="pf-su-badge">
+              <svg width="12" height="12" fill="none" viewBox="0 0 24 24">
+                <path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2" stroke="#0369a1" strokeWidth="2" strokeLinecap="round"/>
+                <circle cx="12" cy="7" r="4" stroke="#0369a1" strokeWidth="2"/>
+              </svg>
+              New Customer Registration
+            </div>
+
+            <h2 className="pf-su-title">Create Your Account 🚀</h2>
+            <p className="pf-su-sub">Sign up to start ordering fresh water online with ease.</p>
+
+            <form onSubmit={handleSignUp}>
+
+              {/* Full Name + Phone */}
+              <div className="pf-su-row">
+                <div className="pf-su-fg">
+                  <label>Full Name</label>
+                  <div className="pf-su-iw">
+                    <span className="pf-su-i-icon">
+                      <svg width="15" height="15" fill="none" viewBox="0 0 24 24">
+                        <path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2" stroke="#94a3b8" strokeWidth="1.8" strokeLinecap="round"/>
+                        <circle cx="12" cy="7" r="4" stroke="#94a3b8" strokeWidth="1.8"/>
+                      </svg>
+                    </span>
+                    <input
+                      type="text"
+                      placeholder="John Doe"
+                      value={fullName}
+                      onChange={(e) => setFullName(e.target.value)}
+                      autoComplete="name"
+                      required
+                    />
+                  </div>
+                </div>
+
+                <div className="pf-su-fg">
+                  <label>Phone Number</label>
+                  <div className="pf-su-iw">
+                    <span className="pf-su-i-icon">
+                      <svg width="15" height="15" fill="none" viewBox="0 0 24 24">
+                        <path d="M22 16.92v3a2 2 0 01-2.18 2 19.79 19.79 0 01-8.63-3.07 19.5 19.5 0 01-6-6A19.79 19.79 0 012.12 4.18 2 2 0 014.11 2h3a2 2 0 012 1.72c.127.96.361 1.903.7 2.81a2 2 0 01-.45 2.11L8.09 9.91a16 16 0 006 6l1.27-1.27a2 2 0 012.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0122 16.92z" stroke="#94a3b8" strokeWidth="1.8" strokeLinecap="round"/>
+                      </svg>
+                    </span>
+                    <input
+                      type="tel"
+                      placeholder="+92 300 0000000"
+                      value={phoneNumber}
+                      onChange={(e) => setPhoneNumber(e.target.value)}
+                      autoComplete="tel"
+                      required
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* Email */}
+              <div className="pf-su-fg">
+                <label>Email Address</label>
+                <div className="pf-su-iw">
+                  <span className="pf-su-i-icon">
+                    <svg width="15" height="15" fill="none" viewBox="0 0 24 24">
+                      <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z" stroke="#94a3b8" strokeWidth="1.8"/>
+                      <polyline points="22,6 12,13 2,6" stroke="#94a3b8" strokeWidth="1.8" strokeLinecap="round"/>
+                    </svg>
+                  </span>
                   <input
-                    type="text"
-                    className="input"
-                    placeholder="John Doe"
-                    value={fullName}
-                    onChange={(e) => setFullName(e.target.value)}
+                    type="email"
+                    placeholder="you@email.com"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    autoComplete="email"
                     required
                   />
                 </div>
               </div>
 
-              <div className="input-container half-width">
-                <label className="label">Phone Number</label>
-                <div className="input-wrapper">
-                  <svg
-                    className="input-icon"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="2"
-                  >
-                    <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z" />
-                  </svg>
+              {/* Password */}
+              <div className="pf-su-fg">
+                <label>Password</label>
+                <div className="pf-su-iw">
+                  <span className="pf-su-i-icon">
+                    <svg width="15" height="15" fill="none" viewBox="0 0 24 24">
+                      <rect x="3" y="11" width="18" height="11" rx="2" stroke="#94a3b8" strokeWidth="1.8"/>
+                      <path d="M7 11V7a5 5 0 0110 0v4" stroke="#94a3b8" strokeWidth="1.8" strokeLinecap="round"/>
+                    </svg>
+                  </span>
                   <input
-                    type="tel"
-                    className="input"
-                    placeholder="+1 234-567-8900"
-                    value={phoneNumber}
-                    onChange={(e) => setPhoneNumber(e.target.value)}
+                    type={showPassword ? 'text' : 'password'}
+                    placeholder="Create a strong password"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    autoComplete="new-password"
                     required
                   />
+                  <button type="button" className="pf-su-eye" onClick={() => setShowPassword(!showPassword)}>
+                    {showPassword ? (
+                      <svg width="16" height="16" fill="none" viewBox="0 0 24 24">
+                        <path d="M17.94 17.94A10.07 10.07 0 0112 20c-7 0-11-8-11-8a18.45 18.45 0 015.06-5.94M9.9 4.24A9.12 9.12 0 0112 4c7 0 11 8 11 8a18.5 18.5 0 01-2.16 3.19M1 1l22 22" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round"/>
+                      </svg>
+                    ) : (
+                      <svg width="16" height="16" fill="none" viewBox="0 0 24 24">
+                        <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" stroke="currentColor" strokeWidth="1.8"/>
+                        <circle cx="12" cy="12" r="3" stroke="currentColor" strokeWidth="1.8"/>
+                      </svg>
+                    )}
+                  </button>
+                </div>
+                <p className="pf-su-hint">Min 8 characters with letters and numbers</p>
+              </div>
+
+              {/* Confirm Password */}
+              <div className="pf-su-fg">
+                <label>Confirm Password</label>
+                <div className="pf-su-iw">
+                  <span className="pf-su-i-icon">
+                    <svg width="15" height="15" fill="none" viewBox="0 0 24 24">
+                      <rect x="3" y="11" width="18" height="11" rx="2" stroke="#94a3b8" strokeWidth="1.8"/>
+                      <path d="M7 11V7a5 5 0 0110 0v4" stroke="#94a3b8" strokeWidth="1.8" strokeLinecap="round"/>
+                    </svg>
+                  </span>
+                  <input
+                    type={showConfirmPassword ? 'text' : 'password'}
+                    placeholder="Re-enter your password"
+                    value={confirmPassword}
+                    onChange={(e) => setConfirmPassword(e.target.value)}
+                    autoComplete="new-password"
+                    required
+                  />
+                  <button type="button" className="pf-su-eye" onClick={() => setShowConfirmPassword(!showConfirmPassword)}>
+                    {showConfirmPassword ? (
+                      <svg width="16" height="16" fill="none" viewBox="0 0 24 24">
+                        <path d="M17.94 17.94A10.07 10.07 0 0112 20c-7 0-11-8-11-8a18.45 18.45 0 015.06-5.94M9.9 4.24A9.12 9.12 0 0112 4c7 0 11 8 11 8a18.5 18.5 0 01-2.16 3.19M1 1l22 22" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round"/>
+                      </svg>
+                    ) : (
+                      <svg width="16" height="16" fill="none" viewBox="0 0 24 24">
+                        <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" stroke="currentColor" strokeWidth="1.8"/>
+                        <circle cx="12" cy="12" r="3" stroke="currentColor" strokeWidth="1.8"/>
+                      </svg>
+                    )}
+                  </button>
                 </div>
               </div>
-            </div>
 
-            {/* Email Input */}
-            <div className="input-container">
-              <label className="label">Email Address</label>
-              <div className="input-wrapper">
-                <svg
-                  className="input-icon"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                >
-                  <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z" />
-                  <polyline points="22,6 12,13 2,6" />
-                </svg>
+              {/* Terms */}
+              <label className="pf-su-terms">
                 <input
-                  type="email"
-                  className="input"
-                  placeholder="you@email.com"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  required
+                  type="checkbox"
+                  checked={agreeToTerms}
+                  onChange={(e) => setAgreeToTerms(e.target.checked)}
                 />
-              </div>
-            </div>
+                <span className="pf-su-terms-text">
+                  I agree to the{' '}
+                  <a href="#" className="pf-su-terms-link" onClick={handleTermsClick}>Terms of Service</a>
+                  {' '}and{' '}
+                  <a href="#" className="pf-su-terms-link" onClick={handlePrivacyClick}>Privacy Policy</a>
+                </span>
+              </label>
 
-            {/* Password Input */}
-            <div className="input-container">
-              <label className="label">Password</label>
-              <div className="input-wrapper">
-                <svg
-                  className="input-icon"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                >
-                  <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
-                  <path d="M7 11V7a5 5 0 0 1 10 0v4" />
-                </svg>
-                <input
-                  type={showPassword ? 'text' : 'password'}
-                  className="input"
-                  placeholder="Create a strong password"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  required
-                />
-                <button
-                  type="button"
-                  className="eye-button"
-                  onClick={() => setShowPassword(!showPassword)}
-                >
-                  {showPassword ? (
-                    <svg
-                      className="eye-icon"
-                      viewBox="0 0 24 24"
-                      fill="none"
-                      stroke="currentColor"
-                      strokeWidth="2"
-                    >
-                      <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
-                      <circle cx="12" cy="12" r="3" />
+              {/* Create Account Button */}
+              <button type="submit" className="pf-su-btn" disabled={loading}>
+                {loading ? (
+                  <>
+                    <div className="pf-su-spinner" />
+                    Creating Account...
+                  </>
+                ) : (
+                  <>
+                    Create Account
+                    <svg width="17" height="17" fill="none" viewBox="0 0 24 24">
+                      <path d="M5 12h14M12 5l7 7-7 7" stroke="#fff" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"/>
                     </svg>
-                  ) : (
-                    <svg
-                      className="eye-icon"
-                      viewBox="0 0 24 24"
-                      fill="none"
-                      stroke="currentColor"
-                      strokeWidth="2"
-                    >
-                      <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24" />
-                      <line x1="1" y1="1" x2="23" y2="23" />
-                    </svg>
-                  )}
-                </button>
-              </div>
-              <p className="password-hint">
-                Must be at least 8 characters with letters and numbers
-              </p>
-            </div>
-
-            {/* Confirm Password Input */}
-            <div className="input-container">
-              <label className="label">Confirm Password</label>
-              <div className="input-wrapper">
-                <svg
-                  className="input-icon"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                >
-                  <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
-                  <path d="M7 11V7a5 5 0 0 1 10 0v4" />
-                </svg>
-                <input
-                  type={showConfirmPassword ? 'text' : 'password'}
-                  className="input"
-                  placeholder="Re-enter your password"
-                  value={confirmPassword}
-                  onChange={(e) => setConfirmPassword(e.target.value)}
-                  required
-                />
-                <button
-                  type="button"
-                  className="eye-button"
-                  onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                >
-                  {showConfirmPassword ? (
-                    <svg
-                      className="eye-icon"
-                      viewBox="0 0 24 24"
-                      fill="none"
-                      stroke="currentColor"
-                      strokeWidth="2"
-                    >
-                      <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
-                      <circle cx="12" cy="12" r="3" />
-                    </svg>
-                  ) : (
-                    <svg
-                      className="eye-icon"
-                      viewBox="0 0 24 24"
-                      fill="none"
-                      stroke="currentColor"
-                      strokeWidth="2"
-                    >
-                      <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24" />
-                      <line x1="1" y1="1" x2="23" y2="23" />
-                    </svg>
-                  )}
-                </button>
-              </div>
-            </div>
-
-            {/* Terms and Conditions */}
-            <label className="terms-container">
-              <input
-                type="checkbox"
-                className="checkbox-input"
-                checked={agreeToTerms}
-                onChange={(e) => setAgreeToTerms(e.target.checked)}
-              />
-              <span className="checkbox-custom">
-                {agreeToTerms && (
-                  <svg
-                    className="check-icon"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="3"
-                  >
-                    <polyline points="20 6 9 17 4 12" />
-                  </svg>
+                  </>
                 )}
-              </span>
-              <span className="terms-text">
-                I agree to the{' '}
-                <a href="#" className="terms-link" onClick={handleTermsClick}>
-                  Terms of Service
-                </a>{' '}
-                and{' '}
-                <a href="#" className="terms-link" onClick={handlePrivacyClick}>
-                  Privacy Policy
-                </a>
-              </span>
-            </label>
+              </button>
+            </form>
 
-            {/* Create Account Button */}
-            <button type="submit" className="create-account-button" disabled={loading}>
-              {loading ? 'Creating Account...' : 'Create Account'}
-            </button>
-          </form>
+            {/* Divider */}
+            <div className="pf-su-divider">
+              <div className="pf-su-div-line" />
+              <span className="pf-su-div-text">ALREADY A MEMBER?</span>
+              <div className="pf-su-div-line" />
+            </div>
 
-          {/* Divider */}
-          <div className="divider-container">
-            <div className="divider-line"></div>
-            <span className="divider-text">OR</span>
-            <div className="divider-line"></div>
-          </div>
+            {/* Sign In */}
+            <div className="pf-su-signin-row">
+              <span className="pf-su-signin-text">Already have an account? </span>
+              <button className="pf-su-signin-link" onClick={handleSignIn}>
+                Sign in here
+              </button>
+            </div>
 
-          {/* Social Sign Up Buttons */}
-          {/* <div className="social-buttons-container">
-            <button className="social-button" onClick={handleGoogleSignUp}>
-              <svg className="social-icon" viewBox="0 0 24 24">
-                <path
-                  fill="#DB4437"
-                  d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
-                />
-                <path
-                  fill="#34A853"
-                  d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"
-                />
-                <path
-                  fill="#FBBC05"
-                  d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"
-                />
-                <path
-                  fill="#EA4335"
-                  d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"
-                />
-              </svg>
-              <span className="social-button-text">Google</span>
-            </button>
-
-            <button className="social-button" onClick={handleMicrosoftSignUp}>
-              <svg className="social-icon" viewBox="0 0 24 24">
-                <path fill="#F25022" d="M1 1h10v10H1z" />
-                <path fill="#00A4EF" d="M13 1h10v10H13z" />
-                <path fill="#7FBA00" d="M1 13h10v10H1z" />
-                <path fill="#FFB900" d="M13 13h10v10H13z" />
-              </svg>
-              <span className="social-button-text">Microsoft</span>
-            </button>
-          </div> */}
-
-          {/* Sign In Link */}
-          <div className="signin-container">
-            <span className="signin-text">Already have an account? </span>
-            <button className="signin-link" onClick={handleSignIn}>
-              Sign in
-            </button>
           </div>
         </div>
 
-        {/* Footer */}
-        <p className="footer">© 2026 {tenantData?.name}. All rights reserved.</p>
       </div>
-    </div>
+    </>
   );
 };
 

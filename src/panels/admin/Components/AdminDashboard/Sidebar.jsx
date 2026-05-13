@@ -1,5 +1,5 @@
 import React from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import {
   LayoutDashboard,
   Package,
@@ -15,7 +15,14 @@ import { useTenant } from '../../../../shared/context/TenantContext';
 
 const Sidebar = ({ onLogout }) => {
   const navigate = useNavigate();
+  const location = useLocation();
   const { tenantId, tenantData, logoUrl } = useTenant();
+
+  // Debug logging
+  console.log("Admin Sidebar - tenantData:", tenantData);
+  console.log("Admin Sidebar - logoUrl:", logoUrl);
+  console.log("Admin Sidebar - tenantData?.logo:", tenantData?.logo);
+
   const menuItems = [
     {
       id: 'dashboard',
@@ -69,11 +76,16 @@ const Sidebar = ({ onLogout }) => {
           {logoUrl ? (
             <img
               src={logoUrl}
-              alt={tenantData.name}
-              style={{ width: 32, height: 32, objectFit: 'contain', borderRadius: 6 }}
+              alt={tenantData?.name}
+              style={{ width: 28, height: 28, objectFit: 'contain', borderRadius: 6 }}
+              onError={(e) => {
+                console.error("Admin Sidebar - Image failed to load:", logoUrl, e);
+                e.target.style.display = 'none';
+              }}
+              onLoad={() => console.log("Admin Sidebar - Image loaded successfully:", logoUrl)}
             />
           ) : (
-            <Droplet size={32} color="#fff" />
+            <Droplet size={24} color="#fff" />
           )}
         </div>
         <div className="logo-text">
@@ -86,24 +98,27 @@ const Sidebar = ({ onLogout }) => {
       <nav className="menu-container">
         {menuItems.map((item) => {
           const IconComponent = item.icon;
+          const isActive = location.pathname === item.path;
           return (
             <button
               key={item.id}
-              className={`menu-item`}
+              className={`menu-item${isActive ? ' active' : ''}`}
               onClick={() => navigate(item.path)}
             >
-              <IconComponent size={20} />
+              <IconComponent size={18} />
               <span className="menu-text">{item.label}</span>
             </button>
           );
         })}
       </nav>
 
-      {/* Logout Button */}
-      <button className="logout-button" onClick={onLogout}>
-        <LogOut size={20} />
-        <span className="menu-text">Logout</span>
-      </button>
+      {/* Logout */}
+      <div className="sidebar-footer">
+        <button className="logout-button" onClick={onLogout}>
+          <LogOut size={18} />
+          <span className="menu-text">Logout</span>
+        </button>
+      </div>
     </div>
   );
 };

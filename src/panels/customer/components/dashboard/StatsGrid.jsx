@@ -8,13 +8,11 @@ export default function StatsGrid() {
   const [orders, setOrders] = useState([]);
 
   useEffect(() => {
-    // Fetch dashboard stats
     customerApi
       .getDashboardStats()
       .then((res) => setStats(res.data ?? null))
       .catch(() => setStats(null));
 
-    // Fetch all orders to calculate accurate monthly spending
     customerApi
       .getOrders({ limit: 100 })
       .then((res) => {
@@ -24,46 +22,31 @@ export default function StatsGrid() {
       .catch(() => setOrders([]));
   }, []);
 
-  // Calculate monthly spending from actual orders (only paid/delivered ones)
   const monthlySpending = useMemo(() => {
     const now = new Date();
     const currentMonth = now.getMonth();
     const currentYear = now.getFullYear();
-
     return orders.reduce((total, order) => {
       const orderDate = order.createdAt ? new Date(order.createdAt) : null;
       const orderStatus = (order.status || "").toLowerCase();
-      
-      // Only count delivered orders or paid orders
-      // Exclude pending, confirmed, assigned, accepted, out-for-delivery
       const isPaidOrDelivered = orderStatus === "delivered";
-      
-      if (orderDate && 
-          orderDate.getMonth() === currentMonth && 
-          orderDate.getFullYear() === currentYear &&
-          isPaidOrDelivered) {
+      if (orderDate && orderDate.getMonth() === currentMonth && orderDate.getFullYear() === currentYear && isPaidOrDelivered) {
         return total + (Number(order.totalAmount) || Number(order.total) || 0);
       }
       return total;
     }, 0);
   }, [orders]);
 
-  // Helper: extract value + trend from fields that may be { value, trend } or plain numbers
   const val = (field) => (typeof field === "object" && field !== null ? field.value : field);
   const trendInfo = (field) => {
     if (typeof field === "object" && field !== null && field.trend) {
       const { percentage, direction } = field.trend;
-      return {
-        label: percentage ? `${percentage}%` : null,
-        color: direction === "up" ? "#16a34a" : "#ef4444",
-        noArrow: false,
-        direction,
-      };
+      return { label: percentage ? `${percentage}%` : null, color: direction === "up" ? "#10b981" : "#ef4444", noArrow: false, direction };
     }
-    return { label: null, color: "#6b7280", noArrow: true, direction: null };
+    return { label: null, color: "#94a3b8", noArrow: true, direction: null };
   };
 
-  const ordersT  = trendInfo(stats?.totalOrders);
+  const ordersT   = trendInfo(stats?.totalOrders);
   const spendingT = trendInfo(stats?.monthlySpending);
 
   const cards = [
@@ -72,7 +55,7 @@ export default function StatsGrid() {
       value: stats ? String(val(stats.totalOrders)) : "—",
       trend: stats ? (ordersT.label ?? `${val(stats.totalOrders)} orders`) : "Loading...",
       icon: <BoxIcon color="#0ea5e9" />,
-      iconBg: "linear-gradient(135deg, #e0f2fe 0%, #bae6fd 100%)",
+      iconBg: "linear-gradient(135deg, #0ea5e9 0%, #0284c7 100%)",
       trendColor: ordersT.color,
       trendNoArrow: ordersT.noArrow,
       trendDirection: ordersT.direction,
@@ -83,15 +66,15 @@ export default function StatsGrid() {
       trend: "In Progress",
       icon: <TruckIcon stroke="white" />,
       iconBg: "linear-gradient(135deg, #10b981 0%, #059669 100%)",
-      trendColor: "#6b7280",
+      trendColor: "#94a3b8",
       trendNoArrow: true,
     },
     {
       label: "Monthly Spending",
       value: stats ? `PKR ${monthlySpending.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : "—",
-      trend: stats ? (spendingT.label ?? `PKR ${stats.totalSpent?.toLocaleString()} total spent`) : "Loading...",
+      trend: stats ? (spendingT.label ?? `PKR ${stats.totalSpent?.toLocaleString()} total`) : "Loading...",
       icon: <DollarIcon stroke="white" />,
-      iconBg: "linear-gradient(135deg, #10b981 0%, #059669 100%)",
+      iconBg: "linear-gradient(135deg, #f59e0b 0%, #d97706 100%)",
       trendColor: spendingT.color,
       trendNoArrow: spendingT.noArrow,
       trendDirection: spendingT.direction,
@@ -102,17 +85,34 @@ export default function StatsGrid() {
       trend: stats?.bottlesOrdered?.label ?? "19L Bottles",
       icon: <DropIcon stroke="white" />,
       iconBg: "linear-gradient(135deg, #a855f7 0%, #7c3aed 100%)",
-      trendColor: "#6b7280",
+      trendColor: "#94a3b8",
       trendNoArrow: true,
     },
   ];
 
   return (
-    <div style={styles.grid}>
-      {cards.map((card) => (
-        <StatCard key={card.label} {...card} />
-      ))}
-    </div>
+    <>
+      <style>{`
+        @keyframes shimmer {
+          0%   { background-position: -600px 0; }
+          100% { background-position: 600px 0; }
+        }
+        .stats-skeleton {
+          background: linear-gradient(90deg, #f1f5f9 25%, #e2e8f0 50%, #f1f5f9 75%);
+          background-size: 600px 100%;
+          animation: shimmer 1.4s infinite linear;
+          border-radius: 18px;
+          height: 130px;
+        }
+      `}</style>
+      <div style={styles.grid}>
+        {cards.map((card, i) => (
+          <div key={card.label} style={{ animationDelay: `${i * 80}ms` }}>
+            <StatCard {...card} />
+          </div>
+        ))}
+      </div>
+    </>
   );
 }
 
@@ -120,7 +120,7 @@ const styles = {
   grid: {
     display: "grid",
     gridTemplateColumns: "repeat(4, 1fr)",
-    gap: 16,
-    marginBottom: 22,
+    gap: 18,
+    marginBottom: 24,
   },
 };
