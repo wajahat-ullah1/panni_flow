@@ -28,7 +28,7 @@ const getDisplayStatus = (status) => {
   const map = {
     'assigned':         'Pending',
     'accepted':         'Pending',
-    'out-for-delivery': 'In Transit',
+    'out-for-delivery': 'Out for Delivery',
     'confirmed':        'Pending',
   };
   return map[status] || status;
@@ -111,7 +111,7 @@ const AssignedDeliveries = () => {
     const matchesFilter =
       filterStatus === 'All Deliveries' ||
       (filterStatus === 'Pending'    && displayStatus === 'Pending') ||
-      (filterStatus === 'In Transit' && displayStatus === 'In Transit');
+      (filterStatus === 'Out for Delivery' && displayStatus === 'Out for Delivery');
 
     return matchesSearch && matchesFilter;
   });

@@ -474,7 +474,7 @@ const LiveRoute = () => {
                         <div className="lr-route-info">
                           <div className="lr-route-top">
                             <span className="lr-route-name">{order.customerName}</span>
-                            {isActive && <span className="lr-transit-pill">In Transit</span>}
+                            {isActive && <span className="lr-transit-pill">Out for Delivery</span>}
                           </div>
                           <p className="lr-route-address">
                             {formatAddress(order.deliveryAddress)} · {formatScheduledTime(order)}
