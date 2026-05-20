@@ -4,44 +4,52 @@ export default function QuickActions() {
   return (
     <div style={styles.card}>
       <style>{`
-        @import url('https://fonts.googleapis.com/css2?family=Syne:wght@700;800&family=DM+Sans:wght@400;500;600&display=swap');
+        @import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700;800&display=swap');
+
         .qa-primary-btn {
-          transition: all 0.2s cubic-bezier(.34,1.56,.64,1);
+          transition: all 0.2s ease;
           position: relative;
           overflow: hidden;
         }
         .qa-primary-btn::after {
-          content:'';
-          position:absolute;
-          inset:0;
-          background:rgba(255,255,255,0.15);
-          opacity:0;
-          transition:opacity 0.18s;
+          content: '';
+          position: absolute;
+          inset: 0;
+          background: rgba(255,255,255,0.12);
+          opacity: 0;
+          transition: opacity 0.18s;
         }
-        .qa-primary-btn:hover { transform: translateY(-2px); box-shadow: 0 8px 24px rgba(14,165,233,0.35) !important; }
-        .qa-primary-btn:hover::after { opacity:1; }
+        .qa-primary-btn:hover {
+          transform: translateY(-2px);
+          box-shadow: 0 8px 24px rgba(14,165,233,0.4) !important;
+        }
+        .qa-primary-btn:hover::after { opacity: 1; }
         .qa-primary-btn:active { transform: translateY(0) scale(0.98); }
+
         .qa-secondary-btn {
           transition: all 0.18s ease;
         }
         .qa-secondary-btn:hover {
-          background: #f0f9ff !important;
+          background: #eff6ff !important;
           border-color: #bae6fd !important;
-          color: #0284c7 !important;
+          color: #0369a1 !important;
           transform: translateX(2px);
         }
-        @keyframes subCardPulse {
-          0%,100% { box-shadow: 0 0 0 0 rgba(168,85,247,0.15); }
-          50%      { box-shadow: 0 0 0 6px rgba(168,85,247,0); }
+
+        @keyframes qaSubPulse {
+          0%,100% { box-shadow: 0 0 0 0 rgba(14,165,233,0.15); }
+          50%      { box-shadow: 0 0 0 6px rgba(14,165,233,0); }
         }
-        .sub-card { animation: subCardPulse 3s ease infinite; }
+        .qa-sub-card { animation: qaSubPulse 3s ease infinite; }
       `}</style>
 
-      <div style={styles.titleRow}>
-        <div style={styles.title}>Quick Actions</div>
-        <div style={styles.titleDot} />
+      {/* Header */}
+      <div style={styles.sectionHead}>
+        <h2 style={styles.sectionTitle}>Quick Actions</h2>
+        <p style={styles.sectionSub}>Shortcuts for your workflow</p>
       </div>
 
+      {/* Buttons */}
       <div style={styles.buttons}>
         <button style={styles.primary} className="qa-primary-btn">
           <DropIcon stroke="white" />
@@ -57,7 +65,8 @@ export default function QuickActions() {
         </button>
       </div>
 
-      <div style={styles.subCard} className="sub-card">
+      {/* Subscription card */}
+      <div style={styles.subCard} className="qa-sub-card">
         <div style={styles.subIconWrap}>
           <SubscriptionIcon />
         </div>
@@ -76,39 +85,38 @@ export default function QuickActions() {
 
 const styles = {
   card: {
-    background: "white",
-    borderRadius: 20,
-    padding: "24px",
-    boxShadow: "0 2px 16px rgba(15,23,42,0.07), 0 0 0 1px rgba(226,232,240,0.8)",
-    fontFamily: "'DM Sans', sans-serif",
-  },
-  titleRow: {
+    background: "#ffffff",
+    borderRadius: 16,
+    padding: "22px 22px",
+    boxShadow: "0 1px 3px rgba(0,0,0,0.06), 0 1px 2px rgba(0,0,0,0.04)",
+    fontFamily: "'DM Sans', 'Segoe UI', sans-serif",
     display: "flex",
-    alignItems: "center",
-    gap: 8,
-    marginBottom: 18,
-    paddingBottom: 16,
+    flexDirection: "column",
+    gap: 0,
+  },
+  sectionHead: {
+    marginBottom: 16,
+    paddingBottom: 14,
     borderBottom: "1px solid #f1f5f9",
   },
-  title: {
-    fontSize: 16,
-    fontWeight: 700,
+  sectionTitle: {
+    fontSize: 17,
+    fontWeight: 800,
     color: "#0f172a",
-    fontFamily: "'Syne', sans-serif",
-    letterSpacing: -0.3,
+    margin: "0 0 2px",
+    letterSpacing: "-0.3px",
   },
-  titleDot: {
-    width: 7,
-    height: 7,
-    borderRadius: "50%",
-    background: "linear-gradient(135deg, #0ea5e9, #0284c7)",
-    marginTop: 1,
+  sectionSub: {
+    fontSize: 13,
+    color: "#94a3b8",
+    margin: 0,
+    fontWeight: 500,
   },
   buttons: {
     display: "flex",
     flexDirection: "column",
     gap: 10,
-    marginBottom: 18,
+    marginBottom: 16,
   },
   primary: {
     display: "flex",
@@ -116,17 +124,16 @@ const styles = {
     justifyContent: "center",
     gap: 8,
     width: "100%",
-    padding: "14px",
-    borderRadius: 12,
+    padding: "13px 16px",
+    borderRadius: 10,
     border: "none",
-    background: "linear-gradient(135deg, #0ea5e9 0%, #0284c7 100%)",
+    background: "linear-gradient(135deg, #0369a1, #0ea5e9)",
     color: "white",
     fontWeight: 700,
-    fontSize: 14,
+    fontSize: 13.5,
     cursor: "pointer",
-    boxShadow: "0 4px 16px rgba(14,165,233,0.25)",
+    boxShadow: "0 4px 16px rgba(14,165,233,0.3)",
     fontFamily: "'DM Sans', sans-serif",
-    letterSpacing: 0.1,
   },
   secondary: {
     display: "flex",
@@ -134,10 +141,10 @@ const styles = {
     justifyContent: "center",
     gap: 8,
     width: "100%",
-    padding: "12px",
-    borderRadius: 12,
+    padding: "11px 16px",
+    borderRadius: 10,
     border: "1.5px solid #e2e8f0",
-    background: "#fafcff",
+    background: "#f8fafc",
     color: "#475569",
     fontWeight: 600,
     fontSize: 13,
@@ -145,13 +152,13 @@ const styles = {
     fontFamily: "'DM Sans', sans-serif",
   },
   subCard: {
-    background: "linear-gradient(135deg, #faf5ff 0%, #f3e8ff 100%)",
-    borderRadius: 14,
+    background: "linear-gradient(135deg, #eff6ff, #dbeafe)",
+    borderRadius: 12,
     padding: "14px 16px",
     display: "flex",
     alignItems: "flex-start",
     gap: 12,
-    border: "1px solid #e9d5ff",
+    border: "1px solid #bfdbfe",
   },
   subIconWrap: {
     width: 36,
@@ -162,18 +169,21 @@ const styles = {
     alignItems: "center",
     justifyContent: "center",
     flexShrink: 0,
-    boxShadow: "0 2px 8px rgba(168,85,247,0.18)",
+    boxShadow: "0 2px 8px rgba(14,165,233,0.18)",
   },
   subTitle: {
     fontSize: 13,
     fontWeight: 700,
     color: "#0f172a",
-    fontFamily: "'Syne', sans-serif",
   },
-  subDetail: { fontSize: 11.5, color: "#64748b", marginTop: 2 },
+  subDetail: {
+    fontSize: 11.5,
+    color: "#64748b",
+    marginTop: 2,
+  },
   subNext: {
     fontSize: 11,
-    color: "#7c3aed",
+    color: "#0369a1",
     fontWeight: 600,
     marginTop: 6,
     display: "flex",
@@ -184,7 +194,7 @@ const styles = {
     width: 5,
     height: 5,
     borderRadius: "50%",
-    background: "#a855f7",
+    background: "#0ea5e9",
     display: "inline-block",
     flexShrink: 0,
   },

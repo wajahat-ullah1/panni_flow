@@ -20,10 +20,10 @@ const customerApi = {
   updateProfile: (data) =>
     api.patch("/customers/me", data),
 
-  // PUT /api/customer/profile/password
+  // PATCH /api/auth/change-password
   // Body: { currentPassword, newPassword }
   changePassword: (data) =>
-    api.put("/customer/profile/password", data),
+    api.patch("/auth/change-password", data),
 
   // POST /api/customer/profile/photo
   // Body: FormData with "photo" field

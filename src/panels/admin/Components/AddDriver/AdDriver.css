@@ -2,6 +2,7 @@
 
 /* ── Page Layout ──────────────────────────────────────────────────────────── */
 .add-driver-page {
+  margin-left: 250px;
   padding: 28px 32px;
   background: #f8fafc;
   min-height: 100vh;

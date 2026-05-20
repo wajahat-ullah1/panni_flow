@@ -5,6 +5,7 @@
   padding: 28px 32px;
   background: #f8fafc;
   min-height: 100vh;
+  margin-left: 250px;
   font-family: 'DM Sans', 'Segoe UI', sans-serif;
   position: relative;
 }

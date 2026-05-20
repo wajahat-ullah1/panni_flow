@@ -95,8 +95,8 @@ const Sidebar = ({ onLogout }) => {
               />
             ) : (
               <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
-                <path d="M12 2C8.5 2 6 6 6 9c0 5 6 13 6 13s6-8 6-13c0-3-2.5-7-6-7z" fill="white" fillOpacity="0.9"/>
-                <circle cx="12" cy="9" r="2.5" fill="white" fillOpacity="0.5"/>
+                <path d="M12 2.5C11.5 2.5 6 9.5 6 14C6 17.3 8.7 20 12 20C15.3 20 18 17.3 18 14C18 9.5 12.5 2.5 12 2.5Z" fill="white" fillOpacity="0.9" />
+                <path d="M8 14C8 11.8 10.5 8 12 6" stroke="white" stroke-width="1.5" stroke-linecap="round" opacity="0.5" />
               </svg>
             )}
           </div>

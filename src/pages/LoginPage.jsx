@@ -380,9 +380,11 @@ const LoginPage = () => {
                   style={{ width: 52, height: 52, objectFit: 'contain', borderRadius: 8 }}
                 />
               ) : (
-                <svg className="pf-logo-svg" width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                  <path d="M12 2C8.5 2 6 6 6 9c0 5 6 13 6 13s6-8 6-13c0-3-2.5-7-6-7z" strokeLinecap="round" strokeLinejoin="round" />
-                  <circle cx="12" cy="9" r="2.5" />
+                <svg className="pf-logo-svg" width="46" height="46" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  {/* <!-- Outer liquid contour --> */}
+                  <path d="M12 2C11.5 2.8 6 11 6 15a6 6 0 0 0 12 0c0-4-5.5-12.2-6-13z" />
+                  {/* <!-- Stylish internal reflection accent --> */}
+                  <path d="M15 13a3 3 0 0 0-3-3" />
                 </svg>
               )}
             </div>
@@ -394,7 +396,7 @@ const LoginPage = () => {
               <div className="pf-feat">
                 <div className="pf-feat-icon">
                   <svg width="18" height="18" fill="none" viewBox="0 0 24 24">
-                    <path d="M3 3h18v4H3zM3 11h18v4H3zM3 19h12v2H3z" stroke="#fff" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/>
+                    <path d="M3 3h18v4H3zM3 11h18v4H3zM3 19h12v2H3z" stroke="#fff" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
                   </svg>
                 </div>
                 <div>
@@ -406,10 +408,10 @@ const LoginPage = () => {
               <div className="pf-feat">
                 <div className="pf-feat-icon">
                   <svg width="18" height="18" fill="none" viewBox="0 0 24 24">
-                    <path d="M1 3h15l-1.5 9H2.5L1 3z" stroke="#fff" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/>
-                    <path d="M16 3h4l2 9h-4" stroke="#fff" strokeWidth="1.8" strokeLinecap="round"/>
-                    <circle cx="6" cy="20" r="1.5" stroke="#fff" strokeWidth="1.8"/>
-                    <circle cx="13" cy="20" r="1.5" stroke="#fff" strokeWidth="1.8"/>
+                    <path d="M1 3h15l-1.5 9H2.5L1 3z" stroke="#fff" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+                    <path d="M16 3h4l2 9h-4" stroke="#fff" strokeWidth="1.8" strokeLinecap="round" />
+                    <circle cx="6" cy="20" r="1.5" stroke="#fff" strokeWidth="1.8" />
+                    <circle cx="13" cy="20" r="1.5" stroke="#fff" strokeWidth="1.8" />
                   </svg>
                 </div>
                 <div>
@@ -421,8 +423,8 @@ const LoginPage = () => {
               <div className="pf-feat">
                 <div className="pf-feat-icon">
                   <svg width="18" height="18" fill="none" viewBox="0 0 24 24">
-                    <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" stroke="#fff" strokeWidth="1.8" strokeLinejoin="round"/>
-                    <path d="M9 12l2 2 4-4" stroke="#fff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                    <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" stroke="#fff" strokeWidth="1.8" strokeLinejoin="round" />
+                    <path d="M9 12l2 2 4-4" stroke="#fff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
                   </svg>
                 </div>
                 <div>
@@ -439,7 +441,7 @@ const LoginPage = () => {
           <div className="pf-card">
             <div className="pf-badge">
               <svg width="12" height="12" fill="none" viewBox="0 0 24 24">
-                <path d="M12 2C8.5 2 6 6 6 9c0 5 6 13 6 13s6-8 6-13c0-3-2.5-7-6-7z" stroke="#0369a1" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                <path d="M12 2C8.5 2 6 6 6 9c0 5 6 13 6 13s6-8 6-13c0-3-2.5-7-6-7z" stroke="#0369a1" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
               </svg>
               {tenantData?.name ?? 'Pani Flow'} · Customer Portal
             </div>
@@ -451,8 +453,8 @@ const LoginPage = () => {
             {loginError && (
               <div className="pf-err">
                 <svg width="16" height="16" fill="none" viewBox="0 0 24 24">
-                  <circle cx="12" cy="12" r="9" stroke="#dc2626" strokeWidth="2"/>
-                  <path d="M12 8v4M12 16h.01" stroke="#dc2626" strokeWidth="2" strokeLinecap="round"/>
+                  <circle cx="12" cy="12" r="9" stroke="#dc2626" strokeWidth="2" />
+                  <path d="M12 8v4M12 16h.01" stroke="#dc2626" strokeWidth="2" strokeLinecap="round" />
                 </svg>
                 {loginError}
               </div>
@@ -465,8 +467,8 @@ const LoginPage = () => {
                 <div className="pf-iw">
                   <span className="pf-i-icon">
                     <svg width="16" height="16" fill="none" viewBox="0 0 24 24">
-                      <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z" stroke="#94a3b8" strokeWidth="1.8"/>
-                      <polyline points="22,6 12,13 2,6" stroke="#94a3b8" strokeWidth="1.8" strokeLinecap="round"/>
+                      <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z" stroke="#94a3b8" strokeWidth="1.8" />
+                      <polyline points="22,6 12,13 2,6" stroke="#94a3b8" strokeWidth="1.8" strokeLinecap="round" />
                     </svg>
                   </span>
                   <input
@@ -486,8 +488,8 @@ const LoginPage = () => {
                 <div className="pf-iw">
                   <span className="pf-i-icon">
                     <svg width="16" height="16" fill="none" viewBox="0 0 24 24">
-                      <rect x="3" y="11" width="18" height="11" rx="2" stroke="#94a3b8" strokeWidth="1.8"/>
-                      <path d="M7 11V7a5 5 0 0110 0v4" stroke="#94a3b8" strokeWidth="1.8" strokeLinecap="round"/>
+                      <rect x="3" y="11" width="18" height="11" rx="2" stroke="#94a3b8" strokeWidth="1.8" />
+                      <path d="M7 11V7a5 5 0 0110 0v4" stroke="#94a3b8" strokeWidth="1.8" strokeLinecap="round" />
                     </svg>
                   </span>
                   <input
@@ -505,12 +507,12 @@ const LoginPage = () => {
                   >
                     {showPassword ? (
                       <svg width="17" height="17" fill="none" viewBox="0 0 24 24">
-                        <path d="M17.94 17.94A10.07 10.07 0 0112 20c-7 0-11-8-11-8a18.45 18.45 0 015.06-5.94M9.9 4.24A9.12 9.12 0 0112 4c7 0 11 8 11 8a18.5 18.5 0 01-2.16 3.19M1 1l22 22" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round"/>
+                        <path d="M17.94 17.94A10.07 10.07 0 0112 20c-7 0-11-8-11-8a18.45 18.45 0 015.06-5.94M9.9 4.24A9.12 9.12 0 0112 4c7 0 11 8 11 8a18.5 18.5 0 01-2.16 3.19M1 1l22 22" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
                       </svg>
                     ) : (
                       <svg width="17" height="17" fill="none" viewBox="0 0 24 24">
-                        <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" stroke="currentColor" strokeWidth="1.8"/>
-                        <circle cx="12" cy="12" r="3" stroke="currentColor" strokeWidth="1.8"/>
+                        <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" stroke="currentColor" strokeWidth="1.8" />
+                        <circle cx="12" cy="12" r="3" stroke="currentColor" strokeWidth="1.8" />
                       </svg>
                     )}
                   </button>
@@ -551,7 +553,7 @@ const LoginPage = () => {
                   <>
                     Sign In
                     <svg width="17" height="17" fill="none" viewBox="0 0 24 24">
-                      <path d="M5 12h14M12 5l7 7-7 7" stroke="#fff" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"/>
+                      <path d="M5 12h14M12 5l7 7-7 7" stroke="#fff" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" />
                     </svg>
                   </>
                 )}

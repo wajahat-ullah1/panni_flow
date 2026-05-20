@@ -50,9 +50,9 @@ const AdminDashboard = () => {
           quantity: o.items[0]?.quantity ? `${o.items[0]?.quantity * 19}L` : '',
           status: o.status,
           statusColor:
-            o.status === 'delivered' ? '#4CAF50'
-            : o.status === 'pending'   ? '#FFC107'
-            : '#2196F3',
+            o.status === 'delivered' ? '#0fa96b'
+            : o.status === 'pending'   ? '#f07d1a'
+            : '#1a56f0',
         })));
       } catch (err) {
         console.error('Failed to load dashboard data:', err);
@@ -77,16 +77,16 @@ const AdminDashboard = () => {
           : null,
         trend: totalOrders.trend,
         icon: Droplet,
-        color: '#00A8E8',
-        bgColor: '#E3F2FD',
+        color: '#1a56f0',
+        bgColor: '#e8effe',
       },
       {
         title: 'Active Deliveries',
         value: activeDeliveries.value.toString(),
         status: 'In Progress',
         icon: Truck,
-        color: '#FF9800',
-        bgColor: '#FFF3E0',
+        color: '#f07d1a',
+        bgColor: '#fff1e5',
       },
       {
         title: 'Revenue (Month)',
@@ -96,16 +96,16 @@ const AdminDashboard = () => {
           : null,
         trend: monthlyRevenue.trend,
         icon: DollarSign,
-        color: '#4CAF50',
-        bgColor: '#E8F5E9',
+        color: '#0fa96b',
+        bgColor: '#e5f9f1',
       },
       {
         title: 'Active Tankers',
         value: `${tankers.active}/${tankers.total}`,
         status: `${tankers.utilizationPercent}% Utilization`,
         icon: Users,
-        color: '#9C27B0',
-        bgColor: '#F3E5F5',
+        color: '#7c3aed',
+        bgColor: '#f0ebff',
       },
     ];
   };
@@ -123,15 +123,13 @@ const AdminDashboard = () => {
     { day: 'Sun', demand: 98 },
   ];
 
-
-
   // Alerts and notifications
   const alerts = [
     {
       id: 1,
       type: 'warning',
       icon: Clock,
-      color: '#FF9800',
+      color: '#f07d1a',
       title: 'Tanker TK-145 requires maintenance',
       time: '10 mins ago',
     },
@@ -139,7 +137,7 @@ const AdminDashboard = () => {
       id: 2,
       type: 'info',
       icon: TrendingUp,
-      color: '#2196F3',
+      color: '#1a56f0',
       title: 'High demand predicted for tomorrow',
       time: '25 mins ago',
     },
@@ -147,7 +145,7 @@ const AdminDashboard = () => {
       id: 3,
       type: 'success',
       icon: CheckCircle,
-      color: '#4CAF50',
+      color: '#0fa96b',
       title: 'All deliveries completed in Zone A',
       time: '1 hour ago',
     },
@@ -158,7 +156,7 @@ const AdminDashboard = () => {
       return (
         <div className="custom-tooltip">
           <p className="tooltip-label">{payload[0].payload.month}</p>
-          <p className="tooltip-value">Revenue: ${payload[0].value.toLocaleString()}</p>
+          <p className="tooltip-value">${payload[0].value.toLocaleString()}</p>
         </div>
       );
     }
@@ -171,14 +169,17 @@ const AdminDashboard = () => {
       <div className="dashboard-header">
         <div>
           <h1 className="header-title">Admin Dashboard</h1>
-          <p className="header-subtitle">Welcome back! Here's what's happening today.</p>
+          <p className="header-subtitle">Welcome back — here's what's happening today.</p>
         </div>
         <div className="date-container">
-          <span className="date-text">Today: {new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</span>
+          <span className="date-text">
+            {new Date().toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' })}
+          </span>
         </div>
       </div>
 
       <div className="dashboard-content">
+
         {/* Stats Cards */}
         <div className="stats-container">
           {loading
@@ -196,13 +197,13 @@ const AdminDashboard = () => {
                         <h2 className="stat-value">{stat.value}</h2>
                         {stat.change && (
                           <p className={`stat-change ${isDown ? 'negative' : 'positive'}`}>
-                            {isDown ? <TrendingDown size={14} /> : <TrendingUp size={14} />}
-                            {stat.change}
+                            {isDown ? <TrendingDown size={12} /> : <TrendingUp size={12} />}
+                            {stat.change} vs last month
                           </p>
                         )}
                         {stat.status && (
-                          <p className="stat-status" style={{ color: stat.color }}>
-                            <Clock size={14} />
+                          <p className="stat-status">
+                            <Clock size={12} />
                             {stat.status}
                           </p>
                         )}
@@ -211,7 +212,7 @@ const AdminDashboard = () => {
                         className="stat-icon"
                         style={{ backgroundColor: stat.bgColor }}
                       >
-                        <IconComponent size={28} color={stat.color} />
+                        <IconComponent size={24} color={stat.color} />
                       </div>
                     </div>
                   </div>
@@ -221,6 +222,7 @@ const AdminDashboard = () => {
 
         {/* Charts Section */}
         <div className="charts-row">
+
           {/* Revenue Overview */}
           <div className="chart-card">
             <div className="chart-header">
@@ -233,33 +235,41 @@ const AdminDashboard = () => {
             {loading ? (
               <div className="chart-skeleton" />
             ) : (
-            <ResponsiveContainer width="100%" height={250}>
-              <LineChart data={revenueData}>
-                <defs>
-                  <linearGradient id="colorRevenue" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="#2196F3" stopOpacity={0.3} />
-                    <stop offset="95%" stopColor="#2196F3" stopOpacity={0} />
-                  </linearGradient>
-                </defs>
-                <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
-                <XAxis
-                  dataKey="month"
-                  stroke="#757575"
-                  style={{ fontSize: '12px' }}
-                />
-                <YAxis stroke="#757575" style={{ fontSize: '12px' }} />
-                <Tooltip content={<CustomTooltip />} />
-                <Line
-                  type="monotone"
-                  dataKey="revenue"
-                  stroke="#2196F3"
-                  strokeWidth={3}
-                  dot={{ fill: '#2196F3', r: 4 }}
-                  activeDot={{ r: 6 }}
-                  fill="url(#colorRevenue)"
-                />
-              </LineChart>
-            </ResponsiveContainer>
+              <ResponsiveContainer width="100%" height={240}>
+                <LineChart data={revenueData}>
+                  <defs>
+                    <linearGradient id="colorRevenue" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="5%" stopColor="#1a56f0" stopOpacity={0.15} />
+                      <stop offset="95%" stopColor="#1a56f0" stopOpacity={0} />
+                    </linearGradient>
+                  </defs>
+                  <CartesianGrid strokeDasharray="3 3" stroke="#eef0f6" vertical={false} />
+                  <XAxis
+                    dataKey="month"
+                    stroke="#a8afc2"
+                    tick={{ fontSize: 12, fontFamily: 'DM Sans', fill: '#7c8394' }}
+                    axisLine={false}
+                    tickLine={false}
+                  />
+                  <YAxis
+                    stroke="#a8afc2"
+                    tick={{ fontSize: 12, fontFamily: 'DM Sans', fill: '#7c8394' }}
+                    axisLine={false}
+                    tickLine={false}
+                    width={55}
+                  />
+                  <Tooltip content={<CustomTooltip />} cursor={{ stroke: '#e4e8f0', strokeWidth: 1 }} />
+                  <Line
+                    type="monotone"
+                    dataKey="revenue"
+                    stroke="#1a56f0"
+                    strokeWidth={2.5}
+                    dot={{ fill: '#1a56f0', r: 3.5, strokeWidth: 0 }}
+                    activeDot={{ r: 6, fill: '#1a56f0', stroke: '#fff', strokeWidth: 2 }}
+                    fill="url(#colorRevenue)"
+                  />
+                </LineChart>
+              </ResponsiveContainer>
             )}
           </div>
 
@@ -275,93 +285,108 @@ const AdminDashboard = () => {
             {loading ? (
               <div className="chart-skeleton" />
             ) : (
-            <ResponsiveContainer width="100%" height={250}>
-              <BarChart data={demandData}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
-                <XAxis
-                  dataKey="day"
-                  stroke="#757575"
-                  style={{ fontSize: '12px' }}
-                />
-                <YAxis stroke="#757575" style={{ fontSize: '12px' }} />
-                <Tooltip
-                  cursor={{ fill: 'rgba(0, 188, 212, 0.1)' }}
-                  contentStyle={{
-                    backgroundColor: '#fff',
-                    border: '1px solid #e0e0e0',
-                    borderRadius: '8px',
-                  }}
-                />
-                <Bar dataKey="demand" fill="#00BCD4" radius={[8, 8, 0, 0]} />
-              </BarChart>
-            </ResponsiveContainer>
+              <ResponsiveContainer width="100%" height={240}>
+                <BarChart data={demandData} barSize={28}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="#eef0f6" vertical={false} />
+                  <XAxis
+                    dataKey="day"
+                    stroke="#a8afc2"
+                    tick={{ fontSize: 12, fontFamily: 'DM Sans', fill: '#7c8394' }}
+                    axisLine={false}
+                    tickLine={false}
+                  />
+                  <YAxis
+                    stroke="#a8afc2"
+                    tick={{ fontSize: 12, fontFamily: 'DM Sans', fill: '#7c8394' }}
+                    axisLine={false}
+                    tickLine={false}
+                    width={40}
+                  />
+                  <Tooltip
+                    cursor={{ fill: 'rgba(26,86,240,0.06)', radius: 8 }}
+                    contentStyle={{
+                      background: '#0d1117',
+                      border: 'none',
+                      borderRadius: '12px',
+                      fontSize: '13px',
+                      fontFamily: 'DM Sans',
+                      color: '#fff',
+                      padding: '10px 14px',
+                    }}
+                    labelStyle={{ color: '#a8afc2', fontWeight: 600, fontSize: '11px', textTransform: 'uppercase', letterSpacing: '0.5px' }}
+                    itemStyle={{ color: '#ffffff', fontWeight: 700 }}
+                  />
+                  <Bar dataKey="demand" fill="#1a56f0" radius={[6, 6, 0, 0]} />
+                </BarChart>
+              </ResponsiveContainer>
             )}
           </div>
         </div>
 
         {/* Recent Orders and Alerts */}
         <div className="bottom-section">
+
           {/* Recent Orders */}
           <div className="recent-orders-card">
             <h3 className="section-title">Recent Orders</h3>
-
             <div className="orders-list">
               {loading
                 ? Array.from({ length: 4 }).map((_, i) => (
                     <div key={i} className="order-item order-item--loading" />
                   ))
                 : recentOrders.map((order, index) => (
-                <div key={index} className="order-item">
-                  <div className="order-icon">
-                    <Droplet size={24} color="#00A8E8" />
-                  </div>
-                  <div className="order-details">
-                    <p className="order-company">{order.company}</p>
-                    <p className="order-info">
-                      {order.id} • {order.quantity}
-                    </p>
-                  </div>
-                  <div
-                    className="status-badge"
-                    style={{ backgroundColor: `${order.statusColor}20` }}
-                  >
-                    <span style={{ color: order.statusColor }}>
-                      {order.status}
-                    </span>
-                  </div>
-                </div>
-              ))}
+                    <div key={index} className="order-item">
+                      <div className="order-icon">
+                        <Droplet size={20} color="#1a56f0" />
+                      </div>
+                      <div className="order-details">
+                        <p className="order-company">{order.company}</p>
+                        <p className="order-info">
+                          {order.id}{order.quantity ? ` · ${order.quantity}` : ''}
+                        </p>
+                      </div>
+                      <div
+                        className="status-badge"
+                        style={{
+                          backgroundColor: `${order.statusColor}18`,
+                          color: order.statusColor,
+                        }}
+                      >
+                        {order.status}
+                      </div>
+                    </div>
+                  ))}
             </div>
           </div>
 
           {/* Alerts & Notifications */}
           <div className="alerts-card">
             <h3 className="section-title">Alerts & Notifications</h3>
-
             <div className="alerts-list">
               {loading
                 ? Array.from({ length: 3 }).map((_, i) => (
                     <div key={i} className="alert-item alert-item--loading" />
                   ))
                 : alerts.map((alert) => {
-                const AlertIcon = alert.icon;
-                return (
-                  <div key={alert.id} className="alert-item">
-                    <div
-                      className="alert-icon"
-                      style={{ backgroundColor: `${alert.color}20` }}
-                    >
-                      <AlertIcon size={20} color={alert.color} />
-                    </div>
-                    <div className="alert-content">
-                      <p className="alert-title">{alert.title}</p>
-                      <p className="alert-time">{alert.time}</p>
-                    </div>
-                  </div>
-                );
-              })}
+                    const AlertIcon = alert.icon;
+                    return (
+                      <div key={alert.id} className="alert-item">
+                        <div
+                          className="alert-icon"
+                          style={{ backgroundColor: `${alert.color}18` }}
+                        >
+                          <AlertIcon size={18} color={alert.color} />
+                        </div>
+                        <div className="alert-content">
+                          <p className="alert-title">{alert.title}</p>
+                          <p className="alert-time">{alert.time}</p>
+                        </div>
+                      </div>
+                    );
+                  })}
             </div>
           </div>
+
         </div>
       </div>
     </div>

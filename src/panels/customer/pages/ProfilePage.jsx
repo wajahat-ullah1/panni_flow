@@ -995,7 +995,7 @@ export default function ProfilePage() {
         <div style={styles.rightCol}>
 
           {/* Avatar Card */}
-          <div style={{ ...styles.card, alignItems: "center", textAlign: "center" }}>
+          {/* <div style={{ ...styles.card, alignItems: "center", textAlign: "center" }}>
             <div style={styles.avatarCircle}>
               <UserIcon size={52} stroke="white" />
             </div>
@@ -1005,7 +1005,7 @@ export default function ProfilePage() {
             <button style={styles.changePhotoBtn}>
               <CameraIcon /> Change Photo
             </button>
-          </div>
+          </div> */}
 
           {/* Account Stats */}
           <div style={styles.card}>

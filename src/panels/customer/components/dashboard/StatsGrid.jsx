@@ -41,7 +41,7 @@ export default function StatsGrid() {
   const trendInfo = (field) => {
     if (typeof field === "object" && field !== null && field.trend) {
       const { percentage, direction } = field.trend;
-      return { label: percentage ? `${percentage}%` : null, color: direction === "up" ? "#10b981" : "#ef4444", noArrow: false, direction };
+      return { label: percentage ? `${percentage}%` : null, color: direction === "up" ? "#16a34a" : "#ef4444", noArrow: false, direction };
     }
     return { label: null, color: "#94a3b8", noArrow: true, direction: null };
   };
@@ -54,8 +54,8 @@ export default function StatsGrid() {
       label: "Total Orders",
       value: stats ? String(val(stats.totalOrders)) : "—",
       trend: stats ? (ordersT.label ?? `${val(stats.totalOrders)} orders`) : "Loading...",
-      icon: <BoxIcon color="#0ea5e9" />,
-      iconBg: "linear-gradient(135deg, #0ea5e9 0%, #0284c7 100%)",
+      icon: <BoxIcon color="#fff" />,
+      iconBg: "linear-gradient(135deg, #3b82f6, #2563eb)",
       trendColor: ordersT.color,
       trendNoArrow: ordersT.noArrow,
       trendDirection: ordersT.direction,
@@ -65,7 +65,7 @@ export default function StatsGrid() {
       value: stats ? String(stats.activeDeliveries ?? stats.activeOrders) : "—",
       trend: "In Progress",
       icon: <TruckIcon stroke="white" />,
-      iconBg: "linear-gradient(135deg, #10b981 0%, #059669 100%)",
+      iconBg: "linear-gradient(135deg, #f97316, #ea580c)",
       trendColor: "#94a3b8",
       trendNoArrow: true,
     },
@@ -74,7 +74,7 @@ export default function StatsGrid() {
       value: stats ? `PKR ${monthlySpending.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : "—",
       trend: stats ? (spendingT.label ?? `PKR ${stats.totalSpent?.toLocaleString()} total`) : "Loading...",
       icon: <DollarIcon stroke="white" />,
-      iconBg: "linear-gradient(135deg, #f59e0b 0%, #d97706 100%)",
+      iconBg: "linear-gradient(135deg, #22c55e, #16a34a)",
       trendColor: spendingT.color,
       trendNoArrow: spendingT.noArrow,
       trendDirection: spendingT.direction,
@@ -84,7 +84,7 @@ export default function StatsGrid() {
       value: stats ? String(stats.bottlesOrdered?.count ?? "—") : "—",
       trend: stats?.bottlesOrdered?.label ?? "19L Bottles",
       icon: <DropIcon stroke="white" />,
-      iconBg: "linear-gradient(135deg, #a855f7 0%, #7c3aed 100%)",
+      iconBg: "linear-gradient(135deg, #a855f7, #7c3aed)",
       trendColor: "#94a3b8",
       trendNoArrow: true,
     },
@@ -93,21 +93,16 @@ export default function StatsGrid() {
   return (
     <>
       <style>{`
-        @keyframes shimmer {
-          0%   { background-position: -600px 0; }
-          100% { background-position: 600px 0; }
+        @import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700;800&display=swap');
+        @keyframes sgFadeUp {
+          from { opacity:0; transform:translateY(10px); }
+          to   { opacity:1; transform:translateY(0); }
         }
-        .stats-skeleton {
-          background: linear-gradient(90deg, #f1f5f9 25%, #e2e8f0 50%, #f1f5f9 75%);
-          background-size: 600px 100%;
-          animation: shimmer 1.4s infinite linear;
-          border-radius: 18px;
-          height: 130px;
-        }
+        .sg-card-wrap { animation: sgFadeUp 0.4s ease both; }
       `}</style>
       <div style={styles.grid}>
         {cards.map((card, i) => (
-          <div key={card.label} style={{ animationDelay: `${i * 80}ms` }}>
+          <div key={card.label} className="sg-card-wrap" style={{ animationDelay: `${i * 80}ms` }}>
             <StatCard {...card} />
           </div>
         ))}
@@ -120,7 +115,7 @@ const styles = {
   grid: {
     display: "grid",
     gridTemplateColumns: "repeat(4, 1fr)",
-    gap: 18,
-    marginBottom: 24,
+    gap: 20,
+    marginBottom: 28,
   },
 };

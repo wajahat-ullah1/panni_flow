@@ -411,9 +411,11 @@ const SignUpPage = () => {
                   style={{ width: 50, height: 50, objectFit: 'contain', borderRadius: 8 }}
                 />
               ) : (
-                <svg width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2">
-                  <path d="M12 2C8.5 2 6 6 6 9c0 5 6 13 6 13s6-8 6-13c0-3-2.5-7-6-7z" strokeLinecap="round" strokeLinejoin="round"/>
-                  <circle cx="12" cy="9" r="2.5"/>
+                <svg className="pf-logo-svg" width="46" height="46" viewBox="0 0 24 24" fill="none" stroke="White" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  {/* <!-- Outer liquid contour --> */}
+                  <path d="M12 2C11.5 2.8 6 11 6 15a6 6 0 0 0 12 0c0-4-5.5-12.2-6-13z" />
+                  {/* <!-- Stylish internal reflection accent --> */}
+                  <path d="M15 13a3 3 0 0 0-3-3" />
                 </svg>
               )}
             </div>

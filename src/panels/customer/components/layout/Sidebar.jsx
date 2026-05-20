@@ -6,12 +6,12 @@ import {
 import { useTenant } from "../../../../shared/context/TenantContext";
 
 const NAV_ITEMS = [
-  { icon: DashboardIcon, label: "Dashboard",     path: "dashboard" },
-  { icon: OrderIcon,     label: "Order Water",   path: "order-water" },
-  { icon: MyOrdersIcon,  label: "My Orders",     path: "my-orders" },
-  { icon: TrackIcon,     label: "Live Tracking", path: "live-tracking" },
-  { icon: PaymentIcon,   label: "Payments",      path: "payments" },
-  { icon: ProfileIcon,   label: "Profile",       path: "profile" },
+  { icon: DashboardIcon, label: "Dashboard", path: "dashboard" },
+  { icon: OrderIcon, label: "Order Water", path: "order-water" },
+  { icon: MyOrdersIcon, label: "My Orders", path: "my-orders" },
+  { icon: TrackIcon, label: "Live Tracking", path: "live-tracking" },
+  { icon: PaymentIcon, label: "Payments", path: "payments" },
+  { icon: ProfileIcon, label: "Profile", path: "profile" },
 ];
 
 export default function Sidebar({ activeNav, setActiveNav, onLogout }) {
@@ -33,42 +33,62 @@ export default function Sidebar({ activeNav, setActiveNav, onLogout }) {
   return (
     <aside style={styles.sidebar}>
       <style>{`
-        @import url('https://fonts.googleapis.com/css2?family=Syne:wght@700;800&family=DM+Sans:wght@400;500;600&display=swap');
-        .nav-item-btn {
-          transition: all 0.18s cubic-bezier(.34,1.56,.64,1);
+        @import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700;800&display=swap');
+
+        .cs-root::before {
+          content: '';
+          position: absolute;
+          inset: 0;
+          background-image:
+            linear-gradient(rgba(255,255,255,0.025) 1px, transparent 1px),
+            linear-gradient(90deg, rgba(255,255,255,0.025) 1px, transparent 1px);
+          background-size: 32px 32px;
+          pointer-events: none;
         }
-        .nav-item-btn:hover {
-          background: #f0f9ff !important;
-          transform: translateX(3px);
-        }
-        .logout-btn-side {
+
+        .cs-nav-item {
           transition: all 0.18s ease;
         }
-        .logout-btn-side:hover {
-          background: #fff1f2 !important;
-          color: #ef4444 !important;
+        .cs-nav-item:hover {
+          background: rgba(255,255,255,0.07) !important;
+          color: rgba(255,255,255,0.9) !important;
+          transform: translateX(2px);
         }
-        @keyframes slideInLeft {
-          from { opacity:0; transform:translateX(-12px); }
+        .cs-logout-btn {
+          transition: all 0.18s ease;
+        }
+        .cs-logout-btn:hover {
+          background: rgba(239,68,68,0.18) !important;
+          border-color: rgba(239,68,68,0.35) !important;
+          color: #fecaca !important;
+        }
+        @keyframes csSlideIn {
+          from { opacity:0; transform:translateX(-10px); }
           to   { opacity:1; transform:translateX(0); }
         }
-        .sidebar-nav-item { animation: slideInLeft 0.35s ease both; }
+        .cs-nav-animated { animation: csSlideIn 0.32s ease both; }
       `}</style>
 
       {/* Brand */}
       <div style={styles.brand}>
         <div style={styles.brandIcon}>
           {logoUrl ? (
-            <img src={logoUrl} alt={tenantData.name} style={{ width: 26, height: 26, objectFit: "contain", borderRadius: 4 }} />
+            <img src={logoUrl} alt={tenantData?.name} style={{ width: 26, height: 26, objectFit: "contain", borderRadius: 5 }} />
           ) : (
-            <DropIcon stroke="white" />
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+              <path d="M12 2.5C11.5 2.5 6 9.5 6 14C6 17.3 8.7 20 12 20C15.3 20 18 17.3 18 14C18 9.5 12.5 2.5 12 2.5Z" fill="white" fillOpacity="0.9" />
+              <path d="M8 14C8 11.8 10.5 8 12 6" stroke="white" stroke-width="1.5" stroke-linecap="round" opacity="0.5" />
+            </svg>
           )}
         </div>
-        <div>
-          <div style={styles.brandName}>{tenantData?.name ?? "Panni Flow"}</div>
+        <div style={{ overflow: "hidden" }}>
+          <div style={styles.brandName}>{tenantData?.name ?? "Pani Flow"}</div>
           <div style={styles.brandSub}>Customer Panel</div>
         </div>
       </div>
+
+      {/* Divider */}
+      <div style={styles.divider} />
 
       {/* Nav */}
       <nav style={styles.nav}>
@@ -83,30 +103,29 @@ export default function Sidebar({ activeNav, setActiveNav, onLogout }) {
                 ...(isActive ? styles.navItemActive : {}),
                 animationDelay: `${i * 50}ms`,
               }}
-              className="nav-item-btn sidebar-nav-item"
+              className="cs-nav-item cs-nav-animated"
               onClick={() => handleNavigation(label, path)}
             >
               <span style={{
                 ...styles.navIconWrap,
-                background: isActive ? "linear-gradient(135deg,#0ea5e9,#0284c7)" : "transparent",
-                color: isActive ? "white" : "#94a3b8",
+                background: isActive
+                  ? "linear-gradient(135deg, rgba(14,165,233,0.35), rgba(3,105,161,0.25))"
+                  : "transparent",
               }}>
                 <Icon />
               </span>
-              <span style={{ color: isActive ? "#0f172a" : "#64748b", fontWeight: isActive ? 600 : 400 }}>
-                {label}
-              </span>
-              {isActive && <span style={styles.activeIndicator} />}
+              <span style={styles.navLabelText}>{label}</span>
+              {isActive && <span style={styles.activeDot} />}
             </button>
           );
         })}
       </nav>
 
-      {/* Bottom */}
-      <div style={styles.bottomSection}>
+      {/* Footer */}
+      <div style={styles.footer}>
         <div style={styles.divider} />
-        <button style={styles.logoutBtn} className="logout-btn-side" onClick={handleLogout}>
-          <LogoutIcon />
+        <button style={styles.logoutBtn} className="cs-logout-btn" onClick={handleLogout}>
+          <span style={styles.logoutIcon}><LogoutIcon /></span>
           <span>Logout</span>
         </button>
       </div>
@@ -116,62 +135,99 @@ export default function Sidebar({ activeNav, setActiveNav, onLogout }) {
 
 const styles = {
   sidebar: {
-    width: 228,
-    minWidth: 228,
-    background: "white",
-    borderRight: "1px solid #e8edf5",
+    width: 240,
+    minWidth: 240,
+    height: "100vh",
+    background: "linear-gradient(180deg, #0c1e3e 0%, #0f2d5a 60%, #0c2346 100%)",
     display: "flex",
     flexDirection: "column",
-    padding: "0 0 16px",
-    boxShadow: "2px 0 12px rgba(15,23,42,0.05)",
-    fontFamily: "'DM Sans', sans-serif",
+    position: "relative",
+    boxShadow: "4px 0 24px rgba(0,0,0,0.15)",
+    overflow: "hidden",
+    fontFamily: "'DM Sans', 'Segoe UI', sans-serif",
   },
   brand: {
     display: "flex",
     alignItems: "center",
-    gap: 10,
+    gap: 12,
     padding: "22px 20px 20px",
-    borderBottom: "1px solid #f1f5f9",
-    marginBottom: 8,
+    position: "relative",
+    zIndex: 1,
   },
   brandIcon: {
-    width: 40,
-    height: 40,
+    width: 42,
+    height: 42,
     borderRadius: 12,
-    background: "linear-gradient(135deg, #0ea5e9, #0284c7)",
+    background: "rgba(255,255,255,0.12)",
+    border: "1.5px solid rgba(255,255,255,0.2)",
     display: "flex",
     alignItems: "center",
     justifyContent: "center",
-    boxShadow: "0 4px 12px rgba(14,165,233,0.3)",
+    flexShrink: 0,
+    backdropFilter: "blur(6px)",
+    boxShadow: "0 4px 12px rgba(0,0,0,0.2)",
   },
-  brandName: { fontWeight: 900, fontSize: 19, color: "#0f172a", fontFamily: "'DM Sans', sans-serif", letterSpacing: -0.3 },
-  brandSub: { fontSize: 10.5, color: "#94a3b8", marginTop: 1, fontWeight: 500, letterSpacing: 0.4 },
-  nav: { flex: 1, padding: "8px 12px", display: "flex", flexDirection: "column", gap: 2 },
+  brandName: {
+    fontSize: 15,
+    fontWeight: 800,
+    color: "#ffffff",
+    margin: 0,
+    whiteSpace: "nowrap",
+    overflow: "hidden",
+    textOverflow: "ellipsis",
+    letterSpacing: "-0.3px",
+  },
+  brandSub: {
+    fontSize: 11,
+    fontWeight: 600,
+    color: "rgba(255,255,255,0.4)",
+    textTransform: "uppercase",
+    letterSpacing: "0.7px",
+  },
+  divider: {
+    height: 1,
+    background: "rgba(255,255,255,0.08)",
+    margin: "0 20px",
+    position: "relative",
+    zIndex: 1,
+  },
+  nav: {
+    flex: 1,
+    padding: "20px 12px 12px",
+    overflowY: "auto",
+    position: "relative",
+    zIndex: 1,
+  },
   navLabel: {
-    fontSize: 9.5,
+    fontSize: 10.5,
     fontWeight: 700,
-    color: "#cbd5e1",
-    letterSpacing: 1.2,
-    padding: "4px 12px 10px",
-    fontFamily: "'DM Sans', sans-serif",
+    color: "rgba(255,255,255,0.28)",
+    letterSpacing: "1px",
+    margin: "0 8px 10px",
   },
   navItem: {
+    width: "100%",
     display: "flex",
     alignItems: "center",
-    gap: 10,
-    padding: "9px 10px",
-    borderRadius: 11,
+    gap: 11,
+    padding: "11px 14px",
+    marginBottom: 3,
     border: "none",
     background: "transparent",
+    borderRadius: 10,
     cursor: "pointer",
-    width: "100%",
-    textAlign: "left",
-    fontSize: 13.5,
-    position: "relative",
     fontFamily: "'DM Sans', sans-serif",
+    fontSize: 13.5,
+    fontWeight: 500,
+    color: "rgba(255,255,255,0.55)",
+    textAlign: "left",
+    position: "relative",
   },
   navItemActive: {
-    background: "#f0f9ff",
+    background: "linear-gradient(135deg, rgba(14,165,233,0.25), rgba(3,105,161,0.2))",
+    color: "#ffffff",
+    fontWeight: 700,
+    border: "1px solid rgba(14,165,233,0.25)",
   },
   navIconWrap: {
     width: 30,
@@ -183,29 +239,42 @@ const styles = {
     flexShrink: 0,
     transition: "background 0.18s ease",
   },
-  activeIndicator: {
-    position: "absolute",
-    right: 10,
+  navLabelText: { flex: 1 },
+  activeDot: {
     width: 6,
     height: 6,
     borderRadius: "50%",
-    background: "#0ea5e9",
+    background: "#38bdf8",
+    boxShadow: "0 0 6px rgba(56,189,248,0.7)",
+    flexShrink: 0,
   },
-  bottomSection: { padding: "0 12px" },
-  divider: { height: 1, background: "#f1f5f9", marginBottom: 8 },
+  footer: {
+    padding: "0 12px 20px",
+    position: "relative",
+    zIndex: 1,
+    display: "flex",
+    flexDirection: "column",
+    gap: 16,
+  },
   logoutBtn: {
+    width: "100%",
     display: "flex",
     alignItems: "center",
-    gap: 10,
-    padding: "10px 12px",
-    border: "none",
-    background: "transparent",
-    color: "#64748b",
-    fontSize: 13.5,
+    gap: 11,
+    padding: "11px 14px",
+    background: "rgba(239,68,68,0.08)",
+    border: "1px solid rgba(239,68,68,0.15)",
+    borderRadius: 10,
     cursor: "pointer",
-    borderRadius: 11,
-    width: "100%",
     fontFamily: "'DM Sans', sans-serif",
-    fontWeight: 500,
+    fontSize: 13.5,
+    fontWeight: 600,
+    color: "#fca5a5",
+  },
+  logoutIcon: {
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    flexShrink: 0,
   },
 };

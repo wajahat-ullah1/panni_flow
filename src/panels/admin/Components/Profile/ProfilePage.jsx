@@ -519,7 +519,7 @@ export default function ProfilePage() {
         <div style={styles.rightCol}>
 
           {/* Avatar Card */}
-          <div style={{ ...styles.card, alignItems: "center", textAlign: "center" }}>
+          {/* <div style={{ ...styles.card, alignItems: "center", textAlign: "center" }}>
             <div style={styles.avatarCircle}>
               <UserIcon size={52} stroke="white" />
             </div>
@@ -529,7 +529,7 @@ export default function ProfilePage() {
             <button style={styles.changePhotoBtn}>
               <CameraIcon /> Change Photo
             </button>
-          </div>
+          </div> */}
 
           {/* Preferences */}
           <div style={styles.card}>
@@ -575,7 +575,7 @@ export default function ProfilePage() {
 
 // ─── Styles ───────────────────────────────────────────────────────────────────
 const styles = {
-  page: { flex: 1, overflowY: "auto", padding: "24px 28px" },
+  page: { flex: 1, overflowY: "auto", padding: "24px 28px", marginLeft: 250 },
   pageTitle: { fontSize: 32, fontWeight: 700, color: "#1a1a1a" },
   pageSubtitle: { fontSize: 13, color: "#94a3b8", marginTop: 2, marginBottom: 22 },
 

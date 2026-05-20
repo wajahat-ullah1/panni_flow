@@ -23,45 +23,46 @@ export default function Topbar() {
   return (
     <header style={styles.topbar}>
       <style>{`
-        @import url('https://fonts.googleapis.com/css2?family=Syne:wght@700;800&family=DM+Sans:wght@400;500;600&display=swap');
-        .search-box-top { transition: all 0.2s ease; }
-        .search-box-top:focus-within {
-          border-color: #bae6fd !important;
-          background: white !important;
-          box-shadow: 0 0 0 3px rgba(14,165,233,0.1);
+        @import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700;800&display=swap');
+        .ct-search-box { transition: all 0.2s ease; }
+        .ct-search-box:focus-within {
+          border-color: #7dd3fc !important;
+          background: #fff !important;
+          box-shadow: 0 0 0 3px rgba(14,165,233,0.12);
         }
-        .bell-btn-top {
+        .ct-bell-btn {
           transition: all 0.18s cubic-bezier(.34,1.56,.64,1);
         }
-        .bell-btn-top:hover {
-          background: #f0f9ff !important;
+        .ct-bell-btn:hover {
+          background: #eff6ff !important;
           border-color: #bae6fd !important;
           transform: scale(1.08);
         }
-        .user-avatar-top {
+        .ct-avatar {
           transition: transform 0.18s cubic-bezier(.34,1.56,.64,1);
           cursor: pointer;
         }
-        .user-avatar-top:hover { transform: scale(1.07); }
-        @keyframes topbarIn {
+        .ct-avatar:hover { transform: scale(1.07); }
+        @keyframes ctSlideDown {
           from { opacity:0; transform:translateY(-6px); }
           to   { opacity:1; transform:translateY(0); }
         }
-        .topbar-inner { animation: topbarIn 0.4s ease both; }
+        .ct-inner { animation: ctSlideDown 0.38s ease both; }
       `}</style>
 
-      <div className="topbar-inner" style={styles.inner}>
+      <div className="ct-inner" style={styles.inner}>
         <div>
-          <div style={styles.topDate}>{formattedDate}</div>
-          <div style={styles.topGreet}>
-            Welcome back, <span style={styles.greetName}>{userName}</span>
-            <span style={{ marginLeft: 4 }}>👋</span>
+          <div style={styles.dateLabel}>{formattedDate}</div>
+          <div style={styles.greeting}>
+            Welcome back,&nbsp;
+            <span style={styles.greetName}>{userName}</span>
+            <span style={{ marginLeft: 6 }}>👋</span>
           </div>
         </div>
 
-        <div style={styles.topRight}>
+        <div style={styles.right}>
           {/* Search */}
-          <div style={styles.searchBox} className="search-box-top">
+          <div style={styles.searchBox} className="ct-search-box">
             <span style={{ color: "#94a3b8", display: "flex" }}>
               <SearchIcon />
             </span>
@@ -69,7 +70,7 @@ export default function Topbar() {
           </div>
 
           {/* Bell */}
-          <button style={styles.bellBtn} className="bell-btn-top">
+          <button style={styles.bellBtn} className="ct-bell-btn">
             <BellIcon />
             <span style={styles.bellBadge}>3</span>
           </button>
@@ -79,7 +80,7 @@ export default function Topbar() {
 
           {/* User */}
           <div style={styles.userInfo}>
-            <div style={styles.avatar} className="user-avatar-top">{initials}</div>
+            <div style={styles.avatar} className="ct-avatar">{initials}</div>
             <div>
               <div style={styles.userName}>{userName}</div>
               <div style={styles.userRole}>{userRole}</div>
@@ -93,46 +94,47 @@ export default function Topbar() {
 
 const styles = {
   topbar: {
-    background: "white",
-    borderBottom: "1px solid #e8edf5",
-    boxShadow: "0 1px 8px rgba(15,23,42,0.05)",
-    padding: "0 28px",
-    fontFamily: "'DM Sans', sans-serif",
+    background: "#ffffff",
+    borderBottom: "1px solid #e2e8f0",
+    boxShadow: "0 1px 8px rgba(15,23,42,0.06)",
+    padding: "0 32px",
+    fontFamily: "'DM Sans', 'Segoe UI', sans-serif",
   },
   inner: {
     display: "flex",
     alignItems: "center",
     justifyContent: "space-between",
-    height: 88,
+    height: 80,
   },
-  topDate: { fontSize: 11.5, color: "#94a3b8", letterSpacing: 0.3 },
-  topGreet: {
-    fontSize: 30,
+  dateLabel: {
+    fontSize: 11.5,
+    color: "#94a3b8",
+    fontWeight: 500,
+    letterSpacing: "0.3px",
+  },
+  greeting: {
+    fontSize: 26,
     fontWeight: 800,
     color: "#0f172a",
-    fontFamily: "sans-serif",
-    letterSpacing: -0.5,
-    marginTop: 1,
+    fontFamily: "'DM Sans', sans-serif",
+    letterSpacing: "-0.5px",
+    marginTop: 2,
     display: "flex",
     alignItems: "center",
   },
   greetName: {
-    background: "linear-gradient(90deg, #0ea5e9, #0284c7)",
-    WebkitBackgroundClip: "text",
-    WebkitTextFillColor: "transparent",
-    backgroundClip: "text",
-    marginLeft: 5,
+    color: "#0ea5e9",
   },
-  topRight: { display: "flex", alignItems: "center", gap: 12 },
+  right: { display: "flex", alignItems: "center", gap: 12 },
   searchBox: {
     display: "flex",
     alignItems: "center",
     gap: 8,
     background: "#f8fafc",
     border: "1.5px solid #e2e8f0",
-    borderRadius: 11,
+    borderRadius: 10,
     padding: "8px 14px",
-    width: 220,
+    width: 210,
   },
   searchInput: {
     border: "none",
@@ -147,7 +149,7 @@ const styles = {
     position: "relative",
     background: "#f8fafc",
     border: "1.5px solid #e2e8f0",
-    borderRadius: 11,
+    borderRadius: 10,
     width: 42,
     height: 42,
     display: "flex",
@@ -176,23 +178,23 @@ const styles = {
     width: 1,
     height: 28,
     background: "#e2e8f0",
-    margin: "0 2px",
+    margin: "0 4px",
   },
   userInfo: { display: "flex", alignItems: "center", gap: 10 },
   avatar: {
     width: 40,
     height: 40,
     borderRadius: "50%",
-    background: "linear-gradient(135deg, #a855f7, #7c3aed)",
+    background: "linear-gradient(135deg, #0369a1, #0ea5e9)",
     display: "flex",
     alignItems: "center",
     justifyContent: "center",
     color: "white",
     fontWeight: 700,
     fontSize: 13,
-    boxShadow: "0 3px 10px rgba(168,85,247,0.3)",
-    fontFamily: "'Syne', sans-serif",
+    boxShadow: "0 3px 10px rgba(14,165,233,0.3)",
+    fontFamily: "'DM Sans', sans-serif",
   },
-  userName: { fontSize: 13, fontWeight: 600, color: "#0f172a" },
-  userRole: { fontSize: 10.5, color: "#94a3b8", letterSpacing: 0.3 },
+  userName: { fontSize: 13, fontWeight: 700, color: "#0f172a" },
+  userRole: { fontSize: 10.5, color: "#94a3b8", letterSpacing: "0.3px", fontWeight: 500 },
 };
