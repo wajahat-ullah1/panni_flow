@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   LineChart,
   Line,
@@ -22,131 +22,146 @@ import {
   Target,
   Activity,
   Brain,
-  ChevronRight
+  ChevronRight,
+  Loader2
 } from 'lucide-react';
+import adminApi from '../../../../shared/api/adminApi';
 import './DemandForecasting.css';
 
+const TIME_RANGE_OPTIONS = [
+  { label: 'Last 3 Months', value: 'last_3_months' },
+  { label: 'Last 6 Months', value: 'last_6_months' },
+  { label: 'Last Year', value: 'last_year' },
+];
+
+const INSIGHT_CONFIG = {
+  alert: { color: 'red', icon: AlertTriangle },
+  optimization: { color: 'yellow', icon: Target },
+  trend: { color: 'green', icon: Activity },
+};
+
 const DemandForecasting = () => {
-  const [selectedTimeRange, setSelectedTimeRange] = useState('Last 6 Months');
+  const [selectedTimeRange, setSelectedTimeRange] = useState('last_6_months');
   const [aiModelActive, setAiModelActive] = useState(true);
 
-  // Summary metrics data
-  const summaryMetrics = [
+  const [data, setData] = useState(null);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(null);
+
+  useEffect(() => {
+    const controller = new AbortController();
+    setLoading(true);
+    setError(null);
+
+    adminApi.getDemandForecast(
+      { timeRange: selectedTimeRange },
+      { signal: controller.signal }
+    )
+      .then((result) => {
+        console.log('Forecast data:', result);
+        setData(result?.data);
+        setLoading(false);
+      })
+      .catch((err) => {
+        if (err.name === 'CanceledError' || err.code === 'ERR_CANCELED') return;
+        setError(err.response?.data?.message || err.message || 'Failed to load forecast data');
+        setLoading(false);
+      });
+
+    return () => controller.abort();
+  }, [selectedTimeRange]);
+
+  const handleRetry = () => {
+    setSelectedTimeRange((prev) => prev);
+    // Force re-fetch by toggling a dummy state
+    setError(null);
+    setLoading(true);
+    adminApi.getDemandForecast({ timeRange: selectedTimeRange })
+      .then((result) => {
+        setData(result?.data);
+      })
+      .catch((err) => {
+        if (err.name === 'CanceledError' || err.code === 'ERR_CANCELED') return;
+        setError(err.response?.data?.message || err.message || 'Failed to load forecast data');
+      })
+      .finally(() => setLoading(false));
+  };
+
+  const handleTimeRangeChange = () => {
+    const currentIndex = TIME_RANGE_OPTIONS.findIndex(o => o.value === selectedTimeRange);
+    const nextIndex = (currentIndex + 1) % TIME_RANGE_OPTIONS.length;
+    setSelectedTimeRange(TIME_RANGE_OPTIONS[nextIndex].value);
+  };
+
+  const timeRangeLabel = TIME_RANGE_OPTIONS.find(o => o.value === selectedTimeRange)?.label || 'Last 6 Months';
+
+  // Build display data from API response
+  const summaryMetrics = data ? [
     {
       title: 'Next Week Volume',
-      value: '6,410L',
-      change: '+12.3%',
-      trend: 'up',
-      icon: TrendingUp
+      value: `${data.summaryMetrics.nextWeekVolume.value.toLocaleString()}L`,
+      change: `${data.summaryMetrics.nextWeekVolume.changePercent >= 0 ? '+' : ''}${data.summaryMetrics.nextWeekVolume.changePercent}%`,
+      trend: data.summaryMetrics.nextWeekVolume.changePercent >= 0 ? 'up' : 'down',
+      icon: data.summaryMetrics.nextWeekVolume.changePercent >= 0 ? TrendingUp : TrendingDown
     },
     {
       title: 'Peak Day',
-      value: 'Saturday',
-      subtitle: '1,050 orders',
+      value: data.summaryMetrics.peakDay.day,
+      subtitle: `${data.summaryMetrics.peakDay.orders.toLocaleString()} orders`,
       trend: 'up',
       icon: TrendingUp
     },
     {
       title: 'Low Day',
-      value: 'Wednesday',
-      subtitle: '780 orders',
+      value: data.summaryMetrics.lowDay.day,
+      subtitle: `${data.summaryMetrics.lowDay.orders.toLocaleString()} orders`,
       trend: 'down',
       icon: TrendingDown
     },
     {
       title: 'Avg Confidence',
-      value: '91.7%',
-      change: '+2.1%',
-      trend: 'up',
-      icon: TrendingUp
+      value: `${data.summaryMetrics.avgConfidence.value}%`,
+      change: `${data.summaryMetrics.avgConfidence.changePercent >= 0 ? '+' : ''}${data.summaryMetrics.avgConfidence.changePercent}%`,
+      trend: data.summaryMetrics.avgConfidence.changePercent >= 0 ? 'up' : 'down',
+      icon: data.summaryMetrics.avgConfidence.changePercent >= 0 ? TrendingUp : TrendingDown
     }
-  ];
+  ] : [];
 
-  // 7-Day forecast data
-  const weeklyForecastData = [
-    { day: 'Mon', actual: 850, predicted: 820 },
-    { day: 'Tue', actual: 900, predicted: 920 },
-    { day: 'Wed', actual: null, predicted: 780 },
-    { day: 'Thu', actual: null, predicted: 890 },
-    { day: 'Fri', actual: null, predicted: 950 },
-    { day: 'Sat', actual: null, predicted: 1050 },
-    { day: 'Sun', actual: null, predicted: 920 }
-  ];
+  const weeklyForecastData = data?.weeklyForecast || [];
+  const monthlyTrendData = data?.monthlyTrend || [];
+  const zonePerformanceData = data?.zonePerformance || [];
 
-  // Monthly trend data
-  const monthlyTrendData = [
-    { month: 'Jan', value: 18000 },
-    { month: 'Feb', value: 20000 },
-    { month: 'Mar', value: 19000 },
-    { month: 'Apr', value: 25000 },
-    { month: 'May', value: 22000 },
-    { month: 'Jun', value: 27000 }
-  ];
+  const aiInsights = (data?.insights || []).map(insight => ({
+    ...insight,
+    color: INSIGHT_CONFIG[insight.type]?.color || 'blue',
+    icon: INSIGHT_CONFIG[insight.type]?.icon || Activity,
+  }));
 
-  // Zone performance data
-  const zonePerformanceData = [
-    { zone: 'Zone A', demand: 95 },
-    { zone: 'Zone B', demand: 75 },
-    { zone: 'Zone C', demand: 85 },
-    { zone: 'Zone D', demand: 60 },
-    { zone: 'Zone E', demand: 70 }
-  ];
-
-  // AI-Generated insights
-  const aiInsights = [
-    {
-      type: 'alert',
-      priority: 'HIGH',
-      title: 'High Demand Alert',
-      description: 'Saturday expected to have 18% higher demand than usual. Recommend allocating 3 additional tankers.',
-      accuracy: '95%',
-      color: 'red',
-      icon: AlertTriangle
-    },
-    {
-      type: 'optimization',
-      priority: 'MEDIUM',
-      title: 'Route Optimization',
-      description: 'Zone C shows clustering patterns. Consolidating deliveries could reduce costs by 12%.',
-      accuracy: '87%',
-      color: 'yellow',
-      icon: Target
-    },
-    {
-      type: 'trend',
-      priority: 'LOW',
-      title: 'Growth Trend Detected',
-      description: 'Month-over-month demand increasing by 15%. Consider fleet expansion for Q3.',
-      accuracy: '92%',
-      color: 'green',
-      icon: Activity
-    }
-  ];
-
-  // Bottom metrics
-  const bottomMetrics = [
+  const bottomMetrics = data ? [
     {
       title: 'Forecast Accuracy',
-      value: '94.2%',
-      change: '+3.1% this month',
+      value: `${data.modelMetrics.forecastAccuracy.value}%`,
+      change: `+${data.modelMetrics.forecastAccuracy.change}% this month`,
       color: 'green',
       icon: Target
     },
     {
       title: 'Model Confidence',
-      value: '91.7%',
-      subtitle: 'High reliability',
+      value: `${data.modelMetrics.modelConfidence.value}%`,
+      subtitle: `${data.modelMetrics.modelConfidence.reliability.charAt(0).toUpperCase() + data.modelMetrics.modelConfidence.reliability.slice(1)} reliability`,
       color: 'blue',
       icon: Activity
     },
     {
       title: 'Data Points Analyzed',
-      value: '128K',
-      subtitle: 'Last updated',
+      value: data.modelMetrics.dataPointsAnalyzed.value >= 1000
+        ? `${(data.modelMetrics.dataPointsAnalyzed.value / 1000).toFixed(0)}K`
+        : data.modelMetrics.dataPointsAnalyzed.value.toString(),
+      subtitle: `Last updated`,
       color: 'purple',
       icon: Brain
     }
-  ];
+  ] : [];
 
   const CustomTooltip = ({ active, payload }) => {
     if (active && payload && payload.length) {
@@ -185,6 +200,29 @@ const DemandForecasting = () => {
           <span>AI Model Active</span>
         </button>
       </div>
+
+      {/* Loading State */}
+      {loading && (
+        <div className="df-loading">
+          <Loader2 className="df-spinner" />
+          <p>Loading forecast data...</p>
+        </div>
+      )}
+
+      {/* Error State */}
+      {error && !loading && (
+        <div className="df-error">
+          <AlertTriangle className="df-error-icon" />
+          <p>{error}</p>
+          <button className="df-retry-btn" onClick={handleRetry}>
+            Retry
+          </button>
+        </div>
+      )}
+
+      {/* Data Content */}
+      {data && !loading && (
+        <>
 
       {/* Summary Metrics */}
       <div className="summary-metrics">
@@ -312,11 +350,11 @@ const DemandForecasting = () => {
             <h2 className="chart-title">Monthly Demand Trend</h2>
             <p className="chart-subtitle">Historical and projected growth analysis</p>
           </div>
-          <button className="time-range-btn">
+          <button className="time-range-btn" onClick={handleTimeRangeChange}>
             <svg className="calendar-icon" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
             </svg>
-            {selectedTimeRange}
+            {timeRangeLabel}
           </button>
         </div>
         <ResponsiveContainer width="100%" height={300}>
@@ -385,7 +423,7 @@ const DemandForecasting = () => {
                     <svg className="star-icon" fill="currentColor" viewBox="0 0 20 20">
                       <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
                     </svg>
-                    <span>Accuracy: {insight.accuracy}</span>
+                    <span>Accuracy: {insight.accuracy}%</span>
                   </div>
                   <button className="view-details-btn">
                     View Details
@@ -423,6 +461,8 @@ const DemandForecasting = () => {
           );
         })}
       </div>
+      </>
+      )}
     </div>
   );
 };

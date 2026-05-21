@@ -81,7 +81,7 @@ const adminApi = {
 
   // DELETE /api/admin/drivers/:id
   deleteDriver: (id) =>
-    api.delete(`/admin/drivers/${id}`),
+    api.delete(`/drivers/${id}`),
 
 
   // ════════════════════════════════════════════════════════════════════════════
@@ -206,10 +206,10 @@ const adminApi = {
   getDriverAnalytics: (params = {}) =>
     api.get("/admin/analytics/drivers", { params }),
 
-  // GET /api/admin/analytics/forecast
-  // Returns AI demand forecast
-  getDemandForecast: (params = {}) =>
-    api.get("/admin/analytics/forecast", { params }),
+  // GET /demand-forecasting/dashboard
+  // Returns AI demand forecast dashboard data
+  getDemandForecast: (params = {}, config = {}) =>
+    api.get("/demand-forecasting/dashboard", { params, timeout: 30000, ...config }),
 
 
   // ════════════════════════════════════════════════════════════════════════════
