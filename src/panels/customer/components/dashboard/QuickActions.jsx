@@ -1,6 +1,10 @@
 import { DropIcon, TruckIcon, DollarIcon, SubscriptionIcon } from "../icons/Icons";
+import { useNavigate } from "react-router-dom";
+import { useTenant } from "../../../../shared/context/TenantContext";
 
 export default function QuickActions() {
+  const navigate = useNavigate();
+  const { tenantId } = useTenant();
   return (
     <div style={styles.card}>
       <style>{`
@@ -51,15 +55,15 @@ export default function QuickActions() {
 
       {/* Buttons */}
       <div style={styles.buttons}>
-        <button style={styles.primary} className="qa-primary-btn">
+        <button style={styles.primary} className="qa-primary-btn" onClick={() => navigate(`/${tenantId}/customer/order-water`)}>
           <DropIcon stroke="white" />
           Order Water Now
         </button>
-        <button style={styles.secondary} className="qa-secondary-btn">
+        <button style={styles.secondary} className="qa-secondary-btn" onClick={() => navigate(`/${tenantId}/customer/live-tracking`)}>
           <TruckIcon stroke="currentColor" />
           Track Delivery
         </button>
-        <button style={styles.secondary} className="qa-secondary-btn">
+        <button style={styles.secondary} className="qa-secondary-btn" onClick={() => navigate(`/${tenantId}/customer/payments`)}>
           <DollarIcon stroke="currentColor" />
           View Payments
         </button>

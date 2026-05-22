@@ -235,7 +235,7 @@ const Earnings = () => {
         <header className="earn-header">
           <div className="earn-header-left">
             <p className="earn-header-eyebrow">Overview</p>
-            <h1 className="earn-header-title">Earnings &amp; Performance</h1>
+            <h1 className="earn-header-title">Collection &amp; Performance</h1>
             <p className="earn-header-sub">Track your income and delivery statistics</p>
           </div>
           <div className="earn-header-right">
@@ -282,7 +282,7 @@ const Earnings = () => {
               </svg>
             </div>
             <div className="earn-stat-body">
-              <p className="earn-stat-label">Total Earnings</p>
+              <p className="earn-stat-label">Total Collected</p>
               <h3 className="earn-stat-value" style={{ fontSize: 22 }}>PKR {totalEarnings.toLocaleString()}</h3>
               <p className="earn-stat-sub">{filter.toLowerCase()}</p>
             </div>
@@ -461,17 +461,17 @@ const Earnings = () => {
               )}
             </div>
 
-            {/* Earnings Summary Card */}
+            {/* Collection Summary Card */}
             <div className="earn-summary-card">
               <div className="earn-summary-header">
                 <svg width="18" height="18" fill="none" viewBox="0 0 24 24">
                   <path d="M12 20h9M16.5 3.5a2.121 2.121 0 013 3L7 19l-4 1 1-4L16.5 3.5z" stroke="#fff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
                 </svg>
-                <span>Earnings Summary</span>
+                <span>Collection Summary</span>
               </div>
               <div className="earn-summary-rows">
                 <div className="earn-summary-row">
-                  <span>Total Earned</span>
+                  <span>Total Collected</span>
                   <strong>PKR {totalEarnings.toLocaleString()}</strong>
                 </div>
                 <div className="earn-summary-row">

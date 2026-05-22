@@ -54,7 +54,7 @@ const normalizeOrder = (o) => {
         .filter(Boolean)
         .join(', ') || '—',
     quantity:  totalQty != null ? `${totalQty} unit${totalQty !== 1 ? 's' : ''}` : '—',
-    amount:    o.totalAmount != null ? `$${Number(o.totalAmount).toFixed(2)}` : '—',
+    amount:    o.totalAmount != null ? `${Number(o.totalAmount).toFixed(2)}` : '—',
     date:      validDate ? date.toISOString().split('T')[0] : '—',
     time:      validDate
       ? date.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })

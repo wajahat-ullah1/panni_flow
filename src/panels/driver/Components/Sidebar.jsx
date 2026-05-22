@@ -55,7 +55,7 @@ const Sidebar = ({ onLogout }) => {
     },
     {
       id: 'earnings',
-      label: 'Earnings',
+      label: 'Collected Payments',
       icon: (
         <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
           <circle cx="10" cy="10" r="7" stroke="currentColor" strokeWidth="1.5"/>

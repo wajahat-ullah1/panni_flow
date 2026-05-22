@@ -423,7 +423,7 @@ export default function PaymentsPage() {
             iconBg="linear-gradient(135deg,#10b981,#059669)"
             icon={<GreenDollarIcon />}
             label="Total Paid"
-            value={`$${totals.totalPaid.toFixed(2)}`}
+            value={`${totals.totalPaid.toFixed(2)}`}
             sub="All time"
             subColor="#10b981"
           />
@@ -438,7 +438,7 @@ export default function PaymentsPage() {
             iconBg="linear-gradient(135deg,#f59e0b,#d97706)"
             icon={<PendingIcon />}
             label="Pending Amount"
-            value={`$${totals.pendingAmount.toFixed(2)}`}
+            value={`${totals.pendingAmount.toFixed(2)}`}
             sub={totals.pendingCount === 0 ? "No pending payments" : `${totals.pendingCount} pending`}
           />
         </div>

@@ -90,7 +90,7 @@ const AdminDashboard = () => {
       },
       {
         title: 'Revenue (Month)',
-        value: `$${monthlyRevenue.value.toFixed(2)}`,
+        value: `${monthlyRevenue.value.toFixed(1)}`,
         change: revenueChange !== undefined
           ? `${revenueChange > 0 ? '+' : ''}${revenueChange}%`
           : null,
