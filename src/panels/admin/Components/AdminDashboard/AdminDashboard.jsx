@@ -274,7 +274,7 @@ const AdminDashboard = () => {
           </div>
 
           {/* Demand Forecast */}
-          <div className="chart-card">
+          {/* <div className="chart-card">
             <div className="chart-header">
               <div>
                 <h3 className="chart-title">Demand Forecast</h3>
@@ -320,13 +320,8 @@ const AdminDashboard = () => {
                 </BarChart>
               </ResponsiveContainer>
             )}
-          </div>
-        </div>
+          </div> */}
 
-        {/* Recent Orders and Alerts */}
-        <div className="bottom-section">
-
-          {/* Recent Orders */}
           <div className="recent-orders-card">
             <h3 className="section-title">Recent Orders</h3>
             <div className="orders-list">
@@ -358,6 +353,43 @@ const AdminDashboard = () => {
                   ))}
             </div>
           </div>
+        </div>
+
+        {/* Recent Orders and Alerts */}
+        <div className="bottom-section">
+
+          {/* Recent Orders */}
+          {/* <div className="recent-orders-card">
+            <h3 className="section-title">Recent Orders</h3>
+            <div className="orders-list">
+              {loading
+                ? Array.from({ length: 4 }).map((_, i) => (
+                    <div key={i} className="order-item order-item--loading" />
+                  ))
+                : recentOrders.map((order, index) => (
+                    <div key={index} className="order-item">
+                      <div className="order-icon">
+                        <Droplet size={20} color="#1a56f0" />
+                      </div>
+                      <div className="order-details">
+                        <p className="order-company">{order.company}</p>
+                        <p className="order-info">
+                          {order.id}{order.quantity ? ` · ${order.quantity}` : ''}
+                        </p>
+                      </div>
+                      <div
+                        className="status-badge"
+                        style={{
+                          backgroundColor: `${order.statusColor}18`,
+                          color: order.statusColor,
+                        }}
+                      >
+                        {order.status}
+                      </div>
+                    </div>
+                  ))}
+            </div>
+          </div> */}
 
           {/* Alerts & Notifications */}
           <div className="alerts-card">

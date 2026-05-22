@@ -40,6 +40,7 @@ const API_STATUS_TO_UI = {
 // ── Map a Driver object from the API to a local table row ─────────────────────
 const toRow = (d) => ({
   id:     d.licenseNumber,
+  _id:    d._id,
   name:   d.name,
   phone:  d.phone,
   zone:   d.assignedAreas?.[0] ?? '—',
@@ -193,7 +194,7 @@ const AddDriver = () => {
     setDeleteConfirm(null);
     try {
       await adminApi.deleteDriver(id);
-      setDrivers(d => d.filter(dr => dr.id !== id));
+      setDrivers(d => d.filter(dr => dr._id !== id));
       showToast('success', 'Driver account removed.');
     } catch {
       showToast('error', 'Failed to remove driver. Please try again.');
@@ -481,7 +482,9 @@ const AddDriver = () => {
                         <td>
                           <button
                             className="ad-delete-btn"
-                            onClick={() => setDeleteConfirm(d.id)}
+                            onClick={() => {
+                              console.log('Delete driver with id:', d);
+                              setDeleteConfirm(d._id)}}
                             title="Remove driver">
                             <X size={14} />
                           </button>
