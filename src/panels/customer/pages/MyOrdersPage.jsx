@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import customerApi from "../../../shared/api/customerApi";
 
@@ -47,6 +47,8 @@ function normalizeOrder(o) {
     driver: o?.assignedDriverId?.name || "—",
     eta:    o.estimatedDelivery || o.eta || null,
     total:  o.totalAmount ?? o.total ?? o.amount ?? 0,
+    rawOrder: o,
+    onReorder: o.onReorder,
   };
 }
 
@@ -132,9 +134,8 @@ function StatusBadge({ status }) {
   );
 }
 
-function OrderCard({ order, onTrack }) {
+function OrderCard({ order, isReordering, onRequestConfirm }) {
   const navigate = useNavigate();
-  console.log("Rendering OrderCard for order:", order);
   const isActive = ["Assigned", "Out for Delivery"].includes(order.status);
   const isDelivered = order.status === "Delivered";
   const isCancelled = order.status === "Cancelled";
@@ -212,17 +213,22 @@ function OrderCard({ order, onTrack }) {
           )}
 
           {/* Reorder always shown */}
-          <button style={{
-            padding: "7px 14px",
-            borderRadius: 8,
-            border: "1px solid #e2e8f0",
-            background: "white",
-            color: "#475569",
-            fontSize: 12.5,
-            fontWeight: 500,
-            cursor: "pointer",
-          }}>
-            Reorder
+          <button
+            onClick={() => onRequestConfirm(order)}
+            disabled={isReordering}
+            style={{
+              padding: "7px 14px",
+              borderRadius: 8,
+              border: "1px solid #e2e8f0",
+              background: isReordering ? "#f8fafc" : "white",
+              color: isReordering ? "#94a3b8" : "#475569",
+              fontSize: 12.5,
+              fontWeight: 500,
+              cursor: isReordering ? "not-allowed" : "pointer",
+              opacity: isReordering ? 0.7 : 1,
+            }}
+          >
+            {isReordering ? "Reordering…" : "Reorder"}
           </button>
 
           {isDelivered && (
@@ -289,6 +295,11 @@ export default function MyOrdersPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [stats, setStats] = useState(null);
+  const [reorderingOrderId, setReorderingOrderId] = useState(null);
+  const [reorderError, setReorderError] = useState(null);
+  const [reorderMessage, setReorderMessage] = useState(null);
+  const [confirmOrder, setConfirmOrder] = useState(null);
+  const [reloadKey, setReloadKey] = useState(0);
 
   const FILTERS = ["All", "Active", "Delivered", "Cancelled"];
 
@@ -299,6 +310,61 @@ export default function MyOrdersPage() {
         return setStats(res.data ?? null)
       })
       .catch(() => {});
+  }, []);
+
+  const handleReorder = useCallback(async (order) => {
+    if (!order || !order.rawOrder) return;
+
+    const payload = {
+      customerId: order.rawOrder.customerId?._id || order.rawOrder.customerId || "",
+      customerName: order.rawOrder.customerName || "",
+      customerPhone: order.rawOrder.customerPhone || "",
+      deliveryAddress: {
+        label: order.rawOrder.deliveryAddress?.label || "",
+        street: order.rawOrder.deliveryAddress?.street || "",
+        landmark: order.rawOrder.deliveryAddress?.landmark || "",
+        city: order.rawOrder.deliveryAddress?.city || "",
+        state: order.rawOrder.deliveryAddress?.state || "",
+        postalCode: order.rawOrder.deliveryAddress?.postalCode || "",
+        coordinates: order.rawOrder.deliveryAddress?.coordinates || {},
+      },
+      items: (order.rawOrder.items || []).map((item) => ({
+        productId: item.productId?._id || item.productId,
+        productName: item.productName || item.name || "",
+        quantity: item.quantity,
+        unitPrice: item.unitPrice,
+      })),
+      paymentMethod: order.rawOrder.paymentMethod || "cod",
+      notes: order.rawOrder.notes || "",
+      scheduledDate: order.rawOrder.scheduledDate,
+      scheduledTimeSlot: order.rawOrder.scheduledTimeSlot,
+    };
+
+    if (!payload.customerId || payload.items.length === 0) {
+      setReorderError("Unable to create reorder from this order. Missing required order details.");
+      return;
+    }
+
+    setReorderError(null);
+    setReorderMessage(null);
+    setReorderingOrderId(order._id);
+
+    try {
+      const response = await customerApi.placeOrder(payload);
+      setReorderMessage(
+        response?.orderNumber
+          ? `Reorder placed successfully! New order: ${response.orderNumber}`
+          : "Reorder placed successfully!"
+      );
+    } catch (err) {
+      console.error("Reorder failed", err);
+      setReorderError(
+        err?.response?.data?.message || err?.message || "Failed to place reorder. Please try again."
+      );
+    } finally {
+      setReorderingOrderId(null);
+      setReloadKey(prev => prev + 1);
+    }
   }, []);
 
   // Fetch orders on filter/search change (debounce search input)
@@ -314,14 +380,14 @@ export default function MyOrdersPage() {
       customerApi.getOrders(params)
         .then(res => {
           const list = res.data?.data ?? [];
-          setOrders(list.map(normalizeOrder));
+          setOrders(list.map(o => normalizeOrder({ ...o, onReorder: handleReorder })));
         })
         .catch(() => setError("Failed to load orders"))
         .finally(() => setLoading(false));
     }, searchQuery ? 400 : 0);
 
     return () => clearTimeout(timer);
-  }, [activeFilter, searchQuery]);
+  }, [activeFilter, searchQuery, handleReorder, reloadKey]);
 
   // "Active" tab is filtered client-side (pending + on_the_way + assigned)
   const filtered = activeFilter === "Active"
@@ -378,9 +444,62 @@ export default function MyOrdersPage() {
           <div style={styles.empty}>No orders found.</div>
         )}
         {!loading && !error && filtered.map(order => (
-          <OrderCard key={order._id} order={order} />
+          <OrderCard
+            key={order._id}
+            order={order}
+            isReordering={reorderingOrderId === order._id}
+            onRequestConfirm={setConfirmOrder}
+          />
         ))}
       </div>
+
+      {(reorderError || reorderMessage) && (
+        <div style={{
+          marginTop: 10,
+          padding: "14px 18px",
+          borderRadius: 14,
+          border: "1px solid",
+          borderColor: reorderError ? "#f87171" : "#34d399",
+          background: reorderError ? "#fef2f2" : "#ecfdf5",
+          color: reorderError ? "#b91c1c" : "#065f46",
+          fontSize: 14,
+        }}>
+          {reorderError || reorderMessage}
+        </div>
+      )}
+
+      {confirmOrder && (
+        <>
+          <div style={styles.modalOverlay} onClick={() => setConfirmOrder(null)} />
+          <div style={styles.modalWrapper}>
+            <div style={styles.modalBox}>
+              <div style={styles.modalHeader}>Confirm Reorder</div>
+              <div style={styles.modalBody}>
+                <p style={styles.modalText}>
+                  Reorder <strong>{confirmOrder.id}</strong> with the same items and delivery address?
+                </p>
+              </div>
+              <div style={styles.modalFooter}>
+                <button
+                  style={styles.modalCancelBtn}
+                  onClick={() => setConfirmOrder(null)}
+                >
+                  Cancel
+                </button>
+                <button
+                  style={styles.modalConfirmBtn}
+                  onClick={async () => {
+                    await handleReorder(confirmOrder);
+                    setConfirmOrder(null);
+                  }}
+                >
+                  Confirm Reorder
+                </button>
+              </div>
+            </div>
+          </div>
+        </>
+      )}
 
       {/* Summary cards */}
       <div style={styles.summaryRow}>
@@ -507,5 +626,70 @@ const styles = {
     display: "flex",
     gap: 16,
     flexWrap: "wrap",
+  },
+  modalOverlay: {
+    position: "fixed",
+    inset: 0,
+    background: "rgba(15, 23, 42, 0.35)",
+    zIndex: 99,
+  },
+  modalWrapper: {
+    position: "fixed",
+    inset: 0,
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    padding: 20,
+    zIndex: 100,
+    pointerEvents: "none",
+  },
+  modalBox: {
+    width: "100%",
+    maxWidth: 420,
+    background: "white",
+    borderRadius: 18,
+    boxShadow: "0 24px 60px rgba(15, 23, 42, 0.18)",
+    padding: 24,
+    pointerEvents: "auto",
+  },
+  modalHeader: {
+    fontSize: 18,
+    fontWeight: 700,
+    color: "#0f172a",
+    marginBottom: 14,
+  },
+  modalBody: {
+    marginBottom: 22,
+  },
+  modalText: {
+    fontSize: 14,
+    color: "#475569",
+    lineHeight: 1.6,
+    margin: 0,
+  },
+  modalFooter: {
+    display: "flex",
+    justifyContent: "flex-end",
+    gap: 10,
+  },
+  modalCancelBtn: {
+    padding: "10px 16px",
+    borderRadius: 10,
+    border: "1px solid #cbd5e1",
+    background: "white",
+    color: "#475569",
+    fontSize: 13,
+    fontWeight: 600,
+    cursor: "pointer",
+  },
+  modalConfirmBtn: {
+    padding: "10px 16px",
+    borderRadius: 10,
+    border: "none",
+    background: "#0ea5e9",
+    color: "white",
+    fontSize: 13,
+    fontWeight: 600,
+    cursor: "pointer",
   },
 };

@@ -476,9 +476,16 @@ function AddressCard({ label, isDefault, address, city, phone, onEdit, onDelete,
         </div>
       </div>
       <div style={addrStyles.actions}>
-        {!isDefault ? (
-          <button style={addrStyles.defaultBtn} onClick={onSetDefault}>Set Default</button>
-        ) : null}
+        <button
+          style={{
+            ...addrStyles.defaultBtn,
+            ...(isDefault ? addrStyles.defaultBtnActive : {}),
+          }}
+          onClick={onSetDefault}
+          disabled={isDefault}
+        >
+          {isDefault ? "Default Address" : "Set Default"}
+        </button>
         <button style={addrStyles.editBtn} onClick={onEdit}><EditIcon /></button>
         <button style={addrStyles.deleteBtn} onClick={onDelete}><TrashIcon /></button>
       </div>
@@ -894,6 +901,7 @@ export default function ProfilePage() {
               <div>
                 <div style={styles.cardTitle}>Saved Addresses</div>
                 <div style={styles.cardSubtitle}>Manage your delivery locations</div>
+                <div style={styles.cardHint}>Your default address is used at checkout unless you choose another one.</div>
               </div>
               <button style={styles.addAddressBtn} onClick={handleAddAddressClick}>
                 <PlusIcon /> Add Address
@@ -950,7 +958,10 @@ export default function ProfilePage() {
 
                 {/* Map Pin Picker */}
                 <div style={{ ...styles.fieldGroup, marginBottom: 20 }}>
-                  <label style={styles.label}>Delivery Location Pin </label>
+                  <div style={styles.addressEditorLabelRow}>
+                    <label style={styles.label}>Delivery Location Pin</label>
+                    <span style={styles.optionalTag}>Optional</span>
+                  </div>
                   <MapPinPicker
                     value={addressDraft.lat != null ? { lat: addressDraft.lat, lng: addressDraft.lng } : null}
                     onChange={(pos) => setAddressDraft((prev) => ({
@@ -959,6 +970,10 @@ export default function ProfilePage() {
                       lng: pos?.lng ?? null,
                     }))}
                   />
+                  <div style={styles.mapFieldHint}>
+                    Pin your exact delivery location to help the driver find you faster.
+                    You can use your current location or drag the pin on the map.
+                  </div>
                 </div>
 
                 {addressError && (
@@ -1155,6 +1170,68 @@ const styles = {
     fontSize: 13,
     fontWeight: 600,
     cursor: "pointer",
+  },
+  cardHint: {
+    marginTop: 6,
+    fontSize: 12,
+    color: "#64748b",
+    lineHeight: 1.5,
+    maxWidth: 420,
+  },
+  addressEditorCard: {
+    background: "#f8fbff",
+    border: "1px solid #dbeafe",
+    borderRadius: 14,
+    padding: 18,
+    marginBottom: 20,
+  },
+  addressEditorTitle: {
+    fontSize: 14,
+    fontWeight: 700,
+    color: "#0f172a",
+    marginBottom: 14,
+  },
+  addressGrid: {
+    display: "grid",
+    gridTemplateColumns: "1fr 1fr",
+    gap: 12,
+  },
+  addressInput: {
+    width: "100%",
+    padding: "11px 14px",
+    border: "1px solid #cbd5e1",
+    borderRadius: 10,
+    fontSize: 13.5,
+    color: "#0f172a",
+    background: "white",
+    outline: "none",
+    boxSizing: "border-box",
+  },
+  addressEditorActions: {
+    display: "flex",
+    justifyContent: "flex-end",
+    gap: 10,
+    marginTop: 8,
+  },
+  addressEditorLabelRow: {
+    display: "flex",
+    alignItems: "center",
+    gap: 10,
+    marginBottom: 8,
+  },
+  optionalTag: {
+    fontSize: 12,
+    fontWeight: 700,
+    color: "#475569",
+    background: "#e2e8f0",
+    borderRadius: 999,
+    padding: "4px 10px",
+  },
+  mapFieldHint: {
+    marginTop: 10,
+    fontSize: 12,
+    color: "#64748b",
+    lineHeight: 1.5,
   },
 
   // Avatar

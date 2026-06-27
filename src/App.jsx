@@ -5,6 +5,7 @@ import PanniFlowLanding   from "./pages/PanniFlowLanding";
 import LoginPage          from "./pages/LoginPage";
 import SignUpPage         from "./pages/SignUpPage";
 import InvalidTenantPage  from "./pages/InvalidTenantPage";
+import ResetPasswordPage from "./pages/ResetPasswordPage";
 
 // ── Panel apps ────────────────────────────────────────────────────────────────
 import CustomerApp    from "./panels/customer/CustomerApp.jsx";
@@ -93,6 +94,7 @@ export default function App() {
         <Route path="login"        element={<LoginPage />} />
         <Route path="register"     element={<SignUpPage />} />
         <Route path="admin/login"  element={<AdminLoginPage />} />
+        <Route path="reset-password" element={<ResetPasswordPage />} />
 
         {/* ── Customer Panel (/:tenantId/customer/*) ────────────────────── */}
         <Route

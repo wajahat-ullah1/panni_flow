@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import OrderRow from "./OrderRow";
 import { ChevronRight } from "../icons/Icons";
@@ -11,18 +11,82 @@ export default function RecentOrders() {
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [confirmOrder, setConfirmOrder] = useState(null);
+  const [reorderingOrderId, setReorderingOrderId] = useState(null);
+  const [reorderError, setReorderError] = useState(null);
+  const [reorderMessage, setReorderMessage] = useState(null);
+  const [reloadKey, setReloadKey] = useState(0);
 
-  useEffect(() => {
+  const loadOrders = useCallback(() => {
     setLoading(true);
+    setError(null);
     customerApi
       .getOrders({ page: 1, limit: 5, sort: "createdAt" })
       .then((res) => {
-        console.log("API response for recent orders:", res);
         const list = res.data?.data ?? [];
         setOrders(list);
       })
       .catch(() => setError("Failed to load orders"))
       .finally(() => setLoading(false));
+  }, []);
+
+  useEffect(() => {
+    loadOrders();
+  }, [loadOrders, reloadKey]);
+
+  const handleReorder = useCallback(async (order) => {
+    if (!order) return;
+
+    const payload = {
+      customerId: order.customerId?._id || order.customerId || "",
+      customerName: order.customerName || "",
+      customerPhone: order.customerPhone || "",
+      deliveryAddress: {
+        label: order.deliveryAddress?.label || "",
+        street: order.deliveryAddress?.street || "",
+        landmark: order.deliveryAddress?.landmark || "",
+        city: order.deliveryAddress?.city || "",
+        state: order.deliveryAddress?.state || "",
+        postalCode: order.deliveryAddress?.postalCode || "",
+        coordinates: order.deliveryAddress?.coordinates || {},
+      },
+      items: (order.items || []).map((item) => ({
+        productId: item.productId?._id || item.productId,
+        productName: item.productName || item.name || "",
+        quantity: item.quantity,
+        unitPrice: item.unitPrice,
+      })),
+      paymentMethod: order.paymentMethod || "cod",
+      notes: order.notes || "",
+      scheduledDate: order.scheduledDate,
+      scheduledTimeSlot: order.scheduledTimeSlot,
+    };
+
+    if (!payload.customerId || payload.items.length === 0) {
+      setReorderError("Unable to create reorder from this order. Missing required order details.");
+      return;
+    }
+
+    setReorderError(null);
+    setReorderMessage(null);
+    setReorderingOrderId(order._id || order.id);
+
+    try {
+      const response = await customerApi.placeOrder(payload);
+      setReorderMessage(
+        response?.orderNumber
+          ? `Reorder placed successfully! New order: ${response.orderNumber}`
+          : "Reorder placed successfully!"
+      );
+      setReloadKey((prev) => prev + 1);
+    } catch (err) {
+      setReorderError(
+        err?.response?.data?.message || err?.message || "Failed to place reorder. Please try again."
+      );
+    } finally {
+      setReorderingOrderId(null);
+      setConfirmOrder(null);
+    }
   }, []);
 
   return (
@@ -101,9 +165,37 @@ export default function RecentOrders() {
             key={order._id || order.id}
             style={{ animation: `roFadeUp 0.35s ${i * 60}ms ease both` }}
           >
-            <OrderRow order={order} />
+            <OrderRow
+              order={order}
+              isReordering={reorderingOrderId === (order._id || order.id)}
+              onRequestConfirm={setConfirmOrder}
+            />
           </div>
         ))}
+
+        {confirmOrder && (
+          <div>
+            <div style={styles.modalOverlay} onClick={() => setConfirmOrder(null)} />
+            <div style={styles.modalWrapper}>
+              <div style={styles.modalBox}>
+                <div style={styles.modalHeader}>Confirm Reorder</div>
+                <div style={styles.modalBody}>
+                  <p style={styles.modalText}>
+                    Reorder <strong>{confirmOrder.orderNumber || confirmOrder._id || confirmOrder.id}</strong> with the same items and delivery address?
+                  </p>
+                </div>
+                <div style={styles.modalFooter}>
+                  <button style={styles.modalCancelBtn} onClick={() => setConfirmOrder(null)}>
+                    Cancel
+                  </button>
+                  <button style={styles.modalConfirmBtn} onClick={() => handleReorder(confirmOrder)}>
+                    Confirm Reorder
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );
@@ -170,5 +262,70 @@ const styles = {
     color: "#ef4444",
     fontSize: 13,
     fontWeight: 600,
+  },
+  modalOverlay: {
+    position: "fixed",
+    inset: 0,
+    background: "rgba(15, 23, 42, 0.35)",
+    zIndex: 99,
+  },
+  modalWrapper: {
+    position: "fixed",
+    inset: 0,
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    padding: 20,
+    zIndex: 100,
+    pointerEvents: "none",
+  },
+  modalBox: {
+    width: "100%",
+    maxWidth: 420,
+    background: "white",
+    borderRadius: 18,
+    boxShadow: "0 24px 60px rgba(15, 23, 42, 0.18)",
+    padding: 24,
+    pointerEvents: "auto",
+  },
+  modalHeader: {
+    fontSize: 18,
+    fontWeight: 700,
+    color: "#0f172a",
+    marginBottom: 14,
+  },
+  modalBody: {
+    marginBottom: 22,
+  },
+  modalText: {
+    fontSize: 14,
+    color: "#475569",
+    lineHeight: 1.6,
+    margin: 0,
+  },
+  modalFooter: {
+    display: "flex",
+    justifyContent: "flex-end",
+    gap: 10,
+  },
+  modalCancelBtn: {
+    padding: "10px 16px",
+    borderRadius: 10,
+    border: "1px solid #cbd5e1",
+    background: "white",
+    color: "#475569",
+    fontSize: 13,
+    fontWeight: 600,
+    cursor: "pointer",
+  },
+  modalConfirmBtn: {
+    padding: "10px 16px",
+    borderRadius: 10,
+    border: "none",
+    background: "#0ea5e9",
+    color: "white",
+    fontSize: 13,
+    fontWeight: 600,
+    cursor: "pointer",
   },
 };

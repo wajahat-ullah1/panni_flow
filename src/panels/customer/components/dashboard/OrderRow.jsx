@@ -8,7 +8,7 @@ const STATUS_STYLES = {
   assigned:     { bg: "rgba(168,85,247,0.1)", color: "#7c3aed", dot: "#a855f7" },
 };
 
-export default function OrderRow({ order }) {
+export default function OrderRow({ order, isReordering, onRequestConfirm }) {
   const id = order.orderNumber || order._id || order.id || "—";
   const qty = order.items
     ? order.items.map((i) => `${i.quantity} × ${i.productName || i.name || "item"}`).join(", ")
@@ -59,7 +59,20 @@ export default function OrderRow({ order }) {
         {statusLabel}
       </span>
 
-      <button style={styles.reorderBtn} className="reorder-btn">Reorder</button>
+      <button
+        style={{
+          ...styles.reorderBtn,
+          background: isReordering ? "#f8fafc" : "white",
+          color: isReordering ? "#94a3b8" : "#475569",
+          cursor: isReordering ? "not-allowed" : "pointer",
+          opacity: isReordering ? 0.7 : 1,
+        }}
+        className="reorder-btn"
+        onClick={() => onRequestConfirm?.(order)}
+        disabled={isReordering}
+      >
+        {isReordering ? "Reordering…" : "Reorder"}
+      </button>
     </div>
   );
 }

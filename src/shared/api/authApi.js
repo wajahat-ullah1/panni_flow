@@ -49,15 +49,17 @@ const authApi = {
   // ── Forgot password ─────────────────────────────────────────────────────────
   // POST /api/auth/forgot-password
   // Body: { email }
-  forgotPassword: (email) =>
-    api.post("/auth/forgot-password", { email }),
+  forgotPassword: (payload) => {
+    const email = typeof payload === 'string' ? payload : payload?.email;
+    return api.post("/auth/forgot-password", { email });
+  },
 
 
   // ── Reset password ──────────────────────────────────────────────────────────
-  // POST /api/auth/reset-password/:token
-  // Body: { password }
-  resetPassword: (token, password) =>
-    api.post(`/auth/reset-password/${token}`, { password }),
+  // POST /api/auth/reset-password
+  // Body: { token, newPassword }
+  resetPassword: (data) =>
+    api.post(`/auth/reset-password`, data),
 
 
   // ── Refresh JWT token ───────────────────────────────────────────────────────
